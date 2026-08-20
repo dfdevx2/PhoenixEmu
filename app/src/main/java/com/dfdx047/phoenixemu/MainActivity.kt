@@ -8,7 +8,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -26,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -40,6 +43,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.absoluteValue
 import com.dfdx047.phoenixemu.ui.theme.PhoenixEmuTheme
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 enum class TemaApp {
     DINAMICO, CLARO, ESCURO, AMOLED, NES_US, NES_JP, SNES_US, SNES_JP
@@ -58,90 +64,82 @@ fun obterNomeDoTema(tema: TemaApp): String {
     }
 }
 
-data class Jogo(val nome: String, val extensao: String, val uri: Uri)
+data class Jogo(
+    val nome: String,
+    val extensao: String,
+    val uri: Uri,
+    var isFavorito: Boolean = false,
+    var ultimaVezJogado: Long = 0L,
+    var tempoJogadoMinutos: Int = 0
+)
 
 class MainActivity : ComponentActivity() {
-
     private lateinit var audioEngine: AudioEngine
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         audioEngine = AudioEngine(this)
-
         setContent {
             var temaAtual by remember { mutableStateOf(TemaApp.DINAMICO) }
-
             PhoenixEmuTheme(temaAtual = temaAtual) {
-                PhoenixApp(
-                    audioEngine = audioEngine,
-                    temaAtual = temaAtual,
-                    onMudarTema = { novoTema -> temaAtual = novoTema }
-                )
+                PhoenixApp(audioEngine, temaAtual) { novoTema -> temaAtual = novoTema }
             }
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        audioEngine.playBgm()
-    }
-
-    override fun onPause() {
-        super.onPause()
-        audioEngine.pauseBgm()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        audioEngine.release()
-    }
+    override fun onResume() { super.onResume(); audioEngine.playBgm() }
+    override fun onPause() { super.onPause(); audioEngine.pauseBgm() }
+    override fun onDestroy() { super.onDestroy(); audioEngine.release() }
 }
 
 enum class ModoVisual { GRADE, XMB }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PhoenixApp(
-    audioEngine: AudioEngine,
-    temaAtual: TemaApp,
-    onMudarTema: (TemaApp) -> Unit
-) {
+fun PhoenixApp(audioEngine: AudioEngine, temaAtual: TemaApp, onMudarTema: (TemaApp) -> Unit) {
     val context = LocalContext.current
-    val abas = listOf(
-        stringResource(id = R.string.tab_nes),
-        stringResource(id = R.string.tab_snes)
-    )
+    val abas = listOf(stringResource(id = R.string.tab_nes), stringResource(id = R.string.tab_snes))
 
     val pagerState = rememberPagerState(pageCount = { abas.size })
     val coroutineScope = rememberCoroutineScope()
     var modoVisual by remember { mutableStateOf(ModoVisual.GRADE) }
     var primeiroCarregamento by remember { mutableStateOf(true) }
 
-    var bibliotecaDeJogos by remember { mutableStateOf<List<Jogo>>(emptyList()) }
+    val bibliotecaDeJogos = remember { mutableStateListOf<Jogo>() }
     var aEscanear by remember { mutableStateOf(false) }
     var progressoScan by remember { mutableFloatStateOf(0f) }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     var mostrarDialogoTemas by remember { mutableStateOf(false) }
-
     var ecraAtivo by remember { mutableStateOf("Biblioteca") }
+
+    // Filtro Secundário (Chips)
+    var filtroAtual by remember { mutableStateOf("Todos") }
+    val opcoesFiltro = listOf("Todos", "Recentes", "Favoritos")
+
+    // Novo Estado: Critério de Ordenação
+    var ordenacaoAtual by remember { mutableStateOf("Nome") }
+    var mostrarMenuOrdenacao by remember { mutableStateOf(false) }
+
+    // Novo Estado: Jogo Selecionado para o Bottom Sheet
+    var jogoSelecionadoParaMenu by remember { mutableStateOf<Jogo?>(null) }
+    var mostrarBottomSheet by remember { mutableStateOf(false) }
 
     val abrirExplorador = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) {
             context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             coroutineScope.launch {
-                aEscanear = true
-                progressoScan = 0f
-                bibliotecaDeJogos = vasculharPasta(context, uri) { progresso -> progressoScan = progresso }
-                delay(500)
-                aEscanear = false
+                aEscanear = true; progressoScan = 0f
+                val novosJogos = vasculharPasta(context, uri) { progresso -> progressoScan = progresso }
+                bibliotecaDeJogos.clear()
+                bibliotecaDeJogos.addAll(novosJogos)
+                delay(500); aEscanear = false
             }
         }
     }
 
     LaunchedEffect(pagerState.currentPage) {
-        if (primeiroCarregamento) primeiroCarregamento = false
-        else audioEngine.playSwipe()
+        if (primeiroCarregamento) primeiroCarregamento = false else audioEngine.playSwipe()
     }
 
     ModalNavigationDrawer(
@@ -149,106 +147,36 @@ fun PhoenixApp(
         drawerContent = {
             ModalDrawerSheet {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    modifier = Modifier.fillMaxWidth().height(150.dp).background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.BottomStart
                 ) {
-                    Text(
-                        text = stringResource(id = R.string.app_name),
-                        modifier = Modifier.padding(16.dp),
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text(stringResource(id = R.string.app_name), modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
                 }
-
                 Spacer(modifier = Modifier.height(8.dp))
-
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Default.VideogameAsset, contentDescription = null) },
-                    label = { Text("Biblioteca de Jogos") },
-                    selected = ecraAtivo == "Biblioteca",
-                    onClick = {
-                        audioEngine.playClick()
-                        ecraAtivo = "Biblioteca"
-                        coroutineScope.launch { drawerState.close() }
-                    },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                )
-
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Default.Palette, contentDescription = null) },
-                    label = { Text("Mudar Tema / Cor") },
-                    selected = false,
-                    onClick = {
-                        audioEngine.playClick()
-                        coroutineScope.launch { drawerState.close() }
-                        mostrarDialogoTemas = true
-                    },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                )
-
+                NavigationDrawerItem(icon = { Icon(Icons.Default.VideogameAsset, null) }, label = { Text("Biblioteca de Jogos") }, selected = ecraAtivo == "Biblioteca", onClick = { audioEngine.playClick(); ecraAtivo = "Biblioteca"; coroutineScope.launch { drawerState.close() } }, modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding))
+                NavigationDrawerItem(icon = { Icon(Icons.Default.Palette, null) }, label = { Text("Mudar Tema / Cor") }, selected = false, onClick = { audioEngine.playClick(); coroutineScope.launch { drawerState.close() }; mostrarDialogoTemas = true }, modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding))
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Default.EmojiEvents, contentDescription = null) },
-                    label = { Text("RetroAchievements") },
-                    selected = ecraAtivo == "RetroAchievements",
-                    onClick = {
-                        audioEngine.playClick()
-                        ecraAtivo = "RetroAchievements"
-                        coroutineScope.launch { drawerState.close() }
-                    },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                )
-
-                // NOVO: Clique das Configurações ativado!
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                    label = { Text("Configurações do Emulador") },
-                    selected = ecraAtivo == "Configuracoes",
-                    onClick = {
-                        audioEngine.playClick()
-                        ecraAtivo = "Configuracoes"
-                        coroutineScope.launch { drawerState.close() }
-                    },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                )
-
+                NavigationDrawerItem(icon = { Icon(Icons.Default.EmojiEvents, null) }, label = { Text("RetroAchievements") }, selected = ecraAtivo == "RetroAchievements", onClick = { audioEngine.playClick(); ecraAtivo = "RetroAchievements"; coroutineScope.launch { drawerState.close() } }, modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding))
+                NavigationDrawerItem(icon = { Icon(Icons.Default.Settings, null) }, label = { Text("Configurações do Emulador") }, selected = ecraAtivo == "Configuracoes", onClick = { audioEngine.playClick(); ecraAtivo = "Configuracoes"; coroutineScope.launch { drawerState.close() } }, modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding))
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Default.Info, contentDescription = null) },
-                    label = { Text("Sobre o Projeto") },
-                    selected = false,
-                    onClick = {
-                        audioEngine.playClick()
-                    },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                )
+                NavigationDrawerItem(icon = { Icon(Icons.Default.Info, null) }, label = { Text("Sobre o Projeto") }, selected = ecraAtivo == "Sobre", onClick = { audioEngine.playClick(); ecraAtivo = "Sobre"; coroutineScope.launch { drawerState.close() } }, modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding))
             }
         }
     ) {
         Scaffold(
             topBar = {
-                // Título Dinâmico consoante o ecrã
                 val tituloTopo = when(ecraAtivo) {
                     "Biblioteca" -> stringResource(id = R.string.app_name)
                     "RetroAchievements" -> "RetroAchievements"
                     "Configuracoes" -> "Configurações"
+                    "Sobre" -> "Sobre o Projeto"
                     else -> ""
                 }
-
                 TopAppBar(
                     title = { Text(text = tituloTopo, fontWeight = FontWeight.Bold) },
                     navigationIcon = {
-                        IconButton(onClick = {
-                            audioEngine.playClick()
-                            coroutineScope.launch { drawerState.open() }
-                        }) {
-                            Icon(imageVector = Icons.Default.Menu, contentDescription = "Menu Lateral")
+                        IconButton(onClick = { audioEngine.playClick(); coroutineScope.launch { drawerState.open() } }) {
+                            Icon(Icons.Default.Menu, "Menu Lateral")
                         }
                     },
                     actions = {
@@ -257,82 +185,128 @@ fun PhoenixApp(
                                 audioEngine.playClick()
                                 modoVisual = if (modoVisual == ModoVisual.GRADE) ModoVisual.XMB else ModoVisual.GRADE
                             }) {
-                                Icon(
-                                    imageVector = if (modoVisual == ModoVisual.GRADE) Icons.Default.ViewCarousel else Icons.Default.GridView,
-                                    contentDescription = "Alternar Modo de Visualização"
-                                )
+                                Icon(if (modoVisual == ModoVisual.GRADE) Icons.Default.ViewCarousel else Icons.Default.GridView, "Alternar Modo")
                             }
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primaryContainer, titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer)
                 )
             },
             floatingActionButton = {
                 if (ecraAtivo == "Biblioteca") {
                     FloatingActionButton(
-                        onClick = {
-                            audioEngine.playClick()
-                            abrirExplorador.launch(null)
-                        },
+                        onClick = { audioEngine.playClick(); abrirExplorador.launch(null) },
                         modifier = Modifier.padding(16.dp),
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    ) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = "Adicionar Pasta de Jogos")
-                    }
+                    ) { Icon(Icons.Default.Add, "Adicionar Pasta") }
                 }
             }
         ) { espacoInterno ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(espacoInterno)
-            ) {
-                // O NOSSO ROTEADOR DE ECRÃS
+            Box(modifier = Modifier.fillMaxSize().padding(espacoInterno)) {
                 when (ecraAtivo) {
                     "Biblioteca" -> {
                         Column(modifier = Modifier.fillMaxSize()) {
                             TabRow(selectedTabIndex = pagerState.currentPage) {
                                 abas.forEachIndexed { indice, titulo ->
-                                    Tab(
-                                        selected = pagerState.currentPage == indice,
-                                        onClick = {
-                                            coroutineScope.launch { pagerState.animateScrollToPage(indice) }
-                                        },
-                                        text = { Text(titulo) }
-                                    )
+                                    Tab(selected = pagerState.currentPage == indice, onClick = { coroutineScope.launch { pagerState.animateScrollToPage(indice) } }, text = { Text(titulo) })
                                 }
                             }
 
-                            HorizontalPager(
-                                state = pagerState,
-                                modifier = Modifier.fillMaxSize()
-                            ) { paginaAtual ->
-                                when (paginaAtual) {
-                                    0 -> {
-                                        val jogosNes = bibliotecaDeJogos.filter { it.extensao == "nes" || it.extensao == "zip" }
-                                        TelaJogos(jogosNes, modoVisual, audioEngine)
-                                    }
-                                    1 -> {
-                                        val jogosSnes = bibliotecaDeJogos.filter { it.extensao == "smc" || it.extensao == "sfc" || it.extensao == "zip" }
-                                        TelaJogos(jogosSnes, modoVisual, audioEngine)
+                            // BARRA DE FILTROS E BOTÃO DE ORDENAÇÃO
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    opcoesFiltro.forEach { opcao ->
+                                        FilterChip(
+                                            selected = (filtroAtual == opcao),
+                                            onClick = { audioEngine.playClick(); filtroAtual = opcao },
+                                            label = { Text(opcao) },
+                                            leadingIcon = if (filtroAtual == opcao) {
+                                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                            } else null
+                                        )
                                     }
                                 }
+
+                                // Botão de Ordenação
+                                Box {
+                                    IconButton(onClick = {
+                                        audioEngine.playClick()
+                                        mostrarMenuOrdenacao = true
+                                    }) {
+                                        Icon(Icons.Default.Sort, contentDescription = "Ordenar")
+                                    }
+
+                                    DropdownMenu(
+                                        expanded = mostrarMenuOrdenacao,
+                                        onDismissRequest = { mostrarMenuOrdenacao = false }
+                                    ) {
+                                        listOf("Nome (A-Z)", "Mais Jogados", "Jogados Recente").forEach { opcao ->
+                                            DropdownMenuItem(
+                                                text = {
+                                                    Text(
+                                                        text = opcao,
+                                                        fontWeight = if (ordenacaoAtual == opcao) FontWeight.Bold else FontWeight.Normal
+                                                    )
+                                                },
+                                                onClick = {
+                                                    audioEngine.playClick()
+                                                    ordenacaoAtual = opcao
+                                                    mostrarMenuOrdenacao = false
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { paginaAtual ->
+                                // 1. Aplica o Filtro
+                                val jogosFiltrados = bibliotecaDeJogos.filter { jogo ->
+                                    val pertenceNaAba = if (paginaAtual == 0) (jogo.extensao == "nes" || jogo.extensao == "zip") else (jogo.extensao == "smc" || jogo.extensao == "sfc" || jogo.extensao == "zip")
+                                    val passaNoFiltro = when (filtroAtual) {
+                                        "Favoritos" -> jogo.isFavorito
+                                        "Recentes" -> jogo.ultimaVezJogado > 0L
+                                        else -> true
+                                    }
+                                    pertenceNaAba && passaNoFiltro
+                                }
+
+                                // 2. Aplica a Ordenação
+                                val jogosOrdenados = when (ordenacaoAtual) {
+                                    "Mais Jogados" -> jogosFiltrados.sortedByDescending { it.tempoJogadoMinutos }
+                                    "Jogados Recente" -> jogosFiltrados.sortedByDescending { it.ultimaVezJogado }
+                                    else -> jogosFiltrados.sortedBy { it.nome } // "Nome (A-Z)"
+                                }
+
+                                TelaJogos(
+                                    jogos = jogosOrdenados,
+                                    modoVisual = modoVisual,
+                                    audioEngine = audioEngine,
+                                    onJogoLongClick = { jogo ->
+                                        jogoSelecionadoParaMenu = jogo
+                                        mostrarBottomSheet = true
+                                    }
+                                )
                             }
                         }
                     }
-                    "RetroAchievements" -> {
-                        TelaRetroAchievements(audioEngine)
-                    }
-                    "Configuracoes" -> {
-                        TelaConfiguracoes(audioEngine) // O NOSSO NOVO ECRÃ!
-                    }
+                    "RetroAchievements" -> TelaRetroAchievements(audioEngine)
+                    "Configuracoes" -> TelaConfiguracoes(audioEngine)
+                    "Sobre" -> TelaSobre(audioEngine)
                 }
             }
 
+            // POPUP DE LEITURA DE FICHEIROS
             if (aEscanear) {
                 AlertDialog(
                     onDismissRequest = { },
@@ -342,10 +316,7 @@ fun PhoenixApp(
                         Column(modifier = Modifier.fillMaxWidth()) {
                             LinearProgressIndicator(
                                 progress = progressoScan,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(8.dp)
-                                    .clip(RoundedCornerShape(4.dp)),
+                                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
                                 color = MaterialTheme.colorScheme.primary,
                                 trackColor = MaterialTheme.colorScheme.secondaryContainer
                             )
@@ -364,26 +335,19 @@ fun PhoenixApp(
                 )
             }
 
+            // POPUP DE ESCOLHA DE TEMAS
             if (mostrarDialogoTemas) {
                 AlertDialog(
                     onDismissRequest = { mostrarDialogoTemas = false },
                     confirmButton = {
-                        TextButton(onClick = {
-                            audioEngine.playClick()
-                            mostrarDialogoTemas = false
-                        }) {
-                            Text("Fechar")
-                        }
+                        TextButton(onClick = { audioEngine.playClick(); mostrarDialogoTemas = false }) { Text("Fechar") }
                     },
                     title = { Text("Escolher Tema") },
                     text = {
                         Column {
                             TemaApp.entries.forEach { temaOpcao ->
                                 TextButton(
-                                    onClick = {
-                                        audioEngine.playClick()
-                                        onMudarTema(temaOpcao)
-                                    },
+                                    onClick = { audioEngine.playClick(); onMudarTema(temaOpcao) },
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Text(
@@ -397,243 +361,98 @@ fun PhoenixApp(
                     }
                 )
             }
-        }
-    }
-}
 
-// --- ECRÃ: CONFIGURAÇÕES DO EMULADOR ---
-@Composable
-fun TelaConfiguracoes(audioEngine: AudioEngine) {
-    val context = LocalContext.current
-    // Uma "memória" diferente só para as configurações
-    val prefs = remember { context.getSharedPreferences("EmulatorSettings", Context.MODE_PRIVATE) }
-
-    // Lendo os estados guardados (ou valores padrão caso seja a primeira vez)
-    var autoUpdater by remember { mutableStateOf(prefs.getBoolean("autoUpdater", true)) }
-    var proporcaoTela by remember { mutableStateOf(prefs.getString("proporcaoTela", "4:3 Original") ?: "4:3 Original") }
-    var filtroVideo by remember { mutableStateOf(prefs.getString("filtroVideo", "Nenhum (Pixel Perfect)") ?: "Nenhum (Pixel Perfect)") }
-
-    // Scroll na tela inteira caso o usuário tenha uma tela pequena
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
-
-        // --- SEÇÃO 1: SISTEMA ---
-        Text(
-            text = "SISTEMA",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Bold
-        )
-
-        ElevatedCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Auto-Updater", fontWeight = FontWeight.Bold)
-                    Text(
-                        "Buscar por novas atualizações no GitHub automaticamente.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                // O INTERRUPTOR (Switch)
-                Switch(
-                    checked = autoUpdater,
-                    onCheckedChange = { ligado ->
-                        audioEngine.playClick()
-                        autoUpdater = ligado
-                        prefs.edit().putBoolean("autoUpdater", ligado).apply()
-                    }
-                )
-            }
-        }
-
-        // --- SEÇÃO 2: VÍDEO E GRÁFICOS ---
-        Text(
-            text = "VÍDEO E GRÁFICOS",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Bold
-        )
-
-        ElevatedCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Proporção de Tela", fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // OS BOTÕES DE SELEÇÃO ÚNICA (RadioButton)
-                val opcoesProporcao = listOf("4:3 Original", "16:9 (Widescreen)", "Esticar para a Tela")
-                opcoesProporcao.forEach { opcao ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        RadioButton(
-                            selected = (proporcaoTela == opcao),
-                            onClick = {
-                                audioEngine.playClick()
-                                proporcaoTela = opcao
-                                prefs.edit().putString("proporcaoTela", opcao).apply()
-                            }
-                        )
-                        Text(text = opcao)
-                    }
-                }
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-
-                Text("Filtros de Imagem", fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(8.dp))
-
-                val opcoesFiltros = listOf("Nenhum (Pixel Perfect)", "Bilinear Suave", "CRT Scanlines")
-                opcoesFiltros.forEach { opcao ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        RadioButton(
-                            selected = (filtroVideo == opcao),
-                            onClick = {
-                                audioEngine.playClick()
-                                filtroVideo = opcao
-                                prefs.edit().putString("filtroVideo", opcao).apply()
-                            }
-                        )
-                        Text(text = opcao)
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(32.dp)) // Espaço no final para não colar na borda
-    }
-}
-
-// --- ECRÃ: RETROACHIEVEMENTS ---
-@Composable
-fun TelaRetroAchievements(audioEngine: AudioEngine) {
-    val context = LocalContext.current
-    val sharedPreferences = remember { context.getSharedPreferences("RetroAchievementsPrefs", Context.MODE_PRIVATE) }
-
-    var username by remember { mutableStateOf(sharedPreferences.getString("username", "") ?: "") }
-    var password by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var isLogged by remember { mutableStateOf(sharedPreferences.getBoolean("isLogged", false)) }
-
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        if (isLogged) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.EmojiEvents,
-                    contentDescription = null,
-                    modifier = Modifier.size(100.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = "Bem-vindo de volta,\n$username!",
-                    style = MaterialTheme.typography.headlineMedium,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "O seu emulador está conectado e pronto para desbloquear conquistas nas suas ROMs.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 32.dp)
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                Button(
-                    onClick = {
-                        audioEngine.playClick()
-                        isLogged = false
-                        sharedPreferences.edit().putBoolean("isLogged", false).apply()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            // MODAL BOTTOM SHEET (MENU DESLIZANTE DO JOGO)
+            if (mostrarBottomSheet && jogoSelecionadoParaMenu != null) {
+                val jogo = jogoSelecionadoParaMenu!!
+                ModalBottomSheet(
+                    onDismissRequest = { mostrarBottomSheet = false }
                 ) {
-                    Text("Desconectar")
-                }
-            }
-        } else {
-            ElevatedCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(32.dp),
-                shape = RoundedCornerShape(24.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.EmojiEvents,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "Vincular Conta",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    OutlinedTextField(
-                        value = username,
-                        onValueChange = { username = it },
-                        label = { Text("Utilizador") },
-                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = { Text("Web API Key / Palavra-passe") },
-                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                        singleLine = true,
-                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        trailingIcon = {
-                            val image = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
-                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                Icon(imageVector = image, contentDescription = "Mostrar senha")
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Button(
-                        onClick = {
-                            audioEngine.playClick()
-                            if (username.isNotEmpty() && password.isNotEmpty()) {
-                                sharedPreferences.edit()
-                                    .putString("username", username)
-                                    .putBoolean("isLogged", true)
-                                    .apply()
-
-                                isLogged = true
-                                password = ""
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Text("Iniciar Sessão")
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.VideogameAsset,
+                                contentDescription = null,
+                                modifier = Modifier.size(40.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Column {
+                                Text(
+                                    text = jogo.nome,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Formato: .${jogo.extensao.uppercase()}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        HorizontalDivider()
+
+                        // Opções
+                        ListItem(
+                            headlineContent = { Text("Configurações Individuais") },
+                            supportingContent = { Text("Personalizar controlos e vídeo para este jogo") },
+                            leadingContent = { Icon(Icons.Default.Tune, contentDescription = null) },
+                            modifier = Modifier.clip(RoundedCornerShape(12.dp)).combinedClickable(
+                                onClick = {
+                                    audioEngine.playClick()
+                                    mostrarBottomSheet = false
+                                    /* TODO: Abrir ecrã de definições por jogo */
+                                }
+                            )
+                        )
+
+                        ListItem(
+                            headlineContent = { Text("Ver Conquistas (RetroAchievements)") },
+                            supportingContent = { Text("Conquistas disponíveis e progresso") },
+                            leadingContent = { Icon(Icons.Default.EmojiEvents, contentDescription = null) },
+                            modifier = Modifier.clip(RoundedCornerShape(12.dp)).combinedClickable(
+                                onClick = {
+                                    audioEngine.playClick()
+                                    mostrarBottomSheet = false
+                                }
+                            )
+                        )
+
+                        ListItem(
+                            headlineContent = { Text("Resetar Estatísticas") },
+                            supportingContent = { Text("Zerar tempo de jogo acumulado") },
+                            leadingContent = { Icon(Icons.Default.RestartAlt, contentDescription = null) },
+                            modifier = Modifier.clip(RoundedCornerShape(12.dp)).combinedClickable(
+                                onClick = {
+                                    audioEngine.playClick()
+                                    jogo.tempoJogadoMinutos = 0
+                                    jogo.ultimaVezJogado = 0L
+                                    mostrarBottomSheet = false
+                                }
+                            )
+                        )
+
+                        ListItem(
+                            headlineContent = { Text("Remover da Biblioteca", color = MaterialTheme.colorScheme.error) },
+                            leadingContent = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                            modifier = Modifier.clip(RoundedCornerShape(12.dp)).combinedClickable(
+                                onClick = {
+                                    audioEngine.playClick()
+                                    bibliotecaDeJogos.remove(jogo)
+                                    mostrarBottomSheet = false
+                                }
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
             }
@@ -641,7 +460,7 @@ fun TelaRetroAchievements(audioEngine: AudioEngine) {
     }
 }
 
-// --- FUNÇÃO PARA VASCULHAR A PASTA (O MOTOR SAF com Coroutines) ---
+// --- VASCULHAR PASTA ---
 suspend fun vasculharPasta(
     context: Context,
     uriDaPasta: Uri,
@@ -667,25 +486,40 @@ suspend fun vasculharPasta(
 
             if (extensoesValidas.contains(extensao)) {
                 val nomeLimpo = nomeCompleto.substringBeforeLast('.')
-                jogosEncontrados.add(Jogo(nome = nomeLimpo, extensao = extensao, uri = ficheiro.uri))
+                val isFav = (1..10).random() > 7
+                val lastPlayed = if ((1..10).random() > 4) System.currentTimeMillis() - ((1..100).random() * 3600000L) else 0L
+                val tempoMin = if (lastPlayed > 0L) (5..240).random() else 0
+
+                jogosEncontrados.add(
+                    Jogo(
+                        nome = nomeLimpo,
+                        extensao = extensao,
+                        uri = ficheiro.uri,
+                        isFavorito = isFav,
+                        ultimaVezJogado = lastPlayed,
+                        tempoJogadoMinutos = tempoMin
+                    )
+                )
             }
         }
-
-        withContext(Dispatchers.Main) {
-            onProgress((index + 1) / total.toFloat())
-        }
+        withContext(Dispatchers.Main) { onProgress((index + 1) / total.toFloat()) }
     }
 
     return@withContext jogosEncontrados.sortedBy { it.nome }
 }
 
-// --- COMPONENTES VISUAIS ---
+// --- COMPONENTES VISUAIS DA BIBLIOTECA ---
 @Composable
-fun TelaJogos(jogos: List<Jogo>, modoVisual: ModoVisual, audioEngine: AudioEngine) {
+fun TelaJogos(
+    jogos: List<Jogo>,
+    modoVisual: ModoVisual,
+    audioEngine: AudioEngine,
+    onJogoLongClick: (Jogo) -> Unit
+) {
     if (jogos.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
-                text = "Nenhum jogo encontrado.\nClique no '+' para adicionar uma pasta.",
+                text = "Nenhum jogo encontrado para este filtro.\nClique no '+' para gerir pastas.",
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -701,7 +535,9 @@ fun TelaJogos(jogos: List<Jogo>, modoVisual: ModoVisual, audioEngine: AudioEngin
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxSize()
         ) {
-            items(jogos) { jogo -> CartaoDeJogo(jogo = jogo, audioEngine = audioEngine) }
+            items(jogos, key = { it.uri }) { jogo ->
+                CartaoDeJogo(jogo = jogo, audioEngine = audioEngine, onJogoLongClick = onJogoLongClick)
+            }
         }
     } else {
         val xmbPagerState = rememberPagerState(pageCount = { jogos.size })
@@ -727,51 +563,225 @@ fun TelaJogos(jogos: List<Jogo>, modoVisual: ModoVisual, audioEngine: AudioEngin
                         this.alpha = alpha
                     }
             ) {
-                CartaoDeJogo(jogo = jogos[page], altura = 350.dp, audioEngine = audioEngine)
+                CartaoDeJogo(jogo = jogos[page], altura = 350.dp, audioEngine = audioEngine, onJogoLongClick = onJogoLongClick)
+            }
+        }
+    }
+}
+
+// --- CARTÃO DE JOGO COM SUPORTE A TOQUE LONGO ---
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun CartaoDeJogo(
+    jogo: Jogo,
+    altura: androidx.compose.ui.unit.Dp = 200.dp,
+    audioEngine: AudioEngine,
+    onJogoLongClick: (Jogo) -> Unit
+) {
+    var favoritoLocal by remember { mutableStateOf(jogo.isFavorito) }
+
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(altura)
+            .clip(RoundedCornerShape(16.dp))
+            .combinedClickable(
+                onClick = {
+                    audioEngine.playClick()
+                    /* TODO: INICIAR A EMULAÇÃO */
+                },
+                onLongClick = {
+                    audioEngine.playClick()
+                    onJogoLongClick(jogo) // Dispara o Bottom Sheet!
+                }
+            ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Área da Capa
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .background(MaterialTheme.colorScheme.secondaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.cover_prefix, jogo.nome),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
+
+                // Área de Estatísticas
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text(
+                        text = jogo.nome,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    val textoTempo = if (jogo.tempoJogadoMinutos > 0) {
+                        val horas = jogo.tempoJogadoMinutos / 60
+                        val mins = jogo.tempoJogadoMinutos % 60
+                        if (horas > 0) "${horas}h ${mins}m jogados" else "${mins}m jogados"
+                    } else {
+                        "Nunca jogado"
+                    }
+
+                    Text(
+                        text = textoTempo,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    val textoUltimaVez = if (jogo.ultimaVezJogado > 0L) {
+                        val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                        "Último: ${sdf.format(Date(jogo.ultimaVezJogado))}"
+                    } else {
+                        "Novo na biblioteca"
+                    }
+
+                    Text(
+                        text = textoUltimaVez,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Botão de Favorito
+            IconButton(
+                onClick = {
+                    audioEngine.playClick()
+                    favoritoLocal = !favoritoLocal
+                    jogo.isFavorito = favoritoLocal
+                },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+                    .size(36.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                        shape = RoundedCornerShape(50)
+                    )
+            ) {
+                Icon(
+                    imageVector = if (favoritoLocal) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = "Favorito",
+                    tint = if (favoritoLocal) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+// --- ECRÃS AUXILIARES (Sobre, Configurações, RetroAchievements - MANTIDOS IDÊNTICOS) ---
+@Composable
+fun TelaSobre(audioEngine: AudioEngine) {
+    val uriHandler = LocalUriHandler.current
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Spacer(modifier = Modifier.height(32.dp))
+        Icon(Icons.Default.Gamepad, null, modifier = Modifier.size(120.dp), tint = MaterialTheme.colorScheme.primary)
+        Text(stringResource(id = R.string.app_name), style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        Text("Versão 0.1.0-alpha", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(modifier = Modifier.height(16.dp))
+        ElevatedCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+            Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Um emulador de NES e SNES construído do zero com foco absoluto em elegância, performance e comodidades modernas (Material You).", textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                Text("Desenvolvido por:", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text("dfdx047", style = MaterialTheme.typography.titleLarge)
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = { audioEngine.playClick(); uriHandler.openUri("https://github.com/dfdx047/PhoenixEmu") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
+            Icon(Icons.Default.Code, null, modifier = Modifier.padding(end = 8.dp)); Text("Acessar Repositório (GitHub)")
+        }
+    }
+}
+
+@Composable
+fun TelaConfiguracoes(audioEngine: AudioEngine) {
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("EmulatorSettings", Context.MODE_PRIVATE) }
+    var autoUpdater by remember { mutableStateOf(prefs.getBoolean("autoUpdater", true)) }
+    var proporcaoTela by remember { mutableStateOf(prefs.getString("proporcaoTela", "4:3 Original") ?: "4:3 Original") }
+    var filtroVideo by remember { mutableStateOf(prefs.getString("filtroVideo", "Nenhum (Pixel Perfect)") ?: "Nenhum (Pixel Perfect)") }
+
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        Text("SISTEMA", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+        ElevatedCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Auto-Updater", fontWeight = FontWeight.Bold)
+                    Text("Buscar por novas atualizações no GitHub automaticamente.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(checked = autoUpdater, onCheckedChange = { audioEngine.playClick(); autoUpdater = it; prefs.edit().putBoolean("autoUpdater", it).apply() })
+            }
+        }
+        Text("VÍDEO E GRÁFICOS", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+        ElevatedCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Proporção de Tela", fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+                listOf("4:3 Original", "16:9 (Widescreen)", "Esticar para a Tela").forEach { opcao ->
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        RadioButton(selected = (proporcaoTela == opcao), onClick = { audioEngine.playClick(); proporcaoTela = opcao; prefs.edit().putString("proporcaoTela", opcao).apply() })
+                        Text(text = opcao)
+                    }
+                }
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                Text("Filtros de Imagem", fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+                listOf("Nenhum (Pixel Perfect)", "Bilinear Suave", "CRT Scanlines").forEach { opcao ->
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        RadioButton(selected = (filtroVideo == opcao), onClick = { audioEngine.playClick(); filtroVideo = opcao; prefs.edit().putString("filtroVideo", opcao).apply() })
+                        Text(text = opcao)
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-fun CartaoDeJogo(jogo: Jogo, altura: androidx.compose.ui.unit.Dp = 200.dp, audioEngine: AudioEngine) {
-    ElevatedCard(
-        onClick = {
-            audioEngine.playClick()
-            /* TODO: INICIAR A EMULAÇÃO AQUI! */
-        },
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(altura),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .background(MaterialTheme.colorScheme.secondaryContainer),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = stringResource(id = R.string.cover_prefix, jogo.nome),
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(8.dp)
-                )
-            }
+fun TelaRetroAchievements(audioEngine: AudioEngine) {
+    val context = LocalContext.current
+    val sharedPreferences = remember { context.getSharedPreferences("RetroAchievementsPrefs", Context.MODE_PRIVATE) }
+    var username by remember { mutableStateOf(sharedPreferences.getString("username", "") ?: "") }
+    var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var isLogged by remember { mutableStateOf(sharedPreferences.getBoolean("isLogged", false)) }
 
-            Column(modifier = Modifier.padding(12.dp)) {
-                Text(
-                    text = jogo.nome,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1
-                )
-                Text(
-                    text = "Formato: .${jogo.extensao.uppercase()}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        if (isLogged) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Icon(Icons.Default.EmojiEvents, null, modifier = Modifier.size(100.dp), tint = MaterialTheme.colorScheme.primary)
+                Text("Bem-vindo de volta,\n$username!", style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface)
+                Text("O seu emulador está conectado e pronto para desbloquear conquistas nas suas ROMs.", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 32.dp))
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(onClick = { audioEngine.playClick(); isLogged = false; sharedPreferences.edit().putBoolean("isLogged", false).apply() }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
+                    Text("Desconectar")
+                }
+            }
+        } else {
+            ElevatedCard(modifier = Modifier.fillMaxWidth().padding(32.dp), shape = RoundedCornerShape(24.dp)) {
+                Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Icon(Icons.Default.EmojiEvents, null, modifier = Modifier.size(64.dp), tint = MaterialTheme.colorScheme.primary)
+                    Text("Vincular Conta", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    OutlinedTextField(value = username, onValueChange = { username = it }, label = { Text("Utilizador") }, leadingIcon = { Icon(Icons.Default.Person, null) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                    OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text("Web API Key / Palavra-passe") }, leadingIcon = { Icon(Icons.Default.Lock, null) }, singleLine = true, visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), trailingIcon = { IconButton(onClick = { passwordVisible = !passwordVisible }) { Icon(if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff, null) } }, modifier = Modifier.fillMaxWidth())
+                    Button(onClick = { audioEngine.playClick(); if (username.isNotEmpty() && password.isNotEmpty()) { sharedPreferences.edit().putString("username", username).putBoolean("isLogged", true).apply(); isLogged = true; password = "" } }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Iniciar Sessão")
+                    }
+                }
             }
         }
     }
