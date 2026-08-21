@@ -6,66 +6,83 @@ import android.media.MediaPlayer
 import android.media.SoundPool
 
 class AudioEngine(private val context: Context) {
-
-    // O Motor de Música Ambiente (Loop Contínuo)
-    private var mediaPlayer: MediaPlayer? = null
-
-    // O Motor de Efeitos Sonoros (Cliques Rápidos)
-    private var soundPool: SoundPool? = null
+    private var bgmPlayer: MediaPlayer? = null
+    private var soundPool: SoundPool
     private var clickSoundId: Int = 0
     private var swipeSoundId: Int = 0
 
-    init {
-        // Inicializa o BGM e diz ao sistema que é um arquivo de repetição
-        mediaPlayer = MediaPlayer.create(context, R.raw.bgm_menu)
-        mediaPlayer?.isLooping = true
-        // Deixamos a música com 30% do volume máximo para não ofuscar os efeitos sonoros
-        mediaPlayer?.setVolume(0.3f, 0.3f)
+    // Conecta-se às configurações que guardamos na Tela de Configurações
+    private val prefs = context.getSharedPreferences("EmulatorSettings", Context.MODE_PRIVATE)
 
-        // Configura o SoundPool (Moderno e otimizado para áudios de interface/jogos)
+    init {
         val audioAttributes = AudioAttributes.Builder()
             .setUsage(AudioAttributes.USAGE_GAME)
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
             .build()
 
         soundPool = SoundPool.Builder()
-            .setMaxStreams(4) // Define que até 4 sons diferentes podem tocar exatamente no mesmo segundo
+            .setMaxStreams(5)
             .setAudioAttributes(audioAttributes)
             .build()
 
-        // Pré-carrega os SFX de forma bruta diretamente na memória RAM
-        clickSoundId = soundPool?.load(context, R.raw.sfx_click, 1) ?: 0
-        swipeSoundId = soundPool?.load(context, R.raw.sfx_swipe, 1) ?: 0
-    }
-
-    // --- FUNÇÕES QUE CHAMAREMOS LÁ DA INTERFACE ---
-
-    fun playBgm() {
-        if (mediaPlayer?.isPlaying == false) {
-            mediaPlayer?.start()
+        try {
+            // Carrega os sons (assumindo que tem os ficheiros na pasta res/raw)
+            clickSoundId = soundPool.load(context, R.raw.sfx_click, 1)
+            swipeSoundId = soundPool.load(context, R.raw.sfx_swipe, 1)
+            bgmPlayer = MediaPlayer.create(context, R.raw.bgm_menu)
+            bgmPlayer?.isLooping = true
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
+
+        // Aplica os volumes logo ao iniciar!
+        atualizarVolumes()
     }
 
-    fun pauseBgm() {
-        if (mediaPlayer?.isPlaying == true) {
-            mediaPlayer?.pause()
+    // A MÁGICA ACONTECE AQUI: Lê as configurações e aplica na hora!
+    fun atualizarVolumes() {
+        val bgmEnabled = prefs.getBoolean("bgm_enabled", true)
+        val sfxEnabled = prefs.getBoolean("sfx_enabled", true)
+
+        val bgmVolume = if (bgmEnabled) prefs.getFloat("bgm_volume", 1.0f) else 0f
+        bgmPlayer?.setVolume(bgmVolume, bgmVolume)
+
+        // Se a música foi ativada e não está a tocar, inicia
+        if (bgmEnabled && bgmPlayer?.isPlaying == false) {
+            bgmPlayer?.start()
+        }
+        // Se a música foi desativada e está a tocar, pausa
+        else if (!bgmEnabled && bgmPlayer?.isPlaying == true) {
+            bgmPlayer?.pause()
         }
     }
 
     fun playClick() {
-        soundPool?.play(clickSoundId, 1f, 1f, 0, 0, 1f)
+        if (prefs.getBoolean("sfx_enabled", true)) {
+            val vol = prefs.getFloat("sfx_volume", 1.0f)
+            soundPool.play(clickSoundId, vol, vol, 1, 0, 1f)
+        }
     }
 
     fun playSwipe() {
-        // Volume 60% para o swipe, para que deslizar o dedo não se torne um ruído agressivo
-        soundPool?.play(swipeSoundId, 0.6f, 0.6f, 0, 0, 1f)
+        if (prefs.getBoolean("sfx_enabled", true)) {
+            val vol = prefs.getFloat("sfx_volume", 1.0f)
+            soundPool.play(swipeSoundId, vol, vol, 1, 0, 1f)
+        }
     }
 
-    // Libera a memória RAM e a placa de som quando o app for completamente fechado
+    fun playBgm() {
+        if (prefs.getBoolean("bgm_enabled", true)) {
+            bgmPlayer?.start()
+        }
+    }
+
+    fun pauseBgm() {
+        bgmPlayer?.pause()
+    }
+
     fun release() {
-        mediaPlayer?.release()
-        mediaPlayer = null
-        soundPool?.release()
-        soundPool = null
+        bgmPlayer?.release()
+        soundPool.release()
     }
 }
