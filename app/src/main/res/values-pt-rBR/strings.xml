@@ -1,6 +1,0 @@
-<resources>
-    <string name="app_name">Project Phoenix</string>
-    <string name="tab_nes">NES</string>
-    <string name="tab_snes">SNES</string>
-    <string name="cover_prefix">Capa:\n%1$s</string>
-</resources>

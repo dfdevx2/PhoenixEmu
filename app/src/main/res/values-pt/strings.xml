@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Português (PT-BR), servindo todos os locales "pt" — inclusive pt-PT.
+  A pasta antiga values-pt-rBR/ só casava com pt-BR; celular em
+  Português (Portugal) caía no inglês. Apague values-pt-rBR/.
+-->
+<resources>
+    <string name="app_name">Project Phoenix</string>
+
+    <!-- Ações -->
+    <string name="acao_voltar">Voltar</string>
+    <string name="acao_menu">Menu</string>
+    <string name="acao_ordenar">Ordenar</string>
+    <string name="acao_alternar_modo">Alternar modo de exibição</string>
+    <string name="acao_adicionar_pasta">Adicionar pasta</string>
+    <string name="acao_escolher_fundo">Escolher fundo</string>
+    <string name="acao_remover_fundo">Remover fundo</string>
+    <string name="acao_config_individuais">Configurações individuais</string>
+    <string name="acao_remover">Remover da biblioteca</string>
+    <string name="acao_repositorio">Repositório no GitHub</string>
+    <string name="acao_doar">Apoiar no Ko-fi</string>
+    <string name="acao_mostrar_senha">Mostrar chave</string>
+    <string name="acao_ocultar_senha">Ocultar chave</string>
+
+    <!-- Navegação -->
+    <string name="nav_biblioteca">Biblioteca de jogos</string>
+    <string name="nav_conquistas">RetroAchievements</string>
+    <string name="nav_configuracoes">Configurações do emulador</string>
+    <string name="nav_sobre">Sobre</string>
+    <string name="titulo_configuracoes">Configurações</string>
+
+    <!-- Sistemas -->
+    <string name="tab_nes">NES</string>
+    <string name="tab_snes">SNES</string>
+
+    <!-- Temas -->
+    <string name="tema_dinamico">Material You (sistema)</string>
+    <string name="tema_claro">Tema claro</string>
+    <string name="tema_escuro">Tema escuro</string>
+    <string name="tema_amoled">Preto AMOLED absoluto</string>
+    <string name="tema_nes_us">NES (americano)</string>
+    <string name="tema_nes_jp">Famicom (japonês)</string>
+    <string name="tema_snes_us">Super Nintendo (americano)</string>
+    <string name="tema_snes_jp">Super Famicom (japonês)</string>
+
+    <!-- Biblioteca -->
+    <string name="filtro_todos">Todos</string>
+    <string name="filtro_recentes">Recentes</string>
+    <string name="filtro_favoritos">Favoritos</string>
+    <string name="ordenar_nome">Nome (A-Z)</string>
+    <string name="ordenar_mais_jogados">Mais jogados</string>
+    <string name="ordenar_recentes">Jogados recentemente</string>
+    <string name="biblioteca_vazia">Nenhum jogo por aqui ainda.</string>
+    <string name="biblioteca_vazia_dica">Toque em + para escolher a pasta com as suas ROMs.</string>
+    <string name="cartao_favorito">Favorito</string>
+    <string name="cartao_capa">Capa de %1$s</string>
+    <string name="cartao_nunca_jogado">Nunca jogado</string>
+    <string name="cartao_tempo_jogado">%1$d min jogados</string>
+    <string name="jogo_formato">Formato: .%1$s</string>
+
+    <!-- Varredura -->
+    <string name="scan_titulo">Processando os jogos</string>
+    <string name="scan_lendo_pastas">Lendo as pastas</string>
+    <string name="scan_identificando">Identificando as ROMs</string>
+    <string name="scan_buscando_capas">Baixando as capas</string>
+    <string name="scan_percentual">%1$d%% concluído</string>
+
+    <!-- Configurações -->
+    <string name="sec_personalizacao">PERSONALIZAÇÃO VISUAL</string>
+    <string name="config_tema">Tema do emulador</string>
+    <string name="config_fundo">Plano de fundo da biblioteca</string>
+    <string name="config_fundo_desc">Escolha uma imagem ou um GIF animado para ficar atrás da sua lista de jogos.</string>
+    <string name="config_reduzir_efeitos">Reduzir efeitos visuais</string>
+    <string name="config_reduzir_efeitos_desc">Troca o desfoque ao vivo por uma camada translúcida mais leve. Vale ligar em aparelhos antigos.</string>
+    <string name="sec_audio">ÁUDIO E SOM</string>
+    <string name="config_bgm">Música de fundo (BGM)</string>
+    <string name="config_sfx">Efeitos sonoros (SFX)</string>
+    <string name="sec_video">VÍDEO E GRÁFICOS (GLOBAIS)</string>
+    <string name="config_proporcao">Proporção de tela</string>
+    <string name="proporcao_4_3">4:3 original</string>
+    <string name="proporcao_16_9">16:9 widescreen</string>
+    <string name="proporcao_esticar">Esticar para a tela</string>
+    <string name="config_filtro_video">Filtro de imagem</string>
+    <string name="filtro_nenhum">Nenhum (pixel perfect)</string>
+    <string name="filtro_bilinear">Bilinear suave</string>
+    <string name="filtro_crt">CRT scanlines</string>
+    <string name="config_aviso_video">Estas opções só passam a valer quando o núcleo de emulação entrar, na Fase 4.</string>
+
+    <!-- Sobre -->
+    <string name="sobre_versao">Versão %1$s</string>
+    <string name="sobre_descricao">Um emulador de NES e SNES construído do zero, com foco em elegância, performance e comodidades modernas.</string>
+    <string name="sobre_desenvolvido_por">Desenvolvido por</string>
+    <string name="sobre_autor">dfdx047</string>
+    <string name="sobre_doacao_desc">O Project Phoenix é gratuito e vai continuar sendo. Se ele te serve, um café ajuda.</string>
+    <string name="sobre_licenca_desc">Software livre. Os núcleos de emulação são projetos de terceiros, cada um com a sua própria licença.</string>
+
+    <!-- RetroAchievements -->
+    <string name="ra_vincular">Vincular conta</string>
+    <string name="ra_usuario">Usuário</string>
+    <string name="ra_api_key">Web API Key</string>
+    <string name="ra_entrar">Iniciar sessão</string>
+    <string name="ra_sair">Sair</string>
+    <string name="ra_online">Online • Modo Hardcore ativo</string>
+    <string name="ra_progresso">Progresso recente</string>
+    <string name="ra_conquistas">%1$d de %2$d conquistas</string>
+    <string name="ra_platinado">Platinado</string>
+    <string name="ra_aviso_mock">Esta tela ainda mostra dados de exemplo. O acompanhamento real de conquistas chega com a biblioteca rcheevos, na Fase 5.</string>
+
+    <!-- Configurações por jogo -->
+    <string name="jogo_config_intro">Você está editando regras exclusivas para:</string>
+    <string name="sec_overrides">SUBSTITUIÇÕES (OVERRIDES)</string>
+    <string name="override_video">Substituir configurações de vídeo</string>
+    <string name="override_video_desc">Ignora as opções globais.</string>
+    <string name="override_controles">Mapeamento de controles específico</string>
+    <string name="override_controles_desc">Cria um perfil de botões só para este jogo.</string>
+    <string name="override_placeholder">As opções exclusivas de vídeo vão aparecer aqui.</string>
+    <!-- Fase 1A: sincronização e manutenção -->
+    <string name="acao_sincronizar">Sincronizar biblioteca</string>
+    <string name="jogo_ausente">Arquivo não encontrado</string>
+    <plurals name="sync_adicionados">
+        <item quantity="one">%1$d jogo novo</item>
+        <item quantity="other">%1$d jogos novos</item>
+    </plurals>
+    <plurals name="sync_ausentes">
+        <item quantity="one">%1$d jogo não encontrado</item>
+        <item quantity="other">%1$d jogos não encontrados</item>
+    </plurals>
+    <string name="sync_pasta_falhou">Uma pasta não pôde ser lida. Verifique se o cartão está montado.</string>
+    <string name="sec_manutencao">MANUTENÇÃO</string>
+    <string name="config_hashes">Calcular hashes das ROMs</string>
+    <string name="config_hashes_desc">Lê cada ROM por inteiro para calcular os identificadores que o RetroAchievements usa. Demora numa biblioteca grande e só precisa ser feito uma vez — deixe para quando o aparelho estiver carregando.</string>
+    <string name="acao_calcular">Calcular</string>
+    <string name="acao_cancelar">Cancelar</string>
+    <string name="progresso_contagem">%1$d de %2$d</string>
+</resources>

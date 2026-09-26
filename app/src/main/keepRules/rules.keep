@@ -1,12 +1,50 @@
-# Add project specific R8 rules here.
-# AGP will combine all keep rule files in src/main/keepRules to pass to R8
-#
-# For more details, see
-#   https://d.android.com/r/tools/r8/keep-rules
+# Regras de R8 do Project Phoenix.
+# O AGP junta todos os arquivos de src/main/keepRules e passa ao R8.
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# ---------------------------------------------------------------
+# Gson: usa reflexao, entao os modelos serializados precisam ficar
+# intactos. Sem isto, o cache da biblioteca quebra em build release.
+# ---------------------------------------------------------------
+-keepattributes Signature
+-keepattributes *Annotation*
+-keepattributes InnerClasses
+-keepattributes EnclosingMethod
+
+-keep class com.dfdx047.phoenixemu.Jogo { *; }
+-keep class com.dfdx047.phoenixemu.RawgResponse { *; }
+-keep class com.dfdx047.phoenixemu.RawgGame { *; }
+-keep class com.dfdx047.phoenixemu.data.BibliotecaSalva { *; }
+
+# TypeToken usa generics em runtime.
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken
+-keepclassmembers,allowobfuscation class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+
+# ---------------------------------------------------------------
+# Retrofit: as interfaces de API sao implementadas por proxy dinamico.
+# (O Retrofit 2.11 ja traz consumer-rules, isto e cinto e suspensorio.)
+# ---------------------------------------------------------------
+-keep,allowobfuscation interface com.dfdx047.phoenixemu.RawgApi
+-keepclasseswithmembers,allowobfuscation interface * {
+    @retrofit2.http.* <methods>;
+}
+
+# ---------------------------------------------------------------
+# WorkManager instancia os Workers por nome de classe, via reflexao.
+# O androidx.work ja traz consumer-rules, mas um Worker removido pelo R8
+# so quebra no build release -- exatamente o que voce publica.
+# ---------------------------------------------------------------
+-keep class * extends androidx.work.ListenableWorker {
+    public <init>(android.content.Context, androidx.work.WorkerParameters);
+}
+
+# ---------------------------------------------------------------
+# Fase 4: quando o modulo nativo entrar, as classes com metodos
+# native e os callbacks chamados do C++ precisam de keep explicito.
+# Deixo comentado aqui para nao esquecermos.
+# ---------------------------------------------------------------
+# -keepclasseswithmembernames,includedescriptorclasses class * {
+#     native <methods>;
+# }

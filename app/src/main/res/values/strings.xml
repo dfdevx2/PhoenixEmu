@@ -1,6 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Default (fallback) locale: English.
+  Portuguese lives in res/values-pt/strings.xml, which matches pt-BR and
+  pt-PT alike. The old res/values-pt-rBR/ only matched pt-BR, so a phone set
+  to Portuguese (Portugal) fell back to the default. Delete that folder.
+-->
 <resources>
     <string name="app_name">Project Phoenix</string>
+
+    <!-- Actions -->
+    <string name="acao_voltar">Back</string>
+    <string name="acao_menu">Menu</string>
+    <string name="acao_ordenar">Sort</string>
+    <string name="acao_alternar_modo">Switch view mode</string>
+    <string name="acao_adicionar_pasta">Add folder</string>
+    <string name="acao_escolher_fundo">Choose background</string>
+    <string name="acao_remover_fundo">Remove background</string>
+    <string name="acao_config_individuais">Per-game settings</string>
+    <string name="acao_remover">Remove from library</string>
+    <string name="acao_repositorio">GitHub repository</string>
+    <string name="acao_doar">Support on Ko-fi</string>
+    <string name="acao_mostrar_senha">Show key</string>
+    <string name="acao_ocultar_senha">Hide key</string>
+
+    <!-- Navigation -->
+    <string name="nav_biblioteca">Game library</string>
+    <string name="nav_conquistas">RetroAchievements</string>
+    <string name="nav_configuracoes">Emulator settings</string>
+    <string name="nav_sobre">About</string>
+    <string name="titulo_configuracoes">Settings</string>
+
+    <!-- Systems -->
     <string name="tab_nes">NES</string>
     <string name="tab_snes">SNES</string>
-    <string name="cover_prefix">Cover:\n%1$s</string>
+
+    <!-- Themes -->
+    <string name="tema_dinamico">Material You (system)</string>
+    <string name="tema_claro">Light</string>
+    <string name="tema_escuro">Dark</string>
+    <string name="tema_amoled">Absolute AMOLED black</string>
+    <string name="tema_nes_us">NES (North America)</string>
+    <string name="tema_nes_jp">Famicom (Japan)</string>
+    <string name="tema_snes_us">Super Nintendo (North America)</string>
+    <string name="tema_snes_jp">Super Famicom (Japan)</string>
+
+    <!-- Library -->
+    <string name="filtro_todos">All</string>
+    <string name="filtro_recentes">Recent</string>
+    <string name="filtro_favoritos">Favorites</string>
+    <string name="ordenar_nome">Name (A-Z)</string>
+    <string name="ordenar_mais_jogados">Most played</string>
+    <string name="ordenar_recentes">Recently played</string>
+    <string name="biblioteca_vazia">No games here yet.</string>
+    <string name="biblioteca_vazia_dica">Tap + to pick the folder with your ROMs.</string>
+    <string name="cartao_favorito">Favorite</string>
+    <string name="cartao_capa">Cover of %1$s</string>
+    <string name="cartao_nunca_jogado">Never played</string>
+    <string name="cartao_tempo_jogado">%1$d min played</string>
+    <string name="jogo_formato">Format: .%1$s</string>
+
+    <!-- Scanning -->
+    <string name="scan_titulo">Processing games</string>
+    <string name="scan_lendo_pastas">Reading folders</string>
+    <string name="scan_identificando">Identifying ROMs</string>
+    <string name="scan_buscando_capas">Fetching covers</string>
+    <string name="scan_percentual">%1$d%% done</string>
+
+    <!-- Settings -->
+    <string name="sec_personalizacao">VISUAL PERSONALIZATION</string>
+    <string name="config_tema">Emulator theme</string>
+    <string name="config_fundo">Library background</string>
+    <string name="config_fundo_desc">Pick an image or an animated GIF to sit behind your game list.</string>
+    <string name="config_reduzir_efeitos">Reduce visual effects</string>
+    <string name="config_reduzir_efeitos_desc">Replaces live blur with a lighter translucent layer. Worth turning on for older devices.</string>
+    <string name="sec_audio">AUDIO AND SOUND</string>
+    <string name="config_bgm">Background music (BGM)</string>
+    <string name="config_sfx">Sound effects (SFX)</string>
+    <string name="sec_video">VIDEO AND GRAPHICS (GLOBAL)</string>
+    <string name="config_proporcao">Aspect ratio</string>
+    <string name="proporcao_4_3">4:3 original</string>
+    <string name="proporcao_16_9">16:9 widescreen</string>
+    <string name="proporcao_esticar">Stretch to fit</string>
+    <string name="config_filtro_video">Image filter</string>
+    <string name="filtro_nenhum">None (pixel perfect)</string>
+    <string name="filtro_bilinear">Smooth bilinear</string>
+    <string name="filtro_crt">CRT scanlines</string>
+    <string name="config_aviso_video">These options only take effect once the emulation core lands in Phase 4.</string>
+
+    <!-- About -->
+    <string name="sobre_versao">Version %1$s</string>
+    <string name="sobre_descricao">A NES and SNES emulator built from scratch, aiming for elegance, performance and modern conveniences.</string>
+    <string name="sobre_desenvolvido_por">Developed by</string>
+    <string name="sobre_autor">dfdx047</string>
+    <string name="sobre_doacao_desc">Project Phoenix is free and always will be. If it is useful to you, a coffee helps.</string>
+    <string name="sobre_licenca_desc">Free software. The emulation cores are third-party projects under their own licenses.</string>
+
+    <!-- RetroAchievements -->
+    <string name="ra_vincular">Link account</string>
+    <string name="ra_usuario">Username</string>
+    <string name="ra_api_key">Web API key</string>
+    <string name="ra_entrar">Sign in</string>
+    <string name="ra_sair">Sign out</string>
+    <string name="ra_online">Online • Hardcore mode on</string>
+    <string name="ra_progresso">Recent progress</string>
+    <string name="ra_conquistas">%1$d of %2$d achievements</string>
+    <string name="ra_platinado">Mastered</string>
+    <string name="ra_aviso_mock">This screen still shows sample data. Real achievement tracking arrives with the rcheevos library in Phase 5.</string>
+
+    <!-- Per-game settings -->
+    <string name="jogo_config_intro">You are editing rules that apply only to:</string>
+    <string name="sec_overrides">OVERRIDES</string>
+    <string name="override_video">Override video settings</string>
+    <string name="override_video_desc">Ignores the global options.</string>
+    <string name="override_controles">Custom controller mapping</string>
+    <string name="override_controles_desc">Creates a button profile just for this game.</string>
+    <string name="override_placeholder">Per-game video options will appear here.</string>
+    <!-- Phase 1A: sync and maintenance -->
+    <string name="acao_sincronizar">Sync library</string>
+    <string name="jogo_ausente">File not found</string>
+    <plurals name="sync_adicionados">
+        <item quantity="one">%1$d new game</item>
+        <item quantity="other">%1$d new games</item>
+    </plurals>
+    <plurals name="sync_ausentes">
+        <item quantity="one">%1$d game missing</item>
+        <item quantity="other">%1$d games missing</item>
+    </plurals>
+    <string name="sync_pasta_falhou">A folder could not be read. Check whether the card is mounted.</string>
+    <string name="sec_manutencao">MAINTENANCE</string>
+    <string name="config_hashes">Compute ROM hashes</string>
+    <string name="config_hashes_desc">Reads every ROM in full to compute the identifiers RetroAchievements uses. It takes a while on a large library and is only needed once — leave it for when the device is charging.</string>
+    <string name="acao_calcular">Compute</string>
+    <string name="acao_cancelar">Cancel</string>
+    <string name="progresso_contagem">%1$d of %2$d</string>
 </resources>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Cor da janela antes do Compose desenhar. Existe so para matar o flash. -->
+    <color name="phoenix_janela">#FFFDFBFF</color>
+</resources>

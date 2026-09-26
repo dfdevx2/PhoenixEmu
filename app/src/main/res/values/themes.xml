@@ -1,5 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.PhoenixEmu" parent="android:Theme.Material.Light.NoActionBar" />
+    <!--
+      Tema de arranque (Splash Screen API).
+      O tema anterior era android:Theme.Material.Light.NoActionBar fixo, o
+      que dava um flash BRANCO na abertura mesmo com o app em tema escuro
+      ou AMOLED. Agora a janela nasce com a cor certa.
+    -->
+    <style name="Theme.PhoenixEmu.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/phoenix_janela</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.PhoenixEmu</item>
+    </style>
+
+    <!-- Tema da janela. As barras ficam transparentes: quem pinta e o Compose. -->
+    <style name="Theme.PhoenixEmu" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/phoenix_janela</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+
 </resources>

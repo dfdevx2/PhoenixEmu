@@ -1,83 +1,144 @@
 package com.dfdx047.phoenixemu
 
-import android.content.Context
 import android.net.Uri
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
+import androidx.annotation.StringRes
+import androidx.compose.runtime.Immutable
 
 // =====================================================================
 // TEMAS DO APLICATIVO
+// Cada tema carrega o proprio rotulo como recurso de string, entao nao
+// existe mais texto de UI fixo no codigo (e a traducao sai de graca).
 // =====================================================================
-enum class TemaApp {
-    DINAMICO, CLARO, ESCURO, AMOLED, NES_US, NES_JP, SNES_US, SNES_JP
-}
+enum class TemaApp(@StringRes val rotulo: Int) {
+    DINAMICO(R.string.tema_dinamico),
+    CLARO(R.string.tema_claro),
+    ESCURO(R.string.tema_escuro),
+    AMOLED(R.string.tema_amoled),
+    NES_US(R.string.tema_nes_us),
+    NES_JP(R.string.tema_nes_jp),
+    SNES_US(R.string.tema_snes_us),
+    SNES_JP(R.string.tema_snes_jp);
 
-fun obterNomeDoTema(tema: TemaApp): String {
-    return when(tema) {
-        TemaApp.DINAMICO -> "Material You (Sistema)"
-        TemaApp.CLARO -> "Tema Claro"
-        TemaApp.ESCURO -> "Tema Escuro"
-        TemaApp.AMOLED -> "Preto AMOLED Absoluto"
-        TemaApp.NES_US -> "NES (Nintendinho Americano)"
-        TemaApp.NES_JP -> "Famicom (Japonês)"
-        TemaApp.SNES_US -> "Super Nintendo (Americano)"
-        TemaApp.SNES_JP -> "Super Famicom (Japonês)"
+    companion object {
+        /** Tolerante a valores salvos invalidos (tema removido, prefs corrompidas). */
+        fun deNome(nome: String?): TemaApp =
+            entries.firstOrNull { it.name == nome } ?: DINAMICO
     }
 }
 
 // =====================================================================
-// MODELOS GLOBAIS DO EMULADOR
+// SISTEMAS SUPORTADOS
+// Era String ("NES" / "SNES") espalhada pelo codigo. Como enum, erro de
+// digitacao passa a ser erro de compilacao. O nome do enum coincide com
+// o texto antigo, entao o cache JSON existente continua desserializando.
 // =====================================================================
+enum class Sistema(val rotuloCurto: String, @StringRes val rotulo: Int) {
+    NES("NES", R.string.tab_nes),
+    SNES("SNES", R.string.tab_snes);
+
+    companion object {
+        fun deNome(nome: String?): Sistema? = entries.firstOrNull { it.name == nome }
+    }
+}
+
+// =====================================================================
+// MODELO DE JOGO
+//
+// Totalmente imutavel de proposito:
+//  - @Immutable deixa o Compose pular a recomposicao de cartoes que nao
+//    mudaram, o que e o que sustenta scroll fluido com milhares de itens.
+//  - Antes, `var isFavorito` era alterado no lugar. O Compose nao observa
+//    campo de data class, entao o coracao mudava mas o filtro "Favoritos"
+//    nao reagia e nada era salvo. Agora toda mudanca passa por copy() no
+//    BibliotecaStore, que recompoe e persiste.
+//
+// `id` e a URI do documento: identidade de verdade. Antes a comparacao
+// era pelo nome do arquivo, entao "Contra (USA).nes" em duas pastas
+// diferentes era tratado como o mesmo jogo.
+// =====================================================================
+@Immutable
 data class Jogo(
     val nome: String,
     val nomeArquivoOriginal: String,
     val extensao: String,
-    val uriString: String, // A MÁGICA AQUI: Guardado como Texto para o Gson conseguir salvar!
-    val sistema: String,
+    val uriString: String,
+    val sistema: Sistema,
     val regiao: String,
-    var isFavorito: Boolean = false,
-    var ultimaVezJogado: Long = 0L,
-    var tempoJogadoMinutos: Int = 0,
-    var capaUrl: String? = null
+    val isFavorito: Boolean = false,
+    val ultimaVezJogado: Long = 0L,
+    val tempoJogadoMinutos: Int = 0,
+    /** URL remota resolvida pelo scraper. Serve para re-baixar se o arquivo local sumir. */
+    val capaUrl: String? = null,
+    /** Caminho absoluto da capa ja baixada. Quando existe, a lista nao toca na rede. */
+    val capaLocal: String? = null,
+    /** false = ja tentamos buscar capa e nao achamos; evita bater no servidor de novo. */
+    val capaPendente: Boolean = true,
+    /** Assinatura do arquivo: e o que permite a varredura incremental. */
+    val tamanhoBytes: Long = 0L,
+    val modificadoEm: Long = 0L,
+    /** MD5 no formato do RetroAchievements. Calculado sob demanda, nunca na varredura. */
+    val hashRa: String? = null,
+    /** CRC32 do arquivo inteiro, para casar com DATs No-Intro mais tarde. */
+    val crc32: String? = null,
+    /** O arquivo nao foi encontrado na ultima varredura (cartao removido, pasta movida). */
+    val ausente: Boolean = false
 ) {
-    // Atalho invisível para a interface continuar a usar o Uri normalmente
+    val id: String get() = uriString
+
     val uri: Uri get() = Uri.parse(uriString)
+
+    val temRegiaoConhecida: Boolean get() = regiao != REGIAO_DESCONHECIDA
+
+    /** Assinatura usada para decidir se o arquivo mudou desde a ultima varredura. */
+    val assinatura: Assinatura get() = Assinatura(tamanhoBytes, modificadoEm)
+
+    companion object {
+        const val REGIAO_DESCONHECIDA = "Desconhecida"
+    }
 }
 
-data class RetroGameStat(val nome: String, val sistema: String, val conquistasDesbloqueadas: Int, val totalConquistas: Int)
+/**
+ * Tamanho + data de modificacao. Se os dois batem, o arquivo nao mudou e nao
+ * precisa ser reidentificado nem re-hasheado. E o que torna a reabertura do
+ * app barata mesmo com milhares de ROMs.
+ */
+data class Assinatura(val tamanho: Long, val modificado: Long)
+
+// =====================================================================
+// MODELOS AUXILIARES
+// =====================================================================
+data class RetroGameStat(
+    val nome: String,
+    val sistema: Sistema,
+    val conquistasDesbloqueadas: Int,
+    val totalConquistas: Int
+)
 
 data class RawgResponse(val results: List<RawgGame>?)
+
 data class RawgGame(val name: String?, val background_image: String?)
 
 // =====================================================================
-// GESTOR DE BIBLIOTECA (CACHE E PASTAS SALVAS)
+// MODOS DE EXIBICAO DA BIBLIOTECA
 // =====================================================================
-object BibliotecaManager {
-    private val gson = Gson()
+enum class ModoVisual { GRADE, XMB }
 
-    fun salvarJogos(context: Context, jogos: List<Jogo>) {
-        val prefs = context.getSharedPreferences("EmulatorSettings", Context.MODE_PRIVATE)
-        val json = gson.toJson(jogos)
-        prefs.edit().putString("biblioteca_cache", json).apply()
+enum class FiltroBiblioteca(@StringRes val rotulo: Int) {
+    TODOS(R.string.filtro_todos),
+    RECENTES(R.string.filtro_recentes),
+    FAVORITOS(R.string.filtro_favoritos);
+
+    companion object {
+        fun deNome(nome: String?): FiltroBiblioteca = entries.firstOrNull { it.name == nome } ?: TODOS
     }
+}
 
-    fun carregarJogos(context: Context): List<Jogo> {
-        val prefs = context.getSharedPreferences("EmulatorSettings", Context.MODE_PRIVATE)
-        val json = prefs.getString("biblioteca_cache", null) ?: return emptyList()
-        val type = object : TypeToken<List<Jogo>>() {}.type
-        return try { gson.fromJson(json, type) } catch (e: Exception) { emptyList() }
-    }
+enum class Ordenacao(@StringRes val rotulo: Int) {
+    NOME(R.string.ordenar_nome),
+    MAIS_JOGADOS(R.string.ordenar_mais_jogados),
+    JOGADOS_RECENTE(R.string.ordenar_recentes);
 
-    fun adicionarPastaUri(context: Context, uri: Uri) {
-        val prefs = context.getSharedPreferences("EmulatorSettings", Context.MODE_PRIVATE)
-        val pastasAtuais = prefs.getStringSet("pastas_roms_uris", mutableSetOf())?.toMutableSet() ?: mutableSetOf()
-        pastasAtuais.add(uri.toString())
-        prefs.edit().putStringSet("pastas_roms_uris", pastasAtuais).apply()
-    }
-
-    fun obterPastasUris(context: Context): List<Uri> {
-        val prefs = context.getSharedPreferences("EmulatorSettings", Context.MODE_PRIVATE)
-        val pastasAtuais = prefs.getStringSet("pastas_roms_uris", emptySet()) ?: emptySet()
-        return pastasAtuais.map { Uri.parse(it) }
+    companion object {
+        fun deNome(nome: String?): Ordenacao = entries.firstOrNull { it.name == nome } ?: NOME
     }
 }

@@ -11,12 +11,13 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
-import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.dfdx047.phoenixemu.TemaApp
 
+// Os 8 esquemas de cor foram preservados exatamente como estavam.
 private val DarkColorScheme = darkColorScheme(primary = Purple80, secondary = PurpleGrey80, tertiary = Pink80)
 private val LightColorScheme = lightColorScheme(primary = Purple40, secondary = PurpleGrey40, tertiary = Pink40)
 
@@ -35,8 +36,8 @@ private val NesUsColorScheme = lightColorScheme(
     surface = NesUsSurface,
     primary = NesUsPrimary,
     onPrimary = NesUsOnPrimary,
-    primaryContainer = NesUsSecondary, // Barra Preta
-    onPrimaryContainer = NesUsPrimary, // Texto Vermelho
+    primaryContainer = NesUsSecondary,
+    onPrimaryContainer = NesUsPrimary,
     secondaryContainer = NesUsBackground
 )
 
@@ -45,8 +46,8 @@ private val FamicomColorScheme = lightColorScheme(
     surface = FamicomSurface,
     primary = FamicomPrimary,
     onPrimary = FamicomOnPrimary,
-    primaryContainer = FamicomPrimary, // Barra Vinho
-    onPrimaryContainer = FamicomBackground, // Texto Creme
+    primaryContainer = FamicomPrimary,
+    onPrimaryContainer = FamicomBackground,
     secondaryContainer = FamicomBackground
 )
 
@@ -55,9 +56,9 @@ private val SnesUsColorScheme = lightColorScheme(
     surface = SnesUsSurface,
     primary = SnesUsPrimary,
     onPrimary = SnesUsOnPrimary,
-    primaryContainer = SnesUsPrimary, // Barra Roxo Escuro
+    primaryContainer = SnesUsPrimary,
     onPrimaryContainer = Color.White,
-    secondaryContainer = SnesUsSecondary // Cartões com fundo Lilás
+    secondaryContainer = SnesUsSecondary
 )
 
 private val SnesJpColorScheme = lightColorScheme(
@@ -65,8 +66,8 @@ private val SnesJpColorScheme = lightColorScheme(
     surface = SnesJpSurface,
     primary = SnesJpPrimary,
     onPrimary = SnesJpOnPrimary,
-    primaryContainer = SnesJpSurface, // Barra Cinza Escuro
-    onPrimaryContainer = SnesJpPrimary, // Azul
+    primaryContainer = SnesJpSurface,
+    onPrimaryContainer = SnesJpPrimary,
     secondaryContainer = SnesJpBackground
 )
 
@@ -96,11 +97,21 @@ fun PhoenixEmuTheme(
 
     val view = LocalView.current
     if (!view.isInEditMode) {
+        // `window.statusBarColor` foi removido daqui de proposito: com
+        // targetSdk 37 o edge-to-edge e obrigatorio e o sistema ignora
+        // aquela cor. Quem pinta a area da status bar agora e a propria UI
+        // (a TopAppBar desenhando sob os insets).
+        //
+        // E a lista fixa de temas que decidia se os icones eram claros ou
+        // escuros tambem saiu. Calculamos pela luminancia da cor, entao
+        // qualquer tema novo acerta automaticamente, sem editar esta linha.
+        val corAtrasDaStatusBar = colorScheme.primaryContainer
+        val corAtrasDaNavBar = colorScheme.background
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primaryContainer.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars =
-                !darkTheme && temaAtual != TemaApp.AMOLED && temaAtual != TemaApp.ESCURO && temaAtual != TemaApp.SNES_US && temaAtual != TemaApp.NES_JP && temaAtual != TemaApp.NES_US
+            val controlador = WindowInsetsControllerCompat(window, view)
+            controlador.isAppearanceLightStatusBars = corAtrasDaStatusBar.luminance() > 0.5f
+            controlador.isAppearanceLightNavigationBars = corAtrasDaNavBar.luminance() > 0.5f
         }
     }
 

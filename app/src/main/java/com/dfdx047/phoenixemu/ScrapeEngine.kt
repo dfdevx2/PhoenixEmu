@@ -1,98 +1,290 @@
 package com.dfdx047.phoenixemu
 
 import android.net.Uri
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Query
-import java.net.HttpURLConnection
-import java.net.URL
+import java.io.File
+import java.util.concurrent.TimeUnit
 
 // =====================================================================
-// ANALISADOR SINTÁTICO DE ROMS (ROM PARSER)
+// ANALISADOR DE NOMES DE ROM
 // =====================================================================
-data class RomAnalisada(val nomeLimpo: String, val regiao: String, val nomeLibretro: String)
+data class RomAnalisada(
+    /** Nome bonito para a UI: sem nenhuma tag. */
+    val nomeLimpo: String,
+    /** Codigo curto de regiao para o badge do cartao ("USA", "USA/EUR"...). */
+    val regiao: String,
+    /** Nome no padrao das DATs, usado para montar a URL do Libretro. */
+    val nomeLibretro: String
+)
 
 object RomParser {
+
+    /**
+     * A regex anterior era:
+     *   \((USA|Japan|Europe|World|Asia|Brazil|En,Fr,De.*?)\)
+     *
+     * Dois problemas serios:
+     *  1. Exigia uma unica regiao dentro dos parenteses, entao os nomes
+     *     No-Intro mais comuns nao casavam: "(USA, Europe)",
+     *     "(Europe, Australia)", "(Japan, USA)".
+     *  2. "En,Fr,De" e lista de IDIOMAS, nao regiao. Jogo europeu
+     *     multilingue era rotulado com o idioma no lugar da regiao.
+     *
+     * Agora percorremos cada grupo entre parenteses, quebramos por virgula
+     * e so aceitamos termos que sejam realmente regioes. Lista de idiomas
+     * nao casa com nada e e ignorada.
+     */
+    private val REGIOES: Map<String, String> = mapOf(
+        // No-Intro
+        "usa" to "USA",
+        "europe" to "EUR",
+        "japan" to "JPN",
+        "world" to "WLD",
+        "asia" to "ASI",
+        "brazil" to "BRA",
+        "korea" to "KOR",
+        "china" to "CHN",
+        "taiwan" to "TWN",
+        "australia" to "AUS",
+        "canada" to "CAN",
+        "france" to "FRA",
+        "germany" to "GER",
+        "spain" to "ESP",
+        "italy" to "ITA",
+        "netherlands" to "NLD",
+        "sweden" to "SWE",
+        "russia" to "RUS",
+        "hong kong" to "HK",
+        "united kingdom" to "UK",
+        "uk" to "UK",
+        "scandinavia" to "SCN",
+        "latin america" to "LTN",
+        // GoodNES / GoodSNES antigos: (U), (E), (J), (W)
+        "u" to "USA",
+        "e" to "EUR",
+        "j" to "JPN",
+        "w" to "WLD",
+        "b" to "BRA",
+        "k" to "KOR",
+        "a" to "AUS"
+    )
+
+    private val GRUPOS_PARENTESES = Regex("\\(([^()]*)\\)")
+    private val TODAS_AS_TAGS = Regex("\\([^()]*\\)|\\[[^\\[\\]]*\\]")
+    private val TAGS_COLCHETES = Regex("\\[[^\\[\\]]*\\]")
+    private val ESPACOS_REPETIDOS = Regex("\\s{2,}")
+
     fun analisar(nomeArquivoBruto: String): RomAnalisada {
-        val regexRegiao = Regex("\\((USA|Japan|Europe|World|Asia|Brazil|En,Fr,De.*?)\\)", RegexOption.IGNORE_CASE)
-        val matchRegiao = regexRegiao.find(nomeArquivoBruto)
-        val regiaoEncontrada = matchRegiao?.groupValues?.get(1) ?: "Desconhecida"
+        val regiao = extrairRegiao(nomeArquivoBruto)
 
-        val nomeLimpo = nomeArquivoBruto.replace(Regex("\\(.*?\\)|\\[.*?\\]"), "").trim()
-        val nomeLibretro = nomeArquivoBruto.replace(Regex("\\[.*?\\]"), "").trim()
+        val nomeLimpo = nomeArquivoBruto
+            .replace(TODAS_AS_TAGS, " ")
+            .replace(ESPACOS_REPETIDOS, " ")
+            .trim()
+            .trim('-', '_', '.', ' ')
+            .ifBlank { nomeArquivoBruto.trim() }
 
-        return RomAnalisada(nomeLimpo, regiaoEncontrada, nomeLibretro)
+        // Para o Libretro mantemos as tags entre parenteses (fazem parte do
+        // nome na DAT) e removemos apenas as de colchete, que sao marcas de
+        // dump ("[!]", "[b1]", "[T+Por]") e nunca aparecem no repositorio.
+        val nomeLibretro = nomeArquivoBruto
+            .replace(TAGS_COLCHETES, " ")
+            .replace(ESPACOS_REPETIDOS, " ")
+            .trim()
+
+        return RomAnalisada(nomeLimpo, regiao, nomeLibretro)
     }
 
-    fun gerarCapaRetroArch(nomeLibretro: String, sistema: String): String {
-        val baseUrl = "https://thumbnails.libretro.com/"
-        val systemPath = if (sistema == "NES") "Nintendo%20-%20Nintendo%20Entertainment%20System/Named_Boxarts/" else "Nintendo%20-%20Super%20Nintendo%20Entertainment%20System/Named_Boxarts/"
-        val nomeCodificado = Uri.encode(nomeLibretro)
-        return "$baseUrl$systemPath$nomeCodificado.png"
+    private fun extrairRegiao(nome: String): String {
+        for (grupo in GRUPOS_PARENTESES.findAll(nome)) {
+            val termos = grupo.groupValues[1].split(',')
+            val achadas = LinkedHashSet<String>()
+            for (termo in termos) {
+                REGIOES[termo.trim().lowercase()]?.let(achadas::add)
+            }
+            if (achadas.isNotEmpty()) {
+                // No maximo dois codigos no badge; "USA/EUR/JPN" nao cabe.
+                return achadas.take(2).joinToString("/")
+            }
+        }
+        return Jogo.REGIAO_DESCONHECIDA
+    }
+
+    /**
+     * Os arquivos no servidor de thumbnails do Libretro trocam por "_" os
+     * caracteres que nao valem em nome de arquivo. Sem essa substituicao,
+     * todo jogo com ":" ou "?" no titulo ("Sim City 2000: ...",
+     * "Where in the World...?") dava 404 e caia no fallback sem necessidade.
+     */
+    private val PROIBIDOS = charArrayOf('&', '*', '/', ':', '`', '<', '>', '?', '\\', '|', '"')
+
+    private fun sanitizarParaLibretro(nome: String): String {
+        val sb = StringBuilder(nome.length)
+        for (c in nome) sb.append(if (c in PROIBIDOS) '_' else c)
+        return sb.toString()
+    }
+
+    private fun pastaDoSistema(sistema: Sistema): String = when (sistema) {
+        Sistema.NES -> "Nintendo - Nintendo Entertainment System"
+        Sistema.SNES -> "Nintendo - Super Nintendo Entertainment System"
+    }
+
+    fun urlCapaLibretro(nomeLibretro: String, sistema: Sistema): String {
+        val pasta = Uri.encode(pastaDoSistema(sistema))
+        val arquivo = Uri.encode(sanitizarParaLibretro(nomeLibretro))
+        return "https://thumbnails.libretro.com/$pasta/Named_Boxarts/$arquivo.png"
     }
 }
 
 // =====================================================================
-// INTERFACE DA API DO RAWG
+// API DA RAWG (fallback)
 // =====================================================================
 interface RawgApi {
     @GET("games")
     suspend fun searchGames(
         @Query("search") query: String,
         @Query("platforms") platforms: String,
-        @Query("key") apiKey: String = "COLOQUE_SUA_API_KEY_AQUI"
+        @Query("page_size") pageSize: Int = 5,
+        @Query("key") apiKey: String
     ): RawgResponse
 }
 
 // =====================================================================
-// MOTOR DE PESQUISA HÍBRIDO (RETROARCH + RAWG)
+// SCRAPER HIBRIDO (LIBRETRO + RAWG)
 // =====================================================================
 object RetroScraper {
-    private val api = Retrofit.Builder().baseUrl("https://api.rawg.io/api/").addConverterFactory(GsonConverterFactory.create()).build().create(RawgApi::class.java)
 
-    // A BALA DE PRATA: Tenta o RetroArch primeiro, se falhar usa o RAWG!
-    suspend fun buscarCapaDefinitiva(nomeBruto: String, sistema: String): String? {
-        val romAnalisada = RomParser.analisar(nomeBruto)
-        val urlRetroArch = RomParser.gerarCapaRetroArch(romAnalisada.nomeLibretro, sistema)
+    private const val TAG = "RetroScraper"
 
-        // Testa a conexão para ver se a imagem realmente existe no servidor gringo
-        if (verificarUrlExiste(urlRetroArch)) {
-            return urlRetroArch
-        }
-
-        // Se a imagem não existe, chama o nosso plano B (RAWG)
-        return buscarCapaFallback(romAnalisada.nomeLimpo, sistema)
+    /**
+     * Cliente unico. A versao anterior abria um HttpURLConnection por ROM e
+     * nunca chamava disconnect(), entao as conexoes ficavam presas. Com um
+     * OkHttpClient compartilhado ha pool de conexoes e reaproveitamento de
+     * TLS, o que sozinho corta boa parte do tempo de varredura.
+     */
+    private val http: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(4, TimeUnit.SECONDS)
+            .readTimeout(4, TimeUnit.SECONDS)
+            .callTimeout(8, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
+            .build()
     }
 
-    private suspend fun verificarUrlExiste(urlString: String): Boolean = withContext(Dispatchers.IO) {
+    private val rawgDisponivel: Boolean
+        get() = BuildConfig.RAWG_API_KEY.isNotBlank()
+
+    private val rawg: RawgApi by lazy {
+        Retrofit.Builder()
+            .baseUrl("https://api.rawg.io/api/")
+            .client(http)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(RawgApi::class.java)
+    }
+
+    /**
+     * Tenta o Libretro (boxart de verdade) e, so se falhar, a RAWG.
+     *
+     * Aviso sobre a RAWG: o campo `background_image` e arte promocional ou
+     * captura de tela, nao capa de caixa. Misturado com os boxarts do
+     * Libretro, o resultado e uma grade visualmente inconsistente. Fica
+     * como rede de seguranca para mods e bootlegs obscuros; na Fase 1 o
+     * ideal e trocar por uma fonte de boxart (ScreenScraper ou
+     * libretro-thumbnails alternativos).
+     */
+    suspend fun buscarCapa(nomeBruto: String, sistema: Sistema): String? {
+        val analise = RomParser.analisar(nomeBruto)
+
+        // Candidato 1: nome completo da DAT, com as tags de regiao.
+        // Candidato 2: nome limpo, para arquivos renomeados pelo usuario.
+        val candidatos = linkedSetOf(
+            RomParser.urlCapaLibretro(analise.nomeLibretro, sistema),
+            RomParser.urlCapaLibretro(analise.nomeLimpo, sistema)
+        )
+
+        for (url in candidatos) {
+            if (existe(url)) return url
+        }
+
+        if (!rawgDisponivel) return null
+        return buscarNaRawg(analise.nomeLimpo, sistema)
+    }
+
+    private suspend fun existe(url: String): Boolean = withContext(Dispatchers.IO) {
         try {
-            val url = URL(urlString)
-            val connection = url.openConnection() as HttpURLConnection
-            connection.requestMethod = "HEAD"
-            connection.connectTimeout = 2000
-            connection.readTimeout = 2000
-            connection.responseCode in 200..299
+            val pedido = Request.Builder().url(url).head().build()
+            // `use` fecha o corpo da resposta, o que devolve a conexao ao pool.
+            http.newCall(pedido).execute().use { it.isSuccessful }
         } catch (e: Exception) {
             false
         }
     }
 
-    private suspend fun buscarCapaFallback(nomeLimpo: String, sistema: String): String? {
-        val platformId = if (sistema == "NES") "49" else "79"
-        return try {
-            val response = api.searchGames(query = nomeLimpo, platforms = platformId)
-            val resultados = response.results?.filter { it.background_image != null }
-            if (resultados.isNullOrEmpty()) return null
-
-            val nomeBuscado = nomeLimpo.lowercase()
-            val resultadoIdeal = resultados.firstOrNull {
-                val nomeDaApi = it.name?.lowercase() ?: ""
-                nomeDaApi.contains(nomeBuscado) || nomeBuscado.contains(nomeDaApi)
+    /**
+     * Baixa a capa para um arquivo local.
+     *
+     * A lista de jogos passa a ler a capa do disco do proprio app, entao ela
+     * nunca depende da rede nem do cache do Coil (que e limitado e
+     * descartavel). Escrita atomica: temporario + rename, para que uma queda
+     * de conexao nao deixe um PNG truncado no lugar da capa.
+     */
+    suspend fun baixarCapa(url: String, destino: File): Boolean = withContext(Dispatchers.IO) {
+        val temporario = File(destino.parentFile, destino.name + ".tmp")
+        try {
+            destino.parentFile?.mkdirs()
+            val pedido = Request.Builder().url(url).build()
+            http.newCall(pedido).execute().use { resposta ->
+                if (!resposta.isSuccessful) return@withContext false
+                val corpo = resposta.body ?: return@withContext false
+                corpo.byteStream().use { entrada ->
+                    temporario.outputStream().use { saida -> entrada.copyTo(saida, 64 * 1024) }
+                }
             }
-            resultadoIdeal?.background_image
-        } catch (e: Exception) { null }
+            if (temporario.length() == 0L) {
+                temporario.delete()
+                return@withContext false
+            }
+            if (destino.exists()) destino.delete()
+            temporario.renameTo(destino)
+        } catch (e: Exception) {
+            Log.w(TAG, "Falha ao baixar capa: $url", e)
+            temporario.delete()
+            false
+        }
+    }
+
+    private suspend fun buscarNaRawg(nomeLimpo: String, sistema: Sistema): String? {
+        val plataforma = when (sistema) {
+            Sistema.NES -> "49"
+            Sistema.SNES -> "79"
+        }
+        return try {
+            val resposta = rawg.searchGames(
+                query = nomeLimpo,
+                platforms = plataforma,
+                apiKey = BuildConfig.RAWG_API_KEY
+            )
+            val comImagem = resposta.results?.filter { !it.background_image.isNullOrBlank() }
+            if (comImagem.isNullOrEmpty()) return null
+
+            val buscado = nomeLimpo.lowercase()
+            val melhor = comImagem.firstOrNull {
+                val daApi = it.name?.lowercase() ?: ""
+                daApi == buscado || daApi.contains(buscado) || buscado.contains(daApi)
+            }
+            melhor?.background_image
+        } catch (e: Exception) {
+            Log.w(TAG, "RAWG falhou para \"$nomeLimpo\"", e)
+            null
+        }
     }
 }
