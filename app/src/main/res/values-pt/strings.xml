@@ -5,11 +5,9 @@
   Português (Portugal) caía no inglês. Apague values-pt-rBR/.
 -->
 <resources>
-    <string name="app_name">Project Phoenix</string>
+    <string name="app_name">Phoenix Emu</string>
 
     <!-- Ações -->
-    <string name="acao_voltar">Voltar</string>
-    <string name="acao_menu">Menu</string>
     <string name="acao_ordenar">Ordenar</string>
     <string name="acao_alternar_modo">Alternar modo de exibição</string>
     <string name="acao_adicionar_pasta">Adicionar pasta</string>
@@ -23,9 +21,7 @@
     <string name="acao_ocultar_senha">Ocultar chave</string>
 
     <!-- Navegação -->
-    <string name="nav_biblioteca">Biblioteca de jogos</string>
     <string name="nav_conquistas">RetroAchievements</string>
-    <string name="nav_configuracoes">Configurações do emulador</string>
     <string name="nav_sobre">Sobre</string>
     <string name="titulo_configuracoes">Configurações</string>
 
@@ -35,9 +31,6 @@
 
     <!-- Temas -->
     <string name="tema_dinamico">Material You (sistema)</string>
-    <string name="tema_claro">Tema claro</string>
-    <string name="tema_escuro">Tema escuro</string>
-    <string name="tema_amoled">Preto AMOLED absoluto</string>
     <string name="tema_nes_us">NES (americano)</string>
     <string name="tema_nes_jp">Famicom (japonês)</string>
     <string name="tema_snes_us">Super Nintendo (americano)</string>
@@ -91,7 +84,7 @@
     <string name="sobre_descricao">Um emulador de NES e SNES construído do zero, com foco em elegância, performance e comodidades modernas.</string>
     <string name="sobre_desenvolvido_por">Desenvolvido por</string>
     <string name="sobre_autor">dfdx047</string>
-    <string name="sobre_doacao_desc">O Project Phoenix é gratuito e vai continuar sendo. Se ele te serve, um café ajuda.</string>
+    <string name="sobre_doacao_desc">O Phoenix Emu é gratuito e vai continuar sendo. Se ele te serve, um café ajuda.</string>
     <string name="sobre_licenca_desc">Software livre. Os núcleos de emulação são projetos de terceiros, cada um com a sua própria licença.</string>
 
     <!-- RetroAchievements -->
@@ -132,4 +125,75 @@
     <string name="acao_calcular">Calcular</string>
     <string name="acao_cancelar">Cancelar</string>
     <string name="progresso_contagem">%1$d de %2$d</string>
+    <!-- Fase 3: navegação em pílula e busca -->
+    <string name="nav_biblioteca_curto">Biblioteca</string>
+    <string name="nav_conquistas_curto">Conquistas</string>
+    <string name="nav_ajustes_curto">Ajustes</string>
+    <string name="busca_dica">Buscar na sua biblioteca</string>
+    <!-- Dicas de controle -->
+    <string name="dica_jogar">Jogar</string>
+    <string name="dica_opcoes">Opções</string>
+    <!-- Fase 3.2: acabamento, seletor de tema, wallpaper, capa por jogo -->
+    <string name="acabamento_vidro">Vidro fosco</string>
+    <string name="acabamento_solido">Sólido</string>
+    <string name="config_acabamento">Acabamento das superfícies</string>
+    <string name="config_acabamento_desc">O vidro fosco desfoca o que está atrás dos painéis. O sólido usa as mesmas cores sem o desfoque.</string>
+    <string name="config_amoled">Preto absoluto (AMOLED)</string>
+    <string name="config_amoled_desc">Deixa o fundo preto puro em qualquer tema escuro. Economiza bateria em telas OLED.</string>
+    <string name="acao_escolher_tema">Trocar tema</string>
+    <string name="titulo_escolher_tema">Escolha um tema</string>
+    <string name="config_wallpaper_desfoque">Desfoque do fundo</string>
+    <string name="config_wallpaper_opacidade">Opacidade do fundo</string>
+    <string name="config_wallpaper_aviso">O desfoque precisa do Android 12 ou mais novo; em versões anteriores o slider não tem efeito.</string>
+    <string name="acao_trocar_capa">Escolher uma capa própria</string>
+    <string name="acao_fechar">Fechar</string>
+    <!-- Fase 3.3 -->
+    <string name="aviso_sem_nucleo">A emulação ainda não entrou — o núcleo chega na Fase 4.</string>
+    <string name="acao_favoritar">Marcar como favorito</string>
+    <string name="acao_desfavoritar">Remover dos favoritos</string>
+
+    <!-- navegacao -->
+    <string name="nav_controles">Controles</string>
+    <string name="nav_controles_curto">Controles</string>
+
+    <!-- controles: mapeamento fisico -->
+    <string name="controles_fisico">Controle</string>
+    <string name="controles_tela">Na tela</string>
+    <string name="controles_fisico_desc">Toque num botão para trocar a tecla. A lista segue o layout do SNES; o NES simplesmente ignora os botões que não tem.</string>
+    <string name="controles_pressione">Pressione o botão que quer usar para %1$s</string>
+    <string name="acao_restaurar_padrao">Restaurar padrão</string>
+
+    <!-- controles: nomes dos botoes virtuais -->
+    <string name="botao_cima">Cima</string>
+    <string name="botao_baixo">Baixo</string>
+    <string name="botao_esquerda">Esquerda</string>
+    <string name="botao_direita">Direita</string>
+    <string name="botao_a">A</string>
+    <string name="botao_b">B</string>
+    <string name="botao_x">X</string>
+    <string name="botao_y">Y</string>
+    <string name="botao_l">L</string>
+    <string name="botao_r">R</string>
+    <string name="botao_start">Start</string>
+    <string name="botao_select">Select</string>
+
+    <!-- controles: overlay de toque -->
+    <string name="overlay_mostrar">Mostrar controles na tela</string>
+    <string name="overlay_mostrar_desc">Úteis sem controle físico. Com um conectado, podem ficar desligados.</string>
+    <string name="overlay_arraste">Arraste um botão para movê-lo. O layout é salvo na hora.</string>
+    <string name="overlay_opacidade">Opacidade</string>
+    <string name="overlay_tamanho">Tamanho</string>
+
+    <!-- idioma -->
+    <string name="config_idioma">Idioma</string>
+    <string name="idioma_sistema">Sistema</string>
+    <string name="idioma_portugues">Português</string>
+    <string name="idioma_ingles">English</string>
+
+    <!-- primeira execucao -->
+    <string name="boasvindas_subtitulo">Três escolhas rápidas e pronto. Todas podem ser mudadas depois, em Ajustes.</string>
+    <string name="boasvindas_idioma">Idioma</string>
+    <string name="boasvindas_idioma_desc">“Sistema” acompanha o aparelho. Escolha um idioma para sobrepor.</string>
+    <string name="boasvindas_comecar">Começar</string>
+    <string name="boasvindas_rodape">Livre e de código aberto. Sem anúncios, sem contas.</string>
 </resources>

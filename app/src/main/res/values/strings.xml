@@ -6,11 +6,9 @@
   to Portuguese (Portugal) fell back to the default. Delete that folder.
 -->
 <resources>
-    <string name="app_name">Project Phoenix</string>
+    <string name="app_name">Phoenix Emu</string>
 
     <!-- Actions -->
-    <string name="acao_voltar">Back</string>
-    <string name="acao_menu">Menu</string>
     <string name="acao_ordenar">Sort</string>
     <string name="acao_alternar_modo">Switch view mode</string>
     <string name="acao_adicionar_pasta">Add folder</string>
@@ -24,9 +22,7 @@
     <string name="acao_ocultar_senha">Hide key</string>
 
     <!-- Navigation -->
-    <string name="nav_biblioteca">Game library</string>
     <string name="nav_conquistas">RetroAchievements</string>
-    <string name="nav_configuracoes">Emulator settings</string>
     <string name="nav_sobre">About</string>
     <string name="titulo_configuracoes">Settings</string>
 
@@ -36,9 +32,6 @@
 
     <!-- Themes -->
     <string name="tema_dinamico">Material You (system)</string>
-    <string name="tema_claro">Light</string>
-    <string name="tema_escuro">Dark</string>
-    <string name="tema_amoled">Absolute AMOLED black</string>
     <string name="tema_nes_us">NES (North America)</string>
     <string name="tema_nes_jp">Famicom (Japan)</string>
     <string name="tema_snes_us">Super Nintendo (North America)</string>
@@ -92,7 +85,7 @@
     <string name="sobre_descricao">A NES and SNES emulator built from scratch, aiming for elegance, performance and modern conveniences.</string>
     <string name="sobre_desenvolvido_por">Developed by</string>
     <string name="sobre_autor">dfdx047</string>
-    <string name="sobre_doacao_desc">Project Phoenix is free and always will be. If it is useful to you, a coffee helps.</string>
+    <string name="sobre_doacao_desc">Phoenix Emu is free and always will be. If it is useful to you, a coffee helps.</string>
     <string name="sobre_licenca_desc">Free software. The emulation cores are third-party projects under their own licenses.</string>
 
     <!-- RetroAchievements -->
@@ -133,4 +126,75 @@
     <string name="acao_calcular">Compute</string>
     <string name="acao_cancelar">Cancel</string>
     <string name="progresso_contagem">%1$d of %2$d</string>
+    <!-- Phase 3: pill navigation and search -->
+    <string name="nav_biblioteca_curto">Library</string>
+    <string name="nav_conquistas_curto">Awards</string>
+    <string name="nav_ajustes_curto">Settings</string>
+    <string name="busca_dica">Search your library</string>
+    <!-- Controller hints -->
+    <string name="dica_jogar">Play</string>
+    <string name="dica_opcoes">Options</string>
+    <!-- Phase 3.2: finish, theme picker, wallpaper, per-game cover -->
+    <string name="acabamento_vidro">Frosted glass</string>
+    <string name="acabamento_solido">Solid</string>
+    <string name="config_acabamento">Surface finish</string>
+    <string name="config_acabamento_desc">Frosted glass blurs what is behind the panels. Solid uses the same colours without the blur.</string>
+    <string name="config_amoled">Absolute black (AMOLED)</string>
+    <string name="config_amoled_desc">Turns the background pure black on any dark theme. Saves battery on OLED screens.</string>
+    <string name="acao_escolher_tema">Change theme</string>
+    <string name="titulo_escolher_tema">Pick a theme</string>
+    <string name="config_wallpaper_desfoque">Background blur</string>
+    <string name="config_wallpaper_opacidade">Background opacity</string>
+    <string name="config_wallpaper_aviso">Blur needs Android 12 or newer; on older versions the slider has no effect.</string>
+    <string name="acao_trocar_capa">Choose a custom cover</string>
+    <string name="acao_fechar">Close</string>
+    <!-- Phase 3.3 -->
+    <string name="aviso_sem_nucleo">Emulation is not in yet — the core arrives in Phase 4.</string>
+    <string name="acao_favoritar">Add to favourites</string>
+    <string name="acao_desfavoritar">Remove from favourites</string>
+
+    <!-- navigation -->
+    <string name="nav_controles">Controls</string>
+    <string name="nav_controles_curto">Controls</string>
+
+    <!-- controls: physical mapping -->
+    <string name="controles_fisico">Gamepad</string>
+    <string name="controles_tela">On-screen</string>
+    <string name="controles_fisico_desc">Tap a button to reassign it. The list follows the SNES layout; NES simply ignores the buttons it does not have.</string>
+    <string name="controles_pressione">Press the button you want to use for %1$s</string>
+    <string name="acao_restaurar_padrao">Restore defaults</string>
+
+    <!-- controls: virtual button names -->
+    <string name="botao_cima">Up</string>
+    <string name="botao_baixo">Down</string>
+    <string name="botao_esquerda">Left</string>
+    <string name="botao_direita">Right</string>
+    <string name="botao_a">A</string>
+    <string name="botao_b">B</string>
+    <string name="botao_x">X</string>
+    <string name="botao_y">Y</string>
+    <string name="botao_l">L</string>
+    <string name="botao_r">R</string>
+    <string name="botao_start">Start</string>
+    <string name="botao_select">Select</string>
+
+    <!-- controls: on-screen overlay -->
+    <string name="overlay_mostrar">Show on-screen controls</string>
+    <string name="overlay_mostrar_desc">Useful without a gamepad. With one connected they can stay off.</string>
+    <string name="overlay_arraste">Drag a button to move it. The layout is saved as you go.</string>
+    <string name="overlay_opacidade">Opacity</string>
+    <string name="overlay_tamanho">Size</string>
+
+    <!-- language -->
+    <string name="config_idioma">Language</string>
+    <string name="idioma_sistema">System</string>
+    <string name="idioma_portugues">Português</string>
+    <string name="idioma_ingles">English</string>
+
+    <!-- first run -->
+    <string name="boasvindas_subtitulo">Three quick choices and you are in. All of them can be changed later in Settings.</string>
+    <string name="boasvindas_idioma">Language</string>
+    <string name="boasvindas_idioma_desc">“System” follows your phone. Pick a language to override it.</string>
+    <string name="boasvindas_comecar">Get started</string>
+    <string name="boasvindas_rodape">Free and open source. No ads, no accounts.</string>
 </resources>

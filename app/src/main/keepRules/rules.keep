@@ -1,4 +1,4 @@
-# Regras de R8 do Project Phoenix.
+# Regras de R8 do Phoenix Emu.
 # O AGP junta todos os arquivos de src/main/keepRules e passa ao R8.
 
 # ---------------------------------------------------------------
@@ -48,3 +48,14 @@
 # -keepclasseswithmembernames,includedescriptorclasses class * {
 #     native <methods>;
 # }
+
+# ---------------------------------------------------------------
+# Configuracao do controle na tela: serializada com Gson.
+# ---------------------------------------------------------------
+-keep class com.dfdx047.phoenixemu.data.ConfigDoOverlay { *; }
+-keep class com.dfdx047.phoenixemu.data.BotaoNaTela { *; }
+
+# O mapa de teclas e gravado com o NOME da constante do enum. Sem este keep,
+# o R8 renomeia as constantes, o nome muda entre versoes do app e o
+# mapeamento que a pessoa configurou volta ao padrao numa atualizacao.
+-keepclassmembers enum com.dfdx047.phoenixemu.data.BotaoVirtual { *; }

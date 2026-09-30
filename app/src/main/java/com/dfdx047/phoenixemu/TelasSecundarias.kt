@@ -1,5 +1,6 @@
 package com.dfdx047.phoenixemu
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -21,10 +22,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -42,9 +42,8 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.VolunteerActivism
 import androidx.compose.material.icons.filled.WorkspacePremium
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -52,25 +51,26 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -80,7 +80,14 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.dfdx047.phoenixemu.Acabamento
+import com.dfdx047.phoenixemu.data.BibliotecaStore
+import com.dfdx047.phoenixemu.data.Idioma
 import com.dfdx047.phoenixemu.data.Preferencias
+import com.dfdx047.phoenixemu.ui.theme.esquemaDeAmostra
+import com.dfdx047.phoenixemu.ui.design.CartaoDeVidro
+import com.dfdx047.phoenixemu.ui.design.EspacoDaNavegacao
+import com.dfdx047.phoenixemu.ui.design.SeletorSegmentado
 import com.dfdx047.phoenixemu.data.Trabalhos
 import kotlinx.coroutines.launch
 
@@ -102,15 +109,14 @@ private fun TituloDeSecao(@StringRes texto: Int) {
     )
 }
 
+/**
+ * As telas secundarias usam o MESMO material das pilulas, sem desfoque ao
+ * vivo: elas rolam, e pagar blur por cartao numa lista que rola e o caminho
+ * mais curto para perder os 60 fps.
+ */
 @Composable
 private fun Cartao(conteudo: @Composable ColumnScope.() -> Unit) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            content = conteudo
-        )
-    }
+    CartaoDeVidro(conteudo = conteudo)
 }
 
 @Composable
@@ -179,9 +185,19 @@ fun TelaConfiguracoes(prefs: Preferencias) {
     val bgmVolume by prefs.bgmVolume.collectAsStateWithLifecycle()
     val sfxVolume by prefs.sfxVolume.collectAsStateWithLifecycle()
     val reduzirEfeitos by prefs.reduzirEfeitos.collectAsStateWithLifecycle()
+    val amoled by prefs.amoled.collectAsStateWithLifecycle()
+    val acabamento by prefs.acabamento.collectAsStateWithLifecycle()
+    val wallDesfoque by prefs.wallpaperDesfoque.collectAsStateWithLifecycle()
+    val wallOpacidade by prefs.wallpaperOpacidade.collectAsStateWithLifecycle()
+    var mostrarSeletorDeTema by remember { mutableStateOf(false) }
+    var desfoqueArrastado by remember(wallDesfoque) { mutableFloatStateOf(wallDesfoque) }
+    var opacidadeArrastada by remember(wallOpacidade) { mutableFloatStateOf(wallOpacidade) }
     val proporcao by prefs.proporcaoTela.collectAsStateWithLifecycle()
     val filtroVideo by prefs.filtroVideo.collectAsStateWithLifecycle()
     val wallpaperUri by prefs.wallpaperUri.collectAsStateWithLifecycle()
+    // Nao vem do DataStore: veja Idioma.kt. Ler uma vez basta, porque trocar
+    // de idioma recria a Activity.
+    val idioma = remember { Idioma.atual(context) }
 
     // Os sliders usam estado local enquanto o dedo esta na tela e so gravam
     // ao soltar: evita uma escrita em disco por pixel arrastado.
@@ -204,21 +220,56 @@ fun TelaConfiguracoes(prefs: Preferencias) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
+        // Folga para o titulo flutuante que vive na camada de vidro.
+        Spacer(Modifier.height(88.dp))
+
         // ------------------------------------------------ personalizacao
         TituloDeSecao(R.string.sec_personalizacao)
         Cartao {
+            // A lista de radio buttons virou um botao com amostra: o nome do
+            // tema sozinho nao diz nada sobre o que voce vai ver.
             Text(stringResource(R.string.config_tema), fontWeight = FontWeight.Bold)
-            TemaApp.entries.forEach { opcao ->
-                LinhaDeOpcao(
-                    rotulo = opcao.rotulo,
-                    selecionado = temaAtual == opcao,
-                    onSelecionar = { audio.playClick(); prefs.definirTema(opcao) }
+            OutlinedButton(
+                onClick = { audio.playClick(); mostrarSeletorDeTema = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                AmostraDeTema(temaAtual)
+                Spacer(Modifier.width(12.dp))
+                Text(stringResource(temaAtual.rotulo), modifier = Modifier.weight(1f))
+                Text(
+                    stringResource(R.string.acao_escolher_tema),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
+
+            LinhaDeInterruptor(
+                rotulo = R.string.config_amoled,
+                descricao = R.string.config_amoled_desc,
+                marcado = amoled,
+                onMudar = { audio.playClick(); prefs.definirAmoled(it) }
+            )
+
+            HorizontalDivider()
+
+            Text(stringResource(R.string.config_acabamento), fontWeight = FontWeight.Bold)
+            Text(
+                stringResource(R.string.config_acabamento_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            SeletorSegmentado(
+                opcoes = Acabamento.entries.map { stringResource(it.rotulo) },
+                indiceSelecionado = Acabamento.entries.indexOf(acabamento),
+                onSelecionar = {
+                    audio.playClick()
+                    prefs.definirAcabamento(Acabamento.entries[it])
+                }
+            )
 
             HorizontalDivider()
 
@@ -248,6 +299,36 @@ fun TelaConfiguracoes(prefs: Preferencias) {
                 }
             }
 
+            // Os dois sliders so aparecem com wallpaper escolhido: sem imagem
+            // eles nao teriam o que ajustar.
+            if (wallpaperUri != null) {
+                Text(
+                    stringResource(R.string.config_wallpaper_desfoque),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Slider(
+                    value = desfoqueArrastado,
+                    onValueChange = { desfoqueArrastado = it },
+                    onValueChangeFinished = { prefs.definirWallpaperDesfoque(desfoqueArrastado) },
+                    valueRange = 0f..1f
+                )
+                Text(
+                    stringResource(R.string.config_wallpaper_opacidade),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Slider(
+                    value = opacidadeArrastada,
+                    onValueChange = { opacidadeArrastada = it },
+                    onValueChangeFinished = { prefs.definirWallpaperOpacidade(opacidadeArrastada) },
+                    valueRange = 0.15f..1f
+                )
+                Text(
+                    stringResource(R.string.config_wallpaper_aviso),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             HorizontalDivider()
 
             LinhaDeInterruptor(
@@ -255,6 +336,40 @@ fun TelaConfiguracoes(prefs: Preferencias) {
                 descricao = R.string.config_reduzir_efeitos_desc,
                 marcado = reduzirEfeitos,
                 onMudar = { audio.playClick(); prefs.definirReduzirEfeitos(it) }
+            )
+
+            HorizontalDivider()
+
+            // O idioma tambem e perguntado na primeira execucao, mas ninguem
+            // decide isso bem numa tela que ainda pode estar no idioma errado.
+            Text(stringResource(R.string.config_idioma), fontWeight = FontWeight.Bold)
+            Text(
+                stringResource(R.string.boasvindas_idioma_desc),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            SeletorSegmentado(
+                opcoes = listOf(
+                    stringResource(R.string.idioma_sistema),
+                    stringResource(R.string.idioma_portugues),
+                    stringResource(R.string.idioma_ingles)
+                ),
+                indiceSelecionado = Idioma.disponiveis.indexOf(idioma).coerceAtLeast(0),
+                onSelecionar = { indice ->
+                    audio.playClick()
+                    Idioma.definir(context, Idioma.disponiveis[indice])
+                    // Recursos sao resolvidos em attachBaseContext; so nascer de
+                    // novo troca a tabela de strings.
+                    (context as? Activity)?.recreate()
+                }
+            )
+        }
+
+        if (mostrarSeletorDeTema) {
+            SeletorDeTema(
+                temaAtual = temaAtual,
+                onEscolher = { audio.playClick(); prefs.definirTema(it) },
+                onFechar = { mostrarSeletorDeTema = false }
             )
         }
 
@@ -385,8 +500,65 @@ fun TelaConfiguracoes(prefs: Preferencias) {
             }
         }
 
-        Spacer(Modifier.height(32.dp))
+        EspacoDaNavegacao()
     }
+}
+
+/** Quatro circulos com as cores reais do tema: fundo, superficie, primaria, terciaria. */
+@Composable
+private fun AmostraDeTema(tema: TemaApp, tamanho: androidx.compose.ui.unit.Dp = 20.dp) {
+    val esquema = esquemaDeAmostra(tema)
+    Row(horizontalArrangement = Arrangement.spacedBy((-6).dp)) {
+        listOf(esquema.primary, esquema.tertiary, esquema.surface, esquema.background)
+            .forEach { cor ->
+                Box(
+                    Modifier
+                        .size(tamanho)
+                        .clip(CircleShape)
+                        .background(cor)
+                )
+            }
+    }
+}
+
+@Composable
+private fun SeletorDeTema(
+    temaAtual: TemaApp,
+    onEscolher: (TemaApp) -> Unit,
+    onFechar: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onFechar,
+        shape = RoundedCornerShape(28.dp),
+        title = { Text(stringResource(R.string.titulo_escolher_tema), fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                TemaApp.entries.forEach { opcao ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .selectable(
+                                selected = temaAtual == opcao,
+                                role = Role.RadioButton,
+                                onClick = { onEscolher(opcao); onFechar() }
+                            )
+                            .padding(vertical = 10.dp, horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(selected = temaAtual == opcao, onClick = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(opcao.rotulo), modifier = Modifier.weight(1f))
+                        Spacer(Modifier.width(8.dp))
+                        AmostraDeTema(opcao, tamanho = 18.dp)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onFechar) { Text(stringResource(R.string.acao_fechar)) }
+        }
+    )
 }
 
 // =====================================================================
@@ -400,17 +572,19 @@ fun TelaSobre() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(96.dp))
+        // A silhueta monocromatica do icone, tingida com a primaria do tema:
+        // muda de cor junto com o tema, sem precisar de um asset por tema.
         Icon(
-            Icons.Default.Gamepad,
-            null,
-            modifier = Modifier.size(110.dp),
-            tint = MaterialTheme.colorScheme.primary
+            painter = painterResource(R.mipmap.ic_launcher_monochrome),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(120.dp)
         )
         Text(
             stringResource(R.string.app_name),
@@ -425,9 +599,9 @@ fun TelaSobre() {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        ElevatedCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+        CartaoDeVidro {
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -450,15 +624,9 @@ fun TelaSobre() {
         }
 
         // ------------------------------------------------------- apoio
-        ElevatedCard(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.elevatedCardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer
-            )
-        ) {
+        CartaoDeVidro {
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -466,7 +634,7 @@ fun TelaSobre() {
                     stringResource(R.string.sobre_doacao_desc),
                     textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Button(
                     onClick = { audio.playClick(); uriHandler.openUri(URL_KOFI) },
@@ -494,7 +662,7 @@ fun TelaSobre() {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(Modifier.height(32.dp))
+        EspacoDaNavegacao()
     }
 }
 
@@ -509,41 +677,61 @@ fun TelaConfiguracoesJogo(jogo: Jogo?) {
     var overrideVideo by remember(jogo.id) { mutableStateOf(false) }
     var overrideControles by remember(jogo.id) { mutableStateOf(false) }
 
+    // Vive dentro de um ModalBottomSheet agora, nao mais como tela propria:
+    // por isso fillMaxWidth e nao fillMaxSize -- a folha se dimensiona pelo
+    // conteudo.
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        ElevatedCard(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.elevatedCardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer
-            )
-        ) {
-            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+        CartaoDeVidro {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     Icons.Default.Gamepad,
                     null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    modifier = Modifier.size(44.dp),
+                    tint = MaterialTheme.colorScheme.primary
                 )
                 Spacer(Modifier.width(16.dp))
                 Column {
                     Text(
                         stringResource(R.string.jogo_config_intro),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         jogo.nome,
                         fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                        style = MaterialTheme.typography.titleMedium
                     )
                 }
+            }
+        }
+
+        val contexto = LocalContext.current
+        val biblioteca = remember(contexto) { BibliotecaStore.obter(contexto) }
+        val escolherCapa = rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocument()
+        ) { uri ->
+            if (uri != null) {
+                audio.playClick()
+                // A imagem e copiada para dentro do app: a permissao da URI do
+                // seletor nao sobrevive a reinicializacao, e a capa sumiria
+                // sozinha dias depois.
+                biblioteca.definirCapaManual(jogo.id, uri)
+            }
+        }
+
+        Cartao {
+            Text(stringResource(R.string.acao_trocar_capa), fontWeight = FontWeight.Bold)
+            OutlinedButton(
+                onClick = { escolherCapa.launch(arrayOf("image/*")) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Image, null, Modifier.padding(end = 8.dp))
+                Text(stringResource(R.string.acao_trocar_capa))
             }
         }
 
@@ -606,14 +794,9 @@ fun TelaRetroAchievements() {
 
     if (!logado) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            ElevatedCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(32.dp),
-                shape = RoundedCornerShape(24.dp)
-            ) {
+            CartaoDeVidro(modifier = Modifier.padding(28.dp)) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
@@ -690,15 +873,14 @@ fun TelaRetroAchievements() {
     }
 
     val sistemas = remember { Sistema.entries }
-    val pagerState = rememberPagerState(pageCount = { sistemas.size })
-    val escopo = rememberCoroutineScope()
+    var sistemaIndice by rememberSaveable { mutableIntStateOf(0) }
     val porSistema = remember { mockStats.groupBy { it.sistema } }
 
     Column(Modifier.fillMaxSize()) {
+        Spacer(Modifier.height(88.dp))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceVariant)
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -730,25 +912,16 @@ fun TelaRetroAchievements() {
             }
         }
 
-        PrimaryTabRow(selectedTabIndex = pagerState.currentPage) {
-            sistemas.forEachIndexed { indice, sistema ->
-                Tab(
-                    selected = pagerState.currentPage == indice,
-                    onClick = {
-                        audio.playSwipe()
-                        escopo.launch { pagerState.animateScrollToPage(indice) }
-                    },
-                    text = { Text(stringResource(sistema.rotulo)) }
-                )
-            }
-        }
+        Spacer(Modifier.height(12.dp))
+        SeletorSegmentado(
+            opcoes = sistemas.map { it.rotuloCurto },
+            indiceSelecionado = sistemaIndice,
+            onSelecionar = { audio.playSwipe(); sistemaIndice = it },
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
 
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxSize(),
-            key = { sistemas[it].name }
-        ) { pagina ->
-            val stats = porSistema[sistemas[pagina]].orEmpty()
+        run {
+            val stats = porSistema[sistemas[sistemaIndice]].orEmpty()
             LazyColumn(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -787,8 +960,8 @@ private fun CartaoDeConquista(stat: RetroGameStat) {
     val percentual = (fracao * 100).toInt()
     val completo = percentual >= 100
 
-    ElevatedCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
-        Column(Modifier.padding(16.dp)) {
+    CartaoDeVidro {
+        Column(Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,

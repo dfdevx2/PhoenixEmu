@@ -1,0 +1,203 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "6f5132bc9fd8ab8521ba68e64a44f1a7",
+    "entities": [
+      {
+        "tableName": "jogos",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uri` TEXT NOT NULL, `nome` TEXT NOT NULL, `nome_ordenacao` TEXT NOT NULL, `nome_arquivo` TEXT NOT NULL, `extensao` TEXT NOT NULL, `sistema` TEXT NOT NULL, `regiao` TEXT NOT NULL, `favorito` INTEGER NOT NULL, `ultima_vez_jogado` INTEGER NOT NULL, `tempo_jogado` INTEGER NOT NULL, `capa_url` TEXT, `capa_local` TEXT, `capa_pendente` INTEGER NOT NULL, `tamanho_bytes` INTEGER NOT NULL, `modificado_em` INTEGER NOT NULL, `hash_ra` TEXT, `crc32` TEXT, `ausente` INTEGER NOT NULL, PRIMARY KEY(`uri`))",
+        "fields": [
+          {
+            "fieldPath": "uri",
+            "columnName": "uri",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nome",
+            "columnName": "nome",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nomeOrdenacao",
+            "columnName": "nome_ordenacao",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nomeArquivo",
+            "columnName": "nome_arquivo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "extensao",
+            "columnName": "extensao",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sistema",
+            "columnName": "sistema",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "regiao",
+            "columnName": "regiao",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "favorito",
+            "columnName": "favorito",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ultimaVezJogado",
+            "columnName": "ultima_vez_jogado",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tempoJogadoMinutos",
+            "columnName": "tempo_jogado",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capaUrl",
+            "columnName": "capa_url",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "capaLocal",
+            "columnName": "capa_local",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "capaPendente",
+            "columnName": "capa_pendente",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tamanhoBytes",
+            "columnName": "tamanho_bytes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modificadoEm",
+            "columnName": "modificado_em",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hashRa",
+            "columnName": "hash_ra",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "crc32",
+            "columnName": "crc32",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "ausente",
+            "columnName": "ausente",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "uri"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_jogos_sistema",
+            "unique": false,
+            "columnNames": [
+              "sistema"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_jogos_sistema` ON `${TABLE_NAME}` (`sistema`)"
+          },
+          {
+            "name": "index_jogos_favorito",
+            "unique": false,
+            "columnNames": [
+              "favorito"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_jogos_favorito` ON `${TABLE_NAME}` (`favorito`)"
+          },
+          {
+            "name": "index_jogos_ultima_vez_jogado",
+            "unique": false,
+            "columnNames": [
+              "ultima_vez_jogado"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_jogos_ultima_vez_jogado` ON `${TABLE_NAME}` (`ultima_vez_jogado`)"
+          },
+          {
+            "name": "index_jogos_tempo_jogado",
+            "unique": false,
+            "columnNames": [
+              "tempo_jogado"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_jogos_tempo_jogado` ON `${TABLE_NAME}` (`tempo_jogado`)"
+          },
+          {
+            "name": "index_jogos_nome_ordenacao",
+            "unique": false,
+            "columnNames": [
+              "nome_ordenacao"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_jogos_nome_ordenacao` ON `${TABLE_NAME}` (`nome_ordenacao`)"
+          },
+          {
+            "name": "index_jogos_ausente",
+            "unique": false,
+            "columnNames": [
+              "ausente"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_jogos_ausente` ON `${TABLE_NAME}` (`ausente`)"
+          },
+          {
+            "name": "index_jogos_capa_pendente",
+            "unique": false,
+            "columnNames": [
+              "capa_pendente"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_jogos_capa_pendente` ON `${TABLE_NAME}` (`capa_pendente`)"
+          },
+          {
+            "name": "index_jogos_hash_ra",
+            "unique": false,
+            "columnNames": [
+              "hash_ra"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_jogos_hash_ra` ON `${TABLE_NAME}` (`hash_ra`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6f5132bc9fd8ab8521ba68e64a44f1a7')"
+    ]
+  }
+}

@@ -11,18 +11,43 @@ import androidx.compose.runtime.Immutable
 // =====================================================================
 enum class TemaApp(@StringRes val rotulo: Int) {
     DINAMICO(R.string.tema_dinamico),
-    CLARO(R.string.tema_claro),
-    ESCURO(R.string.tema_escuro),
-    AMOLED(R.string.tema_amoled),
     NES_US(R.string.tema_nes_us),
     NES_JP(R.string.tema_nes_jp),
     SNES_US(R.string.tema_snes_us),
     SNES_JP(R.string.tema_snes_jp);
 
     companion object {
-        /** Tolerante a valores salvos invalidos (tema removido, prefs corrompidas). */
+        /**
+         * Tolerante a valores antigos e invalidos.
+         *
+         * CLARO, ESCURO e AMOLED existiam e sairam. Os dois primeiros porque o
+         * Material You ja segue o sistema -- ter "tema claro" ao lado dele era
+         * oferecer a mesma coisa duas vezes. O AMOLED saiu porque preto
+         * absoluto nao e um tema, e um acabamento: faz sentido sobre qualquer
+         * tema escuro, e nao so sobre um. Virou interruptor.
+         *
+         * Quem tinha um dos tres salvo cai em DINAMICO, e quem tinha AMOLED
+         * ganha o interruptor ligado (veja Preferencias.amoled).
+         */
         fun deNome(nome: String?): TemaApp =
             entries.firstOrNull { it.name == nome } ?: DINAMICO
+
+        const val LEGADO_AMOLED = "AMOLED"
+    }
+}
+
+/**
+ * Acabamento das superficies.
+ *
+ * Vidro fosco e bonito e nem todo mundo gosta -- e em aparelho fraco ele
+ * custa. O solido usa as mesmas cores e as mesmas formas, so troca o material.
+ */
+enum class Acabamento(@StringRes val rotulo: Int) {
+    VIDRO(R.string.acabamento_vidro),
+    SOLIDO(R.string.acabamento_solido);
+
+    companion object {
+        fun deNome(nome: String?): Acabamento = entries.firstOrNull { it.name == nome } ?: VIDRO
     }
 }
 

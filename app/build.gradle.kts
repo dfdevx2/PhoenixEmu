@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    id("com.google.devtools.ksp") version "2.2.10-2.0.2"
+    alias(libs.plugins.ksp)
 }
 
 // A chave da RAWG nunca fica no codigo nem no repositorio.
@@ -63,6 +63,13 @@ android {
     }
 }
 
+ksp {
+    // O schema exportado fica versionado no Git. E ele que torna uma migracao
+    // futura revisavel: da para ver em diff exatamente o que mudou na tabela.
+    arg("room.schemaLocation", "$projectDir/schemas")
+    arg("room.generateKotlin", "true")
+}
+
 dependencies {
     // Compose
     implementation(platform(libs.androidx.compose.bom))
@@ -80,6 +87,12 @@ dependencies {
     // A entrada continua no catalogo se voce precisar dele na Fase 1.
     implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.datastore.preferences)
+
+    // Room
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
 
     // Lifecycle
     implementation(libs.androidx.lifecycle.runtime.ktx)

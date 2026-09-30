@@ -55,11 +55,9 @@ class HashWorker(
                         Trabalhos.CHAVE_TOTAL to pendentes.size
                     )
                 )
-                store.gravar()
             }
         }
 
-        store.gravar()
         return Result.success()
     }
 }

@@ -64,7 +64,6 @@ class CapaWorker(
             )
         }
 
-        store.gravar()
         return Result.success()
     }
 

@@ -24,3 +24,17 @@ dependencyResolutionManagement {
 
 rootProject.name = "PhoenixEmu"
 include(":app")
+
+// ---------------------------------------------------------------------
+// O modulo nativo esta DESLIGADO de proposito.
+//
+// Ele usa CMake, e sem o NDK instalado o build inteiro quebraria -- inclusive
+// o app, que hoje compila. Ligue quando o NDK estiver no SDK Manager
+// (NDK "side by side" + CMake 3.22.1) e voce for comecar a Fase 4:
+//
+//   1. descomente a linha abaixo
+//   2. baixe o `libretro.h` oficial para emulator/src/main/cpp/
+//   3. adicione ao app/build.gradle.kts: implementation(project(":emulator"))
+//
+// include(":emulator")
+// ---------------------------------------------------------------------
