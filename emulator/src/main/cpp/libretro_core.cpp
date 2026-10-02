@@ -23,7 +23,20 @@ static size_t cb_audio_sample_batch(const int16_t *data, size_t frames) {
     return phoenix_audio_enviar(data, frames);
 }
 static void cb_input_poll() {}
-static int16_t cb_input_state(unsigned port, unsigned device, unsigned index, unsigned id) { return 0; }
+
+extern std::atomic<uint32_t> g_botoes[2];
+
+static int16_t cb_input_state(unsigned port, unsigned device, unsigned index, unsigned id) {
+    if (port > 1) return 0;
+    if (device == RETRO_DEVICE_JOYPAD) {
+        uint32_t mascara = g_botoes[port].load(std::memory_order_relaxed);
+        if (id == RETRO_DEVICE_ID_JOYPAD_MASK) {
+            return mascara;
+        }
+        return (mascara >> id) & 1;
+    }
+    return 0;
+}
 
 namespace phoenix {
 
@@ -169,6 +182,10 @@ double LibretroCore::obterSampleRate() {
     retro_system_av_info avInfo = {};
     get_system_av_info_(&avInfo);
     return avInfo.timing.sample_rate;
+}
+
+void LibretroCore::reiniciar() {
+    if (reset_) reset_();
 }
 
 void LibretroCore::descarregar() {

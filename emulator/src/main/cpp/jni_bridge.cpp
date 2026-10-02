@@ -20,21 +20,15 @@
 #include "video_renderer.h"
 #include "audio_output.h"
 
+std::atomic<uint32_t> g_botoes[2] = {};
+std::atomic<bool> g_pedido_reset{false};
+
 namespace {
 
 phoenix::LibretroCore g_nucleo;
 std::thread g_thread_emulador;
 std::atomic<bool> g_rodando{false};
 ANativeWindow* g_janela = nullptr;
-
-/**
- * Estado dos botoes por porta, atomico.
- *
- * KeyEvent e MotionEvent chegam na thread da UI e escrevem aqui; o nucleo le
- * uma vez por quadro, na thread do emulador. Um inteiro atomico e suficiente
- * e nao custa bloqueio nenhum dos dois lados.
- */
-std::atomic<uint32_t> g_botoes[2] = {};
 
 std::string paraStdString(JNIEnv *env, jstring texto) {
     if (texto == nullptr) return {};
@@ -62,6 +56,10 @@ void lacoEmulador() {
     auto proximo_quadro = clock::now();
 
     while (g_rodando.load(std::memory_order_acquire)) {
+        if (g_pedido_reset.exchange(false, std::memory_order_relaxed)) {
+            g_nucleo.reiniciar();
+        }
+
         if (phoenix_audio_ativo()) {
             if (!stream_iniciado) {
                 if (phoenix_audio_ocupacao() >= ALVO_QUADROS * quadros_minimos) {
@@ -184,6 +182,12 @@ JNIEXPORT jfloat JNICALL
 Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeObterAspectRatio(
     JNIEnv * /*env*/, jobject /*thiz*/) {
     return g_nucleo.obterAspectRatio();
+}
+
+JNIEXPORT void JNICALL
+Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeReiniciar(
+    JNIEnv * /*env*/, jobject /*thiz*/) {
+    g_pedido_reset.store(true, std::memory_order_relaxed);
 }
 
 } // extern "C"

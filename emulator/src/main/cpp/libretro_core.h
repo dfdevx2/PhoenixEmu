@@ -35,6 +35,8 @@ public:
     float obterAspectRatio();
     double obterSampleRate();
 
+    void reiniciar();
+
 private:
     void *handle_ = nullptr;
 

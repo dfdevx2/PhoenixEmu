@@ -24,6 +24,7 @@ class NucleoLibretro {
     private external fun nativeDefinirBotoes(porta: Int, mascara: Int)
     private external fun nativeDescarregar()
     private external fun nativeObterAspectRatio(): Float
+    private external fun nativeReiniciar()
 
     fun definirPastas(sistema: String, saves: String) = nativeDefinirPastas(sistema, saves)
     
@@ -43,6 +44,8 @@ class NucleoLibretro {
     fun descarregar() = nativeDescarregar()
 
     fun obterAspectRatio(): Float = nativeObterAspectRatio()
+
+    fun reiniciar() = nativeReiniciar()
 
     /** Bits do RETRO_DEVICE_ID_JOYPAD, na ordem da API libretro. */
     object Botao {

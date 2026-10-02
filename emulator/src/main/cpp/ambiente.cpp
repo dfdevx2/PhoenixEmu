@@ -75,6 +75,9 @@ bool cb_environment(unsigned cmd, void *data) {
             return true;
         case 37: // RETRO_ENVIRONMENT_SET_GEOMETRY
             return true;
+        case 51: // RETRO_ENVIRONMENT_GET_INPUT_BITMASKS
+            if (data) *(bool*)data = true;
+            return true;
         case 52: // RETRO_ENVIRONMENT_GET_CORE_OPTIONS_VERSION
             *(unsigned*)data = 0;
             return true;

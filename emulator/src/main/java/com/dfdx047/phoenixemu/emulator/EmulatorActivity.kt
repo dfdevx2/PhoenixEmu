@@ -6,11 +6,16 @@ import android.view.SurfaceView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -22,6 +27,15 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import android.view.InputDevice
+import android.view.KeyEvent
+import android.view.MotionEvent
+import android.view.WindowManager
+import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import java.io.File
 
 /**
@@ -44,9 +58,37 @@ class EmulatorActivity : ComponentActivity() {
     private val nucleo = NucleoLibretro()
     private var aspectRatio by mutableFloatStateOf(4f / 3f)
     private var activeSurfaceHolder: SurfaceHolder? = null
+    
+    private var isPaused by mutableStateOf(false)
+    private var keyMask = 0
+    private var axisMask = 0
+    private val keyToBit = mutableMapOf<Int, Int>()
+
+    private fun bindKey(keyCode: Int, bit: Int) {
+        keyToBit[keyCode] = (keyToBit[keyCode] ?: 0) or bit
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        hideSystemBars()
+        
+        val mapKeys = intent.getIntArrayExtra(EXTRA_MAPEAMENTO)
+        if (mapKeys != null && mapKeys.size >= 12) {
+            bindKey(mapKeys[0], NucleoLibretro.Botao.CIMA)
+            bindKey(mapKeys[1], NucleoLibretro.Botao.BAIXO)
+            bindKey(mapKeys[2], NucleoLibretro.Botao.ESQUERDA)
+            bindKey(mapKeys[3], NucleoLibretro.Botao.DIREITA)
+            bindKey(mapKeys[4], NucleoLibretro.Botao.A)
+            bindKey(mapKeys[5], NucleoLibretro.Botao.B)
+            bindKey(mapKeys[6], NucleoLibretro.Botao.X)
+            bindKey(mapKeys[7], NucleoLibretro.Botao.Y)
+            bindKey(mapKeys[8], NucleoLibretro.Botao.L)
+            bindKey(mapKeys[9], NucleoLibretro.Botao.R)
+            bindKey(mapKeys[10], NucleoLibretro.Botao.SELECT)
+            bindKey(mapKeys[11], NucleoLibretro.Botao.START)
+        }
 
         val nucleoName = intent.getStringExtra(EXTRA_NUCLEO) ?: ""
         val libraryPath = "${applicationInfo.nativeLibraryDir}/$nucleoName"
@@ -76,6 +118,8 @@ class EmulatorActivity : ComponentActivity() {
         }
 
         setContent {
+            val focusRequester = remember { FocusRequester() }
+
             Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
                 AndroidView(
                     factory = { context ->
@@ -98,11 +142,50 @@ class EmulatorActivity : ComponentActivity() {
                     modifier = Modifier.aspectRatio(aspectRatio)
                 )
 
-                BasicText(
-                    text = displayMessage,
-                    style = TextStyle(color = Color.White, fontSize = 10.sp),
-                    modifier = Modifier.align(Alignment.TopStart).padding(8.dp)
-                )
+                if (isPaused) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.7f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            BasicText(
+                                text = displayMessage,
+                                style = TextStyle(color = Color.White, fontSize = 12.sp)
+                            )
+                            Button(
+                                onClick = { isPaused = false },
+                                modifier = Modifier.focusRequester(focusRequester)
+                            ) { Text("Continuar") }
+                            Button(onClick = { 
+                                isPaused = false
+                                nucleo.reiniciar()
+                            }) { Text("Reiniciar") }
+                            Button(onClick = { finish() }) { Text("Sair") }
+                        }
+                    }
+                    LaunchedEffect(Unit) {
+                        try { focusRequester.requestFocus() } catch (e: Exception) {}
+                    }
+                }
+            }
+
+            LaunchedEffect(isPaused) {
+                keyMask = 0
+                axisMask = 0
+                nucleo.definirBotoes(0, 0)
+
+                if (isPaused) {
+                    nucleo.parar()
+                } else {
+                    activeSurfaceHolder?.surface?.let {
+                        if (it.isValid) nucleo.iniciar(it)
+                    }
+                }
             }
         }
     }
@@ -114,10 +197,26 @@ class EmulatorActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        activeSurfaceHolder?.surface?.let {
-            if (it.isValid) {
-                nucleo.iniciar(it)
+        if (!isPaused) {
+            activeSurfaceHolder?.surface?.let {
+                if (it.isValid) {
+                    nucleo.iniciar(it)
+                }
             }
+        }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            hideSystemBars()
+        }
+    }
+
+    private fun hideSystemBars() {
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            hide(WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
     }
 
@@ -128,6 +227,60 @@ class EmulatorActivity : ComponentActivity() {
         if (isFinishing) {
             android.os.Process.killProcess(android.os.Process.myPid())
         }
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.keyCode == KeyEvent.KEYCODE_BACK || event.keyCode == KeyEvent.KEYCODE_BUTTON_MODE) {
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+                isPaused = !isPaused
+            }
+            return true
+        }
+
+        if (isPaused) {
+            if (event.keyCode == KeyEvent.KEYCODE_BUTTON_A) {
+                val newEvent = KeyEvent(event.action, KeyEvent.KEYCODE_DPAD_CENTER)
+                return super.dispatchKeyEvent(newEvent)
+            }
+            return super.dispatchKeyEvent(event)
+        }
+
+        val bit = keyToBit[event.keyCode]
+        if (bit != null) {
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+                keyMask = keyMask or bit
+                nucleo.definirBotoes(0, keyMask or axisMask)
+            } else if (event.action == KeyEvent.ACTION_UP) {
+                keyMask = keyMask and bit.inv()
+                nucleo.definirBotoes(0, keyMask or axisMask)
+            }
+            return true
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
+    override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        if (isPaused) return super.dispatchGenericMotionEvent(event)
+
+        if (event.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK && event.action == MotionEvent.ACTION_MOVE) {
+            val xaxis = event.getAxisValue(MotionEvent.AXIS_X)
+            val yaxis = event.getAxisValue(MotionEvent.AXIS_Y)
+            val hatx = event.getAxisValue(MotionEvent.AXIS_HAT_X)
+            val haty = event.getAxisValue(MotionEvent.AXIS_HAT_Y)
+
+            var newAxisMask = 0
+            if (xaxis < -0.5f || hatx < -0.5f) newAxisMask = newAxisMask or NucleoLibretro.Botao.ESQUERDA
+            if (xaxis > 0.5f || hatx > 0.5f) newAxisMask = newAxisMask or NucleoLibretro.Botao.DIREITA
+            if (yaxis < -0.5f || haty < -0.5f) newAxisMask = newAxisMask or NucleoLibretro.Botao.CIMA
+            if (yaxis > 0.5f || haty > 0.5f) newAxisMask = newAxisMask or NucleoLibretro.Botao.BAIXO
+
+            if (newAxisMask != axisMask) {
+                axisMask = newAxisMask
+                nucleo.definirBotoes(0, keyMask or axisMask)
+            }
+            return true
+        }
+        return super.dispatchGenericMotionEvent(event)
     }
 
     /**

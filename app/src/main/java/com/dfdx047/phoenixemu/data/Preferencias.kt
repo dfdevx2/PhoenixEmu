@@ -264,6 +264,11 @@ class Preferencias private constructor(context: Context) {
 
     fun definirTecla(botao: BotaoVirtual, codigo: Int) = editar { prefs ->
         val atual = lerMapeamento(prefs[K_MAPEAMENTO]).toMutableMap()
+        val outroBotao = atual.entries.firstOrNull { it.value == codigo && it.key != botao }?.key
+        if (outroBotao != null) {
+            val teclaAntiga = atual[botao] ?: botao.padrao
+            atual[outroBotao] = teclaAntiga
+        }
         atual[botao] = codigo
         prefs[K_MAPEAMENTO] = gson.toJson(atual.mapKeys { it.key.name })
     }
