@@ -1,5 +1,6 @@
 #include "libretro_core.h"
 #include "video_renderer.h"
+#include "audio_output.h"
 #include <android/log.h>
 #include <dlfcn.h>
 #include <sstream>
@@ -14,8 +15,13 @@ static void cb_video_refresh(const void *data, unsigned width, unsigned height, 
     if (data == nullptr) return; // Repita o quadro anterior
     phoenix_video_desenhar_quadro(data, width, height, pitch);
 }
-static void cb_audio_sample(int16_t left, int16_t right) {}
-static size_t cb_audio_sample_batch(const int16_t *data, size_t frames) { return frames; }
+static void cb_audio_sample(int16_t left, int16_t right) {
+    int16_t frame[2] = {left, right};
+    phoenix_audio_enviar(frame, 1);
+}
+static size_t cb_audio_sample_batch(const int16_t *data, size_t frames) {
+    return phoenix_audio_enviar(data, frames);
+}
 static void cb_input_poll() {}
 static int16_t cb_input_state(unsigned port, unsigned device, unsigned index, unsigned id) { return 0; }
 
@@ -156,6 +162,13 @@ float LibretroCore::obterAspectRatio() {
                  static_cast<float>(avInfo.geometry.base_height);
     }
     return aspect;
+}
+
+double LibretroCore::obterSampleRate() {
+    if (!get_system_av_info_) return 44100.0;
+    retro_system_av_info avInfo = {};
+    get_system_av_info_(&avInfo);
+    return avInfo.timing.sample_rate;
 }
 
 void LibretroCore::descarregar() {

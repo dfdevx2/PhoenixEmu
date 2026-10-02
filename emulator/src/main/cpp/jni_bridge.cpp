@@ -18,6 +18,7 @@
 
 #include "libretro_core.h"
 #include "video_renderer.h"
+#include "audio_output.h"
 
 namespace {
 
@@ -47,14 +48,51 @@ void lacoEmulador() {
     using clock = std::chrono::steady_clock;
     double fps = g_nucleo.obterFps();
     if (fps <= 0.0) fps = 60.0;
+    double sample_rate = g_nucleo.obterSampleRate();
+    if (sample_rate <= 0.0) sample_rate = 44100.0;
+
+    phoenix_audio_inicializar(sample_rate, fps);
+
+    size_t quadros_minimos = phoenix_audio_tamanho_minimo();
+    constexpr int ALVO_QUADROS = 2;
+    bool stream_iniciado = false;
+
+    auto proximo_relato = clock::now() + std::chrono::seconds(1);
     auto intervalo = std::chrono::nanoseconds(static_cast<long long>(1'000'000'000.0 / fps));
     auto proximo_quadro = clock::now();
 
     while (g_rodando.load(std::memory_order_acquire)) {
-        g_nucleo.rodarQuadro();
-        proximo_quadro += intervalo;
-        std::this_thread::sleep_until(proximo_quadro);
+        if (phoenix_audio_ativo()) {
+            if (!stream_iniciado) {
+                if (phoenix_audio_ocupacao() >= ALVO_QUADROS * quadros_minimos) {
+                    phoenix_audio_iniciar_stream();
+                    stream_iniciado = true;
+                }
+            }
+
+            if (phoenix_audio_ocupacao() < ALVO_QUADROS * quadros_minimos) {
+                g_nucleo.rodarQuadro();
+                proximo_quadro = clock::now();
+            } else {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+        } else {
+            // Fallback para relogio (stream falhou ou desconectou)
+            g_nucleo.rodarQuadro();
+            proximo_quadro += intervalo;
+            std::this_thread::sleep_until(proximo_quadro);
+        }
+
+        auto agora = clock::now();
+        if (agora >= proximo_relato) {
+            if (stream_iniciado && phoenix_audio_ativo()) {
+                phoenix_audio_relatar();
+            }
+            proximo_relato = agora + std::chrono::seconds(1);
+        }
     }
+
+    phoenix_audio_finalizar();
 }
 
 } // namespace

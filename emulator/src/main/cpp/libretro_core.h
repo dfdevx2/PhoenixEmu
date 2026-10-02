@@ -33,6 +33,7 @@ public:
     std::string obterInfo();
     double obterFps();
     float obterAspectRatio();
+    double obterSampleRate();
 
 private:
     void *handle_ = nullptr;

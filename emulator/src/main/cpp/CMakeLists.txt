@@ -34,6 +34,7 @@ target_link_libraries(phoenix_emu
     ${egl-lib}
     ${gles-lib}
     dl          # dlopen/dlsym para carregar os nucleos libretro
+    oboe::oboe
 )
 
 # ---------------------------------------------------------------------
@@ -51,10 +52,7 @@ endif()
 
 # ---------------------------------------------------------------------
 # Fase 4b: Oboe entra aqui.
-#
-#   find_package(oboe REQUIRED CONFIG)
-#   target_link_libraries(phoenix_emu oboe::oboe)
-#
+find_package(oboe REQUIRED CONFIG)
 # com `implementation("com.google.oboe:oboe:1.9.0")` e
 # `arguments += "-DANDROID_STL=c++_shared"` no build.gradle.kts (ja esta la).
 # ---------------------------------------------------------------------

@@ -43,6 +43,7 @@ class EmulatorActivity : ComponentActivity() {
 
     private val nucleo = NucleoLibretro()
     private var aspectRatio by mutableFloatStateOf(4f / 3f)
+    private var activeSurfaceHolder: SurfaceHolder? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,12 +82,14 @@ class EmulatorActivity : ComponentActivity() {
                         SurfaceView(context).apply {
                             holder.addCallback(object : SurfaceHolder.Callback {
                                 override fun surfaceCreated(holder: SurfaceHolder) {
+                                    activeSurfaceHolder = holder
                                     nucleo.iniciar(holder.surface)
                                 }
 
                                 override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
 
                                 override fun surfaceDestroyed(holder: SurfaceHolder) {
+                                    activeSurfaceHolder = null
                                     nucleo.parar()
                                 }
                             })
@@ -100,6 +103,20 @@ class EmulatorActivity : ComponentActivity() {
                     style = TextStyle(color = Color.White, fontSize = 10.sp),
                     modifier = Modifier.align(Alignment.TopStart).padding(8.dp)
                 )
+            }
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        nucleo.parar()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        activeSurfaceHolder?.surface?.let {
+            if (it.isValid) {
+                nucleo.iniciar(it)
             }
         }
     }
