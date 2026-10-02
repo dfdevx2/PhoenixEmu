@@ -57,9 +57,22 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.RichTooltip
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
+import com.dfdx047.phoenixemu.R
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import kotlin.math.roundToInt
 
 // =====================================================================
@@ -597,6 +610,41 @@ fun CartaoDeVidro(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             content = conteudo
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BotaoDeDica(texto: String, modifier: Modifier = Modifier) {
+    val state = rememberTooltipState(isPersistent = true)
+    val coroutineScope = rememberCoroutineScope()
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+        tooltip = {
+            RichTooltip(
+                colors = TooltipDefaults.richTooltipColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.96f),
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ),
+                shape = RoundedCornerShape(16.dp),
+                text = { Text(texto, style = MaterialTheme.typography.bodySmall) },
+                modifier = Modifier.widthIn(max = 280.dp).border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+            )
+        },
+        state = state,
+        modifier = modifier
+    ) {
+        IconButton(
+            onClick = { coroutineScope.launch { state.show() } },
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                Icons.AutoMirrored.Outlined.HelpOutline,
+                contentDescription = stringResource(R.string.acao_dica),
+                tint = LocalVidro.current.corDoConteudo.copy(alpha = 0.7f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
     }
 }
 

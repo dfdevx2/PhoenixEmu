@@ -41,6 +41,8 @@
     <string name="filtro_todos">All</string>
     <string name="filtro_recentes">Recent</string>
     <string name="filtro_favoritos">Favorites</string>
+    <string name="titulo_filtros">Filters and order</string>
+    <string name="acao_filtrar">Filters and order</string>
     <string name="ordenar_nome">Name (A-Z)</string>
     <string name="ordenar_mais_jogados">Most played</string>
     <string name="ordenar_recentes">Recently played</string>
@@ -60,6 +62,16 @@
     <string name="scan_percentual">%1$d%% done</string>
 
     <!-- Settings -->
+    <string name="sec_jogo">GAME</string>
+    <string name="config_autosalvar">Save on exit</string>
+    <string name="config_autosalvar_desc">Automatically saves the game state when you leave it.</string>
+    <string name="config_autocarregar">Resume on entry</string>
+    <string name="config_autocarregar_desc">Opens the game where you left off. When off, the game starts from the beginning.</string>
+
+    <string name="sec_navegacao">NAVIGATION</string>
+    <string name="config_ombros_secao">Switch sections with L1/R1</string>
+    <string name="config_ombros_secao_desc">With a gamepad, L1 and R1 move to the previous or next section of the navigation bar.</string>
+
     <string name="sec_personalizacao">VISUAL PERSONALIZATION</string>
     <string name="config_tema">Emulator theme</string>
     <string name="config_fundo">Library background</string>
@@ -214,4 +226,29 @@
     <string name="boasvindas_idioma_desc">“System” follows your phone. Pick a language to override it.</string>
     <string name="boasvindas_comecar">Get started</string>
     <string name="boasvindas_rodape">Free and open source. No ads, no accounts.</string>
+    <!-- Tabs -->
+    <string name="aba_aparencia">Appearance</string>
+    <string name="aba_audio">Audio</string>
+    <string name="aba_video">Video</string>
+    <string name="aba_jogo">Game</string>
+    <string name="aba_navegacao">Navigation</string>
+    <string name="aba_manutencao">Maintenance</string>
+    <string name="acao_dica">Help</string>
+
+    <string name="dica_tema">Changes the app colors. Each theme has its own palette; Dynamic uses your Android colors.</string>
+    <string name="dica_amoled">Makes the background pure black on dark themes. On OLED screens this saves battery.</string>
+    <string name="dica_acabamento">Picks the material of bars and cards: blurred glass or a simpler, lighter finish.</string>
+    <string name="dica_fundo">Uses your own image as the app background.</string>
+    <string name="dica_desfoque">How blurred the background image is. Only works on Android 12 or newer.</string>
+    <string name="dica_opacidade">How much of the background image shows. Lower opacity reveals more of the theme background.</string>
+    <string name="dica_reduzir_efeitos">Turns off live blur and heavy animations. Helps weaker devices and saves battery.</string>
+    <string name="dica_idioma">App language. System follows the Android language. The screen restarts when you change it.</string>
+    <string name="dica_bgm">Background music in the app menus. Does not affect game audio.</string>
+    <string name="dica_sfx">Click and navigation sounds in the menus. Does not affect game audio.</string>
+    <string name="dica_proporcao">How the game image fills the screen: 4:3 keeps the original shape, 16:9 fills more, Stretch fills everything.</string>
+    <string name="dica_filtro_video">Smooths or stylizes the game image. None keeps pixels sharp.</string>
+    <string name="dica_autosalvar">Saves the game state by itself when you leave. Does not use the 4 manual slots.</string>
+    <string name="dica_autocarregar">When opening a game, continues from the last automatic state. When off, it starts from the beginning.</string>
+    <string name="dica_ombros">With a gamepad, L1 and R1 move to the previous or next section of the navigation bar.</string>
+    <string name="dica_hashes">Computes the ROM identifier (CRC32). Helps recognize the game and find the right cover.</string>
 </resources>

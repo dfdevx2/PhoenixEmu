@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -79,9 +80,12 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -100,13 +104,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.foundation.border
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
@@ -155,8 +172,12 @@ import com.dfdx047.phoenixemu.ui.theme.PhoenixEmuTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
 import java.io.File
 import kotlin.math.abs
+import kotlin.math.roundToInt
+import kotlin.math.sign
 
 class MainActivity : ComponentActivity() {
 
@@ -402,6 +423,8 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore) {
     //                sampleariam a si mesmas e viraria realimentacao.
     val fundo = lembrarEstadoDeFundo()
 
+    val ombrosTrocamSecao by prefs.ombrosTrocamSecao.collectAsStateWithLifecycle()
+
     Scaffold(
         containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -414,7 +437,33 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore) {
             )
         }
     ) { _ ->
-        Box(Modifier.fillMaxSize()) {
+        val xmbAtivo = modoVisual == ModoVisual.XMB && secao == Secao.BIBLIOTECA
+
+        Box(
+            Modifier
+                .fillMaxSize()
+                .onPreviewKeyEvent { evento ->
+                    if (!ombrosTrocamSecao) return@onPreviewKeyEvent false
+                    if (evento.type != KeyEventType.KeyDown || evento.nativeKeyEvent.repeatCount != 0) return@onPreviewKeyEvent false
+
+                    when (evento.key) {
+                        Key.ButtonL1 -> {
+                            audio.playSwipe()
+                            secaoIndice = (secaoIndice - 1 + Secao.entries.size) % Secao.entries.size
+                            chrome.mostrar()
+                            true
+                        }
+                        Key.ButtonR1 -> {
+                            audio.playSwipe()
+                            secaoIndice = (secaoIndice + 1) % Secao.entries.size
+                            chrome.mostrar()
+                            true
+                        }
+                        else -> false
+                    }
+                }
+                .focusable()
+        ) {
 
             // ---------------------------------------------- camada 1: fundo
             Box(
@@ -472,7 +521,7 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore) {
                 // a lista rola. Sem isso, em paisagem sobravam menos de duas
                 // fileiras de capas visiveis -- e as pilulas cobriam
                 // justamente a arte que a pessoa esta tentando olhar.
-                val oculto = chrome.fracaoSuavizada()
+                val oculto = if (xmbAtivo) 0f else chrome.fracaoSuavizada()
 
                 Column(
                     modifier = Modifier
@@ -486,113 +535,165 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore) {
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     if (secao == Secao.BIBLIOTECA) {
-                        BarraDeBusca(
-                            texto = busca,
-                            onTexto = { busca = it },
-                            dica = stringResource(R.string.busca_dica),
-                            iconeInicial = Icons.Default.Search,
-                            modifier = Modifier.fillMaxWidth(),
-                            acaoFinal = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    IconButton(onClick = {
+                        if (xmbAtivo) {
+                            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    if (this@BoxWithConstraints.maxWidth >= 600.dp) {
+                                        Text(
+                                            text = stringResource(R.string.app_name),
+                                            style = MaterialTheme.typography.titleLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                    }
+                                    BarraDeBusca(
+                                        texto = busca,
+                                        onTexto = { busca = it },
+                                        dica = stringResource(R.string.busca_dica),
+                                        iconeInicial = Icons.Default.Search,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    var mostrandoFiltros by remember { mutableStateOf(false) }
+                                    BotaoRedondoDeVidro(Icons.AutoMirrored.Filled.Sort, stringResource(R.string.acao_filtrar)) {
+                                        audio.playClick()
+                                        mostrandoFiltros = true
+                                    }
+                                    if (mostrandoFiltros) {
+                                        DialogoDeFiltros(
+                                            rotulosDeSistema = rotulosDeSistema,
+                                            sistemaIndice = sistemaIndice,
+                                            onSistema = { idx -> audio.playSwipe(); sistemaIndice = idx },
+                                            filtro = filtro,
+                                            onFiltro = { f -> audio.playClick(); prefs.definirFiltro(f) },
+                                            ordenacao = ordenacao,
+                                            onOrdenacao = { o -> audio.playClick(); prefs.definirOrdenacao(o) },
+                                            onFechar = { mostrandoFiltros = false }
+                                        )
+                                    }
+                                    BotaoRedondoDeVidro(Icons.Default.GridView, stringResource(R.string.acao_alternar_modo)) {
+                                        audio.playClick()
+                                        prefs.definirModoVisual(ModoVisual.GRADE)
+                                    }
+                                    BotaoRedondoDeVidro(Icons.Default.Refresh, stringResource(R.string.acao_sincronizar)) {
                                         audio.playClick()
                                         biblioteca.sincronizarAsync(bloqueante = true)
-                                    }, modifier = Modifier.size(28.dp)) {
-                                        Icon(
-                                            Icons.Default.Refresh,
-                                            stringResource(R.string.acao_sincronizar),
-                                            tint = estilo.corDoConteudo.copy(alpha = 0.75f),
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                    Spacer(Modifier.width(4.dp))
-                                    IconButton(onClick = {
-                                        audio.playClick()
-                                        prefs.definirModoVisual(
-                                            if (modoVisual == ModoVisual.GRADE) ModoVisual.XMB
-                                            else ModoVisual.GRADE
-                                        )
-                                    }, modifier = Modifier.size(28.dp)) {
-                                        Icon(
-                                            if (modoVisual == ModoVisual.GRADE) Icons.Default.ViewCarousel
-                                            else Icons.Default.GridView,
-                                            stringResource(R.string.acao_alternar_modo),
-                                            tint = estilo.corDoConteudo.copy(alpha = 0.75f),
-                                            modifier = Modifier.size(20.dp)
-                                        )
                                     }
                                 }
                             }
-                        )
+                        } else {
+                            BarraDeBusca(
+                                texto = busca,
+                                onTexto = { busca = it },
+                                dica = stringResource(R.string.busca_dica),
+                                iconeInicial = Icons.Default.Search,
+                                modifier = Modifier.fillMaxWidth(),
+                                acaoFinal = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        IconButton(onClick = {
+                                            audio.playClick()
+                                            biblioteca.sincronizarAsync(bloqueante = true)
+                                        }, modifier = Modifier.size(28.dp)) {
+                                            Icon(
+                                                Icons.Default.Refresh,
+                                                stringResource(R.string.acao_sincronizar),
+                                                tint = estilo.corDoConteudo.copy(alpha = 0.75f),
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                        Spacer(Modifier.width(4.dp))
+                                        IconButton(onClick = {
+                                            audio.playClick()
+                                            prefs.definirModoVisual(
+                                                if (modoVisual == ModoVisual.GRADE) ModoVisual.XMB
+                                                else ModoVisual.GRADE
+                                            )
+                                        }, modifier = Modifier.size(28.dp)) {
+                                            Icon(
+                                                if (modoVisual == ModoVisual.GRADE) Icons.Default.ViewCarousel
+                                                else Icons.Default.GridView,
+                                                stringResource(R.string.acao_alternar_modo),
+                                                tint = estilo.corDoConteudo.copy(alpha = 0.75f),
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            )
 
-                        // Sistema, filtros e ordenacao numa linha so. Eram
-                        // tres linhas empilhadas; em paisagem isso sozinho
-                        // comia metade da altura util.
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                            // Sistema, filtros e ordenacao numa linha so. Eram
+                            // tres linhas empilhadas; em paisagem isso sozinho
+                            // comia metade da altura util.
                             Row(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // O seletor segmentado substitui as abas +
-                                // pager: nao ha mais pager externo para
-                                // disputar o gesto com o carrossel XMB.
-                                SeletorSegmentado(
-                                    opcoes = rotulosDeSistema,
-                                    indiceSelecionado = sistemaIndice,
-                                    onSelecionar = { audio.playSwipe(); sistemaIndice = it }
-                                )
-                                FiltroBiblioteca.entries.forEach { opcao ->
-                                    ChipDeVidro(
-                                        texto = stringResource(opcao.rotulo),
-                                        selecionado = filtro == opcao,
-                                        onClick = { audio.playClick(); prefs.definirFiltro(opcao) }
-                                    )
-                                }
-                            }
-                            Spacer(Modifier.width(8.dp))
-                            Box {
-                                SuperficieDeVidro(
-                                    modifier = Modifier.clip(CircleShape),
-                                    forma = CircleShape
+                                Row(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    IconButton(onClick = {
-                                        audio.playClick(); menuDeOrdenacaoAberto = true
-                                    }) {
-                                        Icon(
-                                            Icons.AutoMirrored.Filled.Sort,
-                                            stringResource(R.string.acao_ordenar),
-                                            tint = estilo.corDoConteudo
+                                    // O seletor segmentado substitui as abas +
+                                    // pager: nao ha mais pager externo para
+                                    // disputar o gesto com o carrossel XMB.
+                                    SeletorSegmentado(
+                                        opcoes = rotulosDeSistema,
+                                        indiceSelecionado = sistemaIndice,
+                                        onSelecionar = { audio.playSwipe(); sistemaIndice = it }
+                                    )
+                                    FiltroBiblioteca.entries.forEach { opcao ->
+                                        ChipDeVidro(
+                                            texto = stringResource(opcao.rotulo),
+                                            selecionado = filtro == opcao,
+                                            onClick = { audio.playClick(); prefs.definirFiltro(opcao) }
                                         )
                                     }
                                 }
-                                DropdownMenu(
-                                    expanded = menuDeOrdenacaoAberto,
-                                    onDismissRequest = { menuDeOrdenacaoAberto = false }
-                                ) {
-                                    Ordenacao.entries.forEach { opcao ->
-                                        DropdownMenuItem(
-                                            text = {
-                                                Text(
-                                                    stringResource(opcao.rotulo),
-                                                    fontWeight = if (ordenacao == opcao) {
-                                                        FontWeight.Bold
-                                                    } else {
-                                                        FontWeight.Normal
-                                                    }
-                                                )
-                                            },
-                                            onClick = {
-                                                audio.playClick()
-                                                prefs.definirOrdenacao(opcao)
-                                                menuDeOrdenacaoAberto = false
-                                            }
-                                        )
+                                Spacer(Modifier.width(8.dp))
+                                Box {
+                                    SuperficieDeVidro(
+                                        modifier = Modifier.clip(CircleShape),
+                                        forma = CircleShape
+                                    ) {
+                                        IconButton(onClick = {
+                                            audio.playClick(); menuDeOrdenacaoAberto = true
+                                        }) {
+                                            Icon(
+                                                Icons.AutoMirrored.Filled.Sort,
+                                                stringResource(R.string.acao_ordenar),
+                                                tint = estilo.corDoConteudo
+                                            )
+                                        }
+                                    }
+                                    DropdownMenu(
+                                        expanded = menuDeOrdenacaoAberto,
+                                        onDismissRequest = { menuDeOrdenacaoAberto = false }
+                                    ) {
+                                        Ordenacao.entries.forEach { opcao ->
+                                            DropdownMenuItem(
+                                                text = {
+                                                    Text(
+                                                        stringResource(opcao.rotulo),
+                                                        fontWeight = if (ordenacao == opcao) {
+                                                            FontWeight.Bold
+                                                        } else {
+                                                            FontWeight.Normal
+                                                        }
+                                                    )
+                                                },
+                                                onClick = {
+                                                    audio.playClick()
+                                                    prefs.definirOrdenacao(opcao)
+                                                    menuDeOrdenacaoAberto = false
+                                                }
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -614,10 +715,12 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore) {
                 // para uma informacao passageira.
                 Column(
                     modifier = Modifier
-                        .align(Alignment.BottomCenter)
+                        .align(if (xmbAtivo) Alignment.BottomCenter else Alignment.BottomCenter)
                         .graphicsLayer {
-                            translationY = oculto * alturaDaNavegacaoPx
-                            alpha = 1f - oculto
+                            if (!xmbAtivo) {
+                                translationY = oculto * alturaDaNavegacaoPx
+                                alpha = 1f - oculto
+                            }
                         }
                         .navigationBarsPadding()
                         .padding(bottom = 16.dp),
@@ -658,7 +761,7 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore) {
 
                     // As dicas descrevem acoes da biblioteca; nas outras
                     // secoes elas so ocupariam espaco.
-                    if (secao == Secao.BIBLIOTECA) {
+                    if (secao == Secao.BIBLIOTECA && !xmbAtivo) {
                         BarraDeDicas(
                             tipo = tipoDeControle,
                             dicas = listOf(
@@ -678,24 +781,37 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore) {
                         }
                     )
                 }
+                
+                if (secao == Secao.BIBLIOTECA && xmbAtivo) {
+                    BarraDeDicas(
+                        tipo = tipoDeControle,
+                        dicas = listOf(
+                            tipoDeControle.confirmar to stringResource(R.string.dica_jogar),
+                            tipoDeControle.opcoes to stringResource(R.string.dica_opcoes)
+                        ),
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .navigationBarsPadding()
+                            .padding(start = 16.dp, bottom = 16.dp)
+                    )
+                }
 
                 if (secao == Secao.BIBLIOTECA) {
                     BotaoPilula(
                         icone = Icons.Default.Add,
                         texto = stringResource(R.string.acao_adicionar_pasta),
-                        // No carrossel o FAB estendido cobre a capa vizinha.
-                        // Encolhido, ele vira so o simbolo no canto.
-                        expandido = fabExpandido && oculto < 0.5f &&
-                            modoVisual == ModoVisual.GRADE,
+                        expandido = xmbAtivo || (fabExpandido && oculto < 0.5f && modoVisual == ModoVisual.GRADE),
                         onClick = { audio.playClick(); abrirExplorador.launch(null) },
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .graphicsLayer {
-                                translationY = oculto * alturaDaNavegacaoPx
-                                alpha = 1f - oculto
+                                if (!xmbAtivo) {
+                                    translationY = oculto * alturaDaNavegacaoPx
+                                    alpha = 1f - oculto
+                                }
                             }
                             .navigationBarsPadding()
-                            .padding(end = 16.dp, bottom = 96.dp)
+                            .padding(end = 16.dp, bottom = if (xmbAtivo) 16.dp else 96.dp)
                     )
                 }
             }
@@ -985,44 +1101,47 @@ private fun CarrosselXmb(
     onOpcoes: (Jogo) -> Unit
 ) {
     val primaria = MaterialTheme.colorScheme.primary
-    val alturaDaCapa = alturaDisponivel.coerceIn(170.dp, 360.dp)
-    val larguraDaCapa = alturaDaCapa * 0.68f
+    val alturaDaCapa = (alturaDisponivel - 12.dp).coerceIn(200.dp, 560.dp)
+    val larguraDaCapa = (alturaDaCapa * 0.78f).coerceAtMost(larguraDaTela * 0.42f)
 
-    // O recuo lateral tem que ser metade do que sobra, e nao um numero fixo:
-    // com 64dp o PRIMEIRO e o ULTIMO jogo nunca conseguiam chegar ao centro,
-    // e por isso ficavam sem selecao e meio fora da tela.
-    val recuoLateral = ((larguraDaTela - larguraDaCapa) / 2).coerceAtLeast(16.dp)
-
-    // Arrastar com o dedo passa a selecao para quem parou no centro, entao
-    // toque e controle acabam no mesmo estado.
-    //
-    // O sinal aqui e `collectIsDraggedAsState`, e nao `isScrollInProgress`:
-    // esse ultimo tambem fica verdadeiro durante `animateScrollToItem`, que e
-    // justamente a rolagem que o CONTROLE acabou de pedir. Usando-o, cada
-    // movimento do D-pad disparava este efeito no meio da propria animacao,
-    // com os indices de passagem, e a selecao brigava consigo mesma -- era o
-    // "so funciona quando quer" do carrossel.
-    val arrastando by estadoCarrossel.interactionSource.collectIsDraggedAsState()
-    var jaArrastou by remember { mutableStateOf(false) }
-
-    LaunchedEffect(arrastando) {
-        if (arrastando) {
-            jaArrastou = true
-            return@LaunchedEffect
-        }
-        // Sem isto, a primeira composicao adotaria o item central e apagaria a
-        // selecao restaurada pelo rememberSaveable.
-        if (!jaArrastou) return@LaunchedEffect
-        // O dedo sai antes do fling acabar; esperar ele parar evita escolher
-        // um jogo de passagem.
-        snapshotFlow { estadoCarrossel.isScrollInProgress }.first { !it }
-        val central = indiceMaisCentral(estadoCarrossel)
-        if (central != indiceSelecionado) onSelecionar(central)
+    LaunchedEffect(alturaDisponivel, larguraDaCapa) {
+        Log.i("PhoenixUi", "TEMPORARIO: remover | alturaTotal: ${larguraDaTela}, recuoSup: ${recuoSuperior}, recuoInf: ${recuoInferior}, disponivel: $alturaDisponivel, capa: $alturaDaCapa")
     }
 
-    // E o controle leva o carrossel junto.
+    val recuoLateral = ((larguraDaTela - larguraDaCapa) / 2).coerceAtLeast(16.dp)
+
+    var rolagemProgramatica by remember { mutableStateOf(false) }
+    val arrastando by estadoCarrossel.interactionSource.collectIsDraggedAsState()
+
     LaunchedEffect(indiceSelecionado) {
-        if (!arrastando) estadoCarrossel.animateScrollToItem(indiceSelecionado)
+        val info = estadoCarrossel.layoutInfo
+        val centro = (info.viewportStartOffset + info.viewportEndOffset) / 2f
+        val central = info.visibleItemsInfo.minByOrNull { abs((it.offset + it.size / 2f) - centro) }?.index ?: 0
+        
+        if (!arrastando && central != indiceSelecionado) {
+            rolagemProgramatica = true
+            try {
+                estadoCarrossel.animateScrollToItem(indiceSelecionado)
+            } finally {
+                rolagemProgramatica = false
+            }
+        }
+    }
+
+    val passoPx = with(LocalDensity.current) { (larguraDaCapa * 0.42f).toPx() }
+    val onSelecionarState by rememberUpdatedState(onSelecionar)
+    val indiceSelecionadoState by rememberUpdatedState(indiceSelecionado)
+
+    LaunchedEffect(Unit) {
+        snapshotFlow { 
+            estadoCarrossel.firstVisibleItemIndex + estadoCarrossel.firstVisibleItemScrollOffset / passoPx
+        }.map { it.roundToInt().coerceIn(0, jogos.lastIndex) }
+         .distinctUntilChanged()
+         .collect { novo ->
+             if (!rolagemProgramatica && novo != indiceSelecionadoState) {
+                 onSelecionarState(novo)
+             }
+         }
     }
 
     LazyRow(
@@ -1034,46 +1153,163 @@ private fun CarrosselXmb(
             top = recuoSuperior,
             bottom = recuoInferior
         ),
-        horizontalArrangement = Arrangement.spacedBy(20.dp),
+        horizontalArrangement = Arrangement.spacedBy(-(larguraDaCapa * 0.58f)),
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxSize()
     ) {
         items(count = jogos.size, key = { jogos[it].id }) { indice ->
-            val jogo = jogos[indice]
-            val selecionado = indice == indiceSelecionado
-            val escala by animateFloatAsState(
-                targetValue = if (selecionado) 1f else 0.84f,
-                label = "escalaXmb"
-            )
-            val opacidade by animateFloatAsState(
-                targetValue = if (selecionado) 1f else 0.5f,
-                label = "opacidadeXmb"
-            )
-            val desfoque by animateDpAsState(
-                targetValue = if (selecionado || !SUPORTA_DESFOQUE) 0.dp else 5.dp,
-                label = "desfoqueXmb"
-            )
+            val d = indice - indiceSelecionado
+            val ad = abs(d)
 
-            Box(
-                modifier = Modifier.graphicsLayer {
-                    scaleX = escala
-                    scaleY = escala
-                    alpha = opacidade
+            if (ad > 4) {
+                Spacer(Modifier.width(larguraDaCapa).height(alturaDaCapa))
+            } else {
+                val jogo = jogos[indice]
+                
+                Box(
+                    modifier = Modifier
+                        .zIndex((10 - ad).toFloat())
+                        .graphicsLayer {
+                            val pos = estadoCarrossel.firstVisibleItemIndex + estadoCarrossel.firstVisibleItemScrollOffset / passoPx
+                            val f = indice - pos
+                            val af = abs(f).coerceAtMost(4f)
+                            
+                            val tabelaEscala = floatArrayOf(1.00f, 0.94f, 0.82f, 0.70f, 0.60f)
+                            val tabelaAlfa = floatArrayOf(1.00f, 0.92f, 0.75f, 0.50f, 0.00f)
+                            val tabelaDesloc = floatArrayOf(0.00f, 0.46f, 0.80f, 1.02f, 1.12f)
+                            
+                            fun interpolar(tabela: FloatArray, x: Float): Float {
+                                val ix = x.toInt().coerceAtMost(3)
+                                val p = x - ix
+                                return tabela[ix] * (1f - p) + tabela[ix + 1] * p
+                            }
+                            
+                            val escala = interpolar(tabelaEscala, af)
+                            scaleX = escala
+                            scaleY = escala
+                            alpha = interpolar(tabelaAlfa, af)
+                            
+                            val sinal = if (f < 0) -1f else if (f > 0) 1f else 0f
+                            translationX = sinal * (interpolar(tabelaDesloc, af) * larguraDaCapa.toPx() - passoPx * af)
+                        }
+                        .drawWithContent {
+                            drawContent()
+                            val pos = estadoCarrossel.firstVisibleItemIndex + estadoCarrossel.firstVisibleItemScrollOffset / passoPx
+                            val f = indice - pos
+                            val af = abs(f).coerceAtMost(4f)
+                            val tabelaEscurecer = floatArrayOf(0.00f, 0.12f, 0.28f, 0.42f, 0.55f)
+                            fun interpolar(tabela: FloatArray, x: Float): Float {
+                                val ix = x.toInt().coerceAtMost(3)
+                                val p = x - ix
+                                return tabela[ix] * (1f - p) + tabela[ix + 1] * p
+                            }
+                            val escurecimento = interpolar(tabelaEscurecer, af)
+                            if (escurecimento > 0f) {
+                                drawRect(Color.Black.copy(alpha = escurecimento))
+                            }
+                        }
+                ) {
+                    CartaoDeJogo(
+                        jogo = jogo,
+                        altura = alturaDaCapa,
+                        largura = larguraDaCapa,
+                        selecionado = ad == 0,
+                        bordaDeFoco = ad == 0,
+                        capaCheia = true,
+                        corDoHalo = primaria,
+                        onClicar = {
+                            if (ad == 0) onAbrir(jogo)
+                            else onSelecionar(indice)
+                        },
+                        onOpcoes = { onSelecionar(indice); onOpcoes(jogo) }
+                    )
                 }
-            ) {
-                CartaoDeJogo(
-                    jogo = jogo,
-                    altura = alturaDaCapa,
-                    largura = larguraDaCapa,
-                    selecionado = selecionado,
-                    corDoHalo = primaria,
-                    modifier = Modifier.blur(desfoque),
-                    onClicar = { onSelecionar(indice); onAbrir(jogo) },
-                    onOpcoes = { onSelecionar(indice); onOpcoes(jogo) }
-                )
             }
         }
     }
+    }
+
+@Composable
+private fun BotaoRedondoDeVidro(icone: ImageVector, descricao: String, onClick: () -> Unit) {
+    SuperficieDeVidro(modifier = Modifier.clip(CircleShape), forma = CircleShape, forte = true) {
+        IconButton(onClick = onClick) {
+            Icon(icone, descricao, tint = LocalVidro.current.corDoConteudo)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DialogoDeFiltros(
+    rotulosDeSistema: List<String>,
+    sistemaIndice: Int,
+    onSistema: (Int) -> Unit,
+    filtro: FiltroBiblioteca,
+    onFiltro: (FiltroBiblioteca) -> Unit,
+    ordenacao: Ordenacao,
+    onOrdenacao: (Ordenacao) -> Unit,
+    onFechar: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onFechar,
+        shape = RoundedCornerShape(28.dp),
+        title = { Text(stringResource(R.string.titulo_filtros), fontWeight = FontWeight.Bold) },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                SeletorSegmentado(
+                    opcoes = rotulosDeSistema,
+                    indiceSelecionado = sistemaIndice,
+                    onSelecionar = onSistema
+                )
+
+                HorizontalDivider()
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FiltroBiblioteca.entries.forEach { opcao ->
+                        ChipDeVidro(
+                            texto = stringResource(opcao.rotulo),
+                            selecionado = filtro == opcao,
+                            onClick = { onFiltro(opcao) }
+                        )
+                    }
+                }
+
+                HorizontalDivider()
+
+                Column {
+                    Ordenacao.entries.forEach { opcao ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .selectable(
+                                    selected = ordenacao == opcao,
+                                    role = Role.RadioButton,
+                                    onClick = { onOrdenacao(opcao) }
+                                )
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(selected = ordenacao == opcao, onClick = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(stringResource(opcao.rotulo))
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onFechar) { 
+                Text(stringResource(R.string.acao_fechar)) 
+            }
+        }
+    )
 }
 
 /** Qual item esta mais perto do centro da viewport. */
@@ -1092,6 +1328,8 @@ fun CartaoDeJogo(
     selecionado: Boolean,
     altura: Dp = 214.dp,
     largura: Dp? = null,
+    bordaDeFoco: Boolean = false,
+    capaCheia: Boolean = false,
     corDoHalo: Color = MaterialTheme.colorScheme.primary,
     modifier: Modifier = Modifier,
     onClicar: () -> Unit,
@@ -1107,17 +1345,25 @@ fun CartaoDeJogo(
     )
 
     val base = if (largura != null) Modifier.width(largura) else Modifier.fillMaxWidth()
+    
+    val modifierComBorda = if (bordaDeFoco) {
+        base.border(
+            3.dp, 
+            Brush.linearGradient(
+                listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)
+            ), 
+            RoundedCornerShape(20.dp)
+        )
+    } else base
+
+    val alphaOpcionais by animateFloatAsState(if (selecionado) 1f else 0f, label = "alphaOpcionais")
 
     SuperficieDeVidro(
         modifier = modifier
-            .then(base)
+            .then(modifierComBorda)
             .height(altura)
             .alpha(if (jogo.ausente) 0.45f else 1f)
             .halo(brilho, corDoHalo)
-            // O cartao NAO e alvo de foco: quem detem o foco e a lista
-            // inteira, e a selecao dentro dela e um indice. Sem isto, os
-            // cartoes competiriam com o container e a navegacao voltaria a
-            // depender da busca de foco em duas dimensoes.
             .focusProperties { canFocus = false }
             .combinedClickable(
                 onClick = { audio.playClick(); onClicar() },
@@ -1126,13 +1372,8 @@ fun CartaoDeJogo(
         forma = RoundedCornerShape(20.dp),
         desfocar = false
     ) {
-        Column(Modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
+        if (capaCheia) {
+            Box(modifier = Modifier.fillMaxSize()) {
                 val fonteDaCapa: Any? = remember(jogo.capaLocal, jogo.capaUrl) {
                     jogo.capaLocal?.takeIf { it.isNotBlank() }?.let(::File)
                         ?: jogo.capaUrl?.takeIf { it.isNotBlank() }
@@ -1148,19 +1389,21 @@ fun CartaoDeJogo(
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
-                    Icon(
-                        Icons.Default.VideogameAsset,
-                        null,
-                        modifier = Modifier.size(44.dp),
-                        tint = estilo.corDoConteudo.copy(alpha = 0.35f)
-                    )
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Default.VideogameAsset,
+                            null,
+                            modifier = Modifier.size(44.dp),
+                            tint = estilo.corDoConteudo.copy(alpha = 0.35f)
+                        )
+                    }
                 }
-
+                
                 if (jogo.ausente) {
                     Surface(
                         color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f),
                         shape = RoundedCornerShape(bottomEnd = 10.dp),
-                        modifier = Modifier.align(Alignment.TopStart)
+                        modifier = Modifier.align(Alignment.TopStart).alpha(alphaOpcionais)
                     ) {
                         Icon(
                             Icons.Default.LinkOff,
@@ -1176,8 +1419,9 @@ fun CartaoDeJogo(
                 if (jogo.temRegiaoConhecida) {
                     SuperficieDeVidro(
                         modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(6.dp),
+                            .align(Alignment.TopStart)
+                            .padding(6.dp)
+                            .alpha(alphaOpcionais),
                         forma = CircleShape,
                         forte = true,
                         desfocar = false
@@ -1196,7 +1440,8 @@ fun CartaoDeJogo(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(6.dp)
-                            .size(30.dp),
+                            .size(30.dp)
+                            .alpha(alphaOpcionais),
                         forma = CircleShape,
                         forte = true,
                         desfocar = false
@@ -1211,26 +1456,131 @@ fun CartaoDeJogo(
                         )
                     }
                 }
+                
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .background(Color.Black.copy(alpha = 0.55f))
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                        .alpha(alphaOpcionais)
+                ) {
+                    Text(
+                        jogo.nome,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
-
-            Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-                Text(
-                    jogo.nome,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = if (jogo.tempoJogadoMinutos > 0) {
-                        stringResource(R.string.cartao_tempo_jogado, jogo.tempoJogadoMinutos)
+        } else {
+            Column(Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val fonteDaCapa: Any? = remember(jogo.capaLocal, jogo.capaUrl) {
+                        jogo.capaLocal?.takeIf { it.isNotBlank() }?.let(::File)
+                            ?: jogo.capaUrl?.takeIf { it.isNotBlank() }
+                    }
+                    if (fonteDaCapa != null) {
+                        val pedido = remember(fonteDaCapa) {
+                            ImageRequest.Builder(context).data(fonteDaCapa).crossfade(true).build()
+                        }
+                        AsyncImage(
+                            model = pedido,
+                            contentDescription = stringResource(R.string.cartao_capa, jogo.nome),
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
                     } else {
-                        stringResource(R.string.cartao_nunca_jogado)
-                    },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold
-                )
+                        Icon(
+                            Icons.Default.VideogameAsset,
+                            null,
+                            modifier = Modifier.size(44.dp),
+                            tint = estilo.corDoConteudo.copy(alpha = 0.35f)
+                        )
+                    }
+
+                    if (jogo.ausente) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f),
+                            shape = RoundedCornerShape(bottomEnd = 10.dp),
+                            modifier = Modifier.align(Alignment.TopStart)
+                        ) {
+                            Icon(
+                                Icons.Default.LinkOff,
+                                stringResource(R.string.jogo_ausente),
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier
+                                    .padding(5.dp)
+                                    .size(14.dp)
+                            )
+                        }
+                    }
+
+                    if (jogo.temRegiaoConhecida) {
+                        SuperficieDeVidro(
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(6.dp),
+                            forma = CircleShape,
+                            forte = true,
+                            desfocar = false
+                        ) {
+                            Text(
+                                text = jogo.regiao,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            )
+                        }
+                    }
+
+                    if (jogo.isFavorito) {
+                        SuperficieDeVidro(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(6.dp)
+                                .size(30.dp),
+                            forma = CircleShape,
+                            forte = true,
+                            desfocar = false
+                        ) {
+                            Icon(
+                                Icons.Default.Favorite,
+                                stringResource(R.string.cartao_favorito),
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .size(16.dp)
+                            )
+                        }
+                    }
+                }
+
+                Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                    Text(
+                        jogo.nome,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = if (jogo.tempoJogadoMinutos > 0) {
+                            stringResource(R.string.cartao_tempo_jogado, jogo.tempoJogadoMinutos)
+                        } else {
+                            stringResource(R.string.cartao_nunca_jogado)
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
         }
     }

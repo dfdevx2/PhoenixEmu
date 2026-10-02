@@ -62,6 +62,7 @@ private val K_OVERLAY = stringPreferencesKey("overlay_controle")
 private val K_ATALHOS = stringPreferencesKey("atalhos_controle")
 private val K_AUTO_SALVAR = booleanPreferencesKey("auto_salvar")
 private val K_AUTO_CARREGAR = booleanPreferencesKey("auto_carregar")
+private val K_OMBROS_TROCAM_SECAO = booleanPreferencesKey("ombros_trocam_secao")
 
 /**
  * Chaves trazidas do SharedPreferences antigo, uma a uma.
@@ -372,6 +373,12 @@ class Preferencias private constructor(context: Context) {
 
     fun definirAutoSalvar(valor: Boolean) = editar { it[K_AUTO_SALVAR] = valor }
     fun definirAutoCarregar(valor: Boolean) = editar { it[K_AUTO_CARREGAR] = valor }
+
+    // ------------------------------------------------------------- navegacao
+
+    val ombrosTrocamSecao: StateFlow<Boolean> = derivar(true) { it[K_OMBROS_TROCAM_SECAO] ?: true }
+
+    fun definirOmbrosTrocamSecao(valor: Boolean) = editar { it[K_OMBROS_TROCAM_SECAO] = valor }
 
     // ------------------------------------------- cache antigo da biblioteca
 

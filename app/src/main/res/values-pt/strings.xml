@@ -40,6 +40,8 @@
     <string name="filtro_todos">Todos</string>
     <string name="filtro_recentes">Recentes</string>
     <string name="filtro_favoritos">Favoritos</string>
+    <string name="titulo_filtros">Filtros e ordem</string>
+    <string name="acao_filtrar">Filtros e ordem</string>
     <string name="ordenar_nome">Nome (A-Z)</string>
     <string name="ordenar_mais_jogados">Mais jogados</string>
     <string name="ordenar_recentes">Jogados recentemente</string>
@@ -59,6 +61,16 @@
     <string name="scan_percentual">%1$d%% concluído</string>
 
     <!-- Configurações -->
+    <string name="sec_jogo">JOGO</string>
+    <string name="config_autosalvar">Salvar ao sair</string>
+    <string name="config_autosalvar_desc">Guarda o estado do jogo automaticamente quando você sai dele.</string>
+    <string name="config_autocarregar">Continuar ao entrar</string>
+    <string name="config_autocarregar_desc">Abre o jogo de onde você parou. Desligado, o jogo começa do início.</string>
+
+    <string name="sec_navegacao">NAVEGAÇÃO</string>
+    <string name="config_ombros_secao">Trocar de seção com L1/R1</string>
+    <string name="config_ombros_secao_desc">Com o controle, L1 e R1 passam para a seção anterior ou seguinte da barra de navegação.</string>
+
     <string name="sec_personalizacao">PERSONALIZAÇÃO VISUAL</string>
     <string name="config_tema">Tema do emulador</string>
     <string name="config_fundo">Plano de fundo da biblioteca</string>
@@ -213,4 +225,28 @@
     <string name="boasvindas_idioma_desc">“Sistema” acompanha o aparelho. Escolha um idioma para sobrepor.</string>
     <string name="boasvindas_comecar">Começar</string>
     <string name="boasvindas_rodape">Livre e de código aberto. Sem anúncios, sem contas.</string>
+    <string name="aba_aparencia">Aparência</string>
+    <string name="aba_audio">Áudio</string>
+    <string name="aba_video">Vídeo</string>
+    <string name="aba_jogo">Jogo</string>
+    <string name="aba_navegacao">Navegação</string>
+    <string name="aba_manutencao">Manutenção</string>
+    <string name="acao_dica">Ajuda</string>
+
+    <string name="dica_tema">Muda as cores do app. Cada tema tem uma paleta própria; o Dinâmico usa as cores do seu Android.</string>
+    <string name="dica_amoled">Deixa o fundo totalmente preto nos temas escuros. Em telas OLED isso economiza bateria.</string>
+    <string name="dica_acabamento">Escolhe o material das barras e cartões: vidro com desfoque ou um acabamento mais simples e leve.</string>
+    <string name="dica_fundo">Usa uma imagem sua como fundo do app.</string>
+    <string name="dica_desfoque">Quanto a imagem de fundo é desfocada. Só funciona no Android 12 ou superior.</string>
+    <string name="dica_opacidade">Quanto da imagem de fundo aparece. Menos opacidade deixa o fundo do tema mais visível.</string>
+    <string name="dica_reduzir_efeitos">Desliga o desfoque ao vivo e animações pesadas. Ajuda em aparelhos mais fracos e economiza bateria.</string>
+    <string name="dica_idioma">Idioma do app. Em Sistema, ele acompanha o idioma do Android. A tela reinicia ao trocar.</string>
+    <string name="dica_bgm">Música de fundo dos menus do app. Não afeta o som dos jogos.</string>
+    <string name="dica_sfx">Sons de clique e navegação nos menus. Não afeta o som dos jogos.</string>
+    <string name="dica_proporcao">Como a imagem do jogo ocupa a tela: 4:3 mantém o formato original, 16:9 preenche mais, Esticar ocupa tudo.</string>
+    <string name="dica_filtro_video">Suaviza ou estiliza a imagem do jogo. Nenhum mantém os pixels nítidos.</string>
+    <string name="dica_autosalvar">Guarda o estado do jogo sozinho quando você sai. Não usa os 4 manual slots.</string>
+    <string name="dica_autocarregar">Ao abrir um jogo, continua do último estado salvo automaticamente. Desligado, começa do início.</string>
+    <string name="dica_ombros">Com um controle, L1 e R1 passam para a seção anterior ou seguinte da barra de navegação.</string>
+    <string name="dica_hashes">Calcula a identificação (CRC32) das ROMs. Ajuda a reconhecer o jogo e a achar a capa certa.</string>
 </resources>

@@ -88,6 +88,7 @@ import com.dfdx047.phoenixemu.ui.theme.esquemaDeAmostra
 import com.dfdx047.phoenixemu.ui.design.CartaoDeVidro
 import com.dfdx047.phoenixemu.ui.design.EspacoDaNavegacao
 import com.dfdx047.phoenixemu.ui.design.SeletorSegmentado
+import com.dfdx047.phoenixemu.ui.design.BotaoDeDica
 import com.dfdx047.phoenixemu.data.Trabalhos
 import com.dfdx047.phoenixemu.emulacao.Emulador
 import kotlinx.coroutines.launch
@@ -123,11 +124,10 @@ private fun Cartao(conteudo: @Composable ColumnScope.() -> Unit) {
 @Composable
 private fun LinhaDeOpcao(
     @StringRes rotulo: Int,
+    @StringRes dica: Int? = null,
     selecionado: Boolean,
     onSelecionar: () -> Unit
 ) {
-    // Row selecionavel em vez de RadioButton solto: a area de toque passa a
-    // ser a linha inteira, e o leitor de tela anuncia o item corretamente.
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -139,6 +139,10 @@ private fun LinhaDeOpcao(
         RadioButton(selected = selecionado, onClick = null)
         Spacer(Modifier.width(8.dp))
         Text(stringResource(rotulo))
+        if (dica != null) {
+            Spacer(Modifier.weight(1f))
+            BotaoDeDica(stringResource(dica))
+        }
     }
 }
 
@@ -146,6 +150,7 @@ private fun LinhaDeOpcao(
 private fun LinhaDeInterruptor(
     @StringRes rotulo: Int,
     @StringRes descricao: Int? = null,
+    @StringRes dica: Int? = null,
     marcado: Boolean,
     onMudar: (Boolean) -> Unit
 ) {
@@ -164,8 +169,20 @@ private fun LinhaDeInterruptor(
                 )
             }
         }
+        if (dica != null) {
+            Spacer(Modifier.width(8.dp))
+            BotaoDeDica(stringResource(dica))
+        }
         Spacer(Modifier.width(12.dp))
         Switch(checked = marcado, onCheckedChange = onMudar)
+    }
+}
+
+@Composable
+private fun RotuloComDica(@StringRes rotulo: Int, @StringRes dica: Int) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        Text(stringResource(rotulo), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+        BotaoDeDica(stringResource(dica))
     }
 }
 
@@ -338,9 +355,21 @@ fun TelaConfiguracoes(prefs: Preferencias) {
                 marcado = reduzirEfeitos,
                 onMudar = { audio.playClick(); prefs.definirReduzirEfeitos(it) }
             )
+        }
+            
+        // -------------------------------------------------------- navegacao
+        TituloDeSecao(R.string.sec_navegacao)
+        Cartao {
+            val ombrosTrocamSecao by prefs.ombrosTrocamSecao.collectAsStateWithLifecycle()
+            LinhaDeInterruptor(
+                rotulo = R.string.config_ombros_secao,
+                descricao = R.string.config_ombros_secao_desc,
+                marcado = ombrosTrocamSecao,
+                onMudar = { audio.playClick(); prefs.definirOmbrosTrocamSecao(it) }
+            )
+        }
 
-            HorizontalDivider()
-
+        Cartao {
             // O idioma tambem e perguntado na primeira execucao, mas ninguem
             // decide isso bem numa tela que ainda pode estar no idioma errado.
             Text(stringResource(R.string.config_idioma), fontWeight = FontWeight.Bold)
@@ -448,6 +477,27 @@ fun TelaConfiguracoes(prefs: Preferencias) {
                 stringResource(R.string.config_aviso_video),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        
+        // ----------------------------------------------------------- jogo
+        TituloDeSecao(R.string.sec_jogo)
+        Cartao {
+            val autoSalvar by prefs.autoSalvar.collectAsStateWithLifecycle()
+            val autoCarregar by prefs.autoCarregar.collectAsStateWithLifecycle()
+            
+            LinhaDeInterruptor(
+                rotulo = R.string.config_autosalvar,
+                descricao = R.string.config_autosalvar_desc,
+                marcado = autoSalvar,
+                onMudar = { audio.playClick(); prefs.definirAutoSalvar(it) }
+            )
+            HorizontalDivider()
+            LinhaDeInterruptor(
+                rotulo = R.string.config_autocarregar,
+                descricao = R.string.config_autocarregar_desc,
+                marcado = autoCarregar,
+                onMudar = { audio.playClick(); prefs.definirAutoCarregar(it) }
             )
         }
 
