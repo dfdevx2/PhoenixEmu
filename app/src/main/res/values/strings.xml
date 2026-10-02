@@ -251,4 +251,9 @@
     <string name="dica_autocarregar">When opening a game, continues from the last automatic state. When off, it starts from the beginning.</string>
     <string name="dica_ombros">With a gamepad, L1 and R1 move to the previous or next section of the navigation bar.</string>
     <string name="dica_hashes">Computes the ROM identifier (CRC32). Helps recognize the game and find the right cover.</string>
+
+    <!-- Grid top bar behavior -->
+    <string name="titulo_topo_fixo">Fixed top bar in grid view</string>
+    <string name="desc_topo_fixo">Keeps search and filters pinned at the top.</string>
+    <string name="dica_topo_fixo">On, search and filters stay pinned and the cover grid scrolls in its own area below them, never behind. Off, the bar hides while you scroll and returns when you scroll up.</string>
 </resources>

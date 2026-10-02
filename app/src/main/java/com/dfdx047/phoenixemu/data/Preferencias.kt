@@ -63,6 +63,7 @@ private val K_ATALHOS = stringPreferencesKey("atalhos_controle")
 private val K_AUTO_SALVAR = booleanPreferencesKey("auto_salvar")
 private val K_AUTO_CARREGAR = booleanPreferencesKey("auto_carregar")
 private val K_OMBROS_TROCAM_SECAO = booleanPreferencesKey("ombros_trocam_secao")
+private val K_TOPO_FIXO_GRADE = booleanPreferencesKey("topo_fixo_grade")
 
 /**
  * Chaves trazidas do SharedPreferences antigo, uma a uma.
@@ -379,6 +380,12 @@ class Preferencias private constructor(context: Context) {
     val ombrosTrocamSecao: StateFlow<Boolean> = derivar(true) { it[K_OMBROS_TROCAM_SECAO] ?: true }
 
     fun definirOmbrosTrocamSecao(valor: Boolean) = editar { it[K_OMBROS_TROCAM_SECAO] = valor }
+
+    // ------------------------------------------------------- grade topo fixo
+
+    val topoFixoNaGrade: StateFlow<Boolean> = derivar(true) { it[K_TOPO_FIXO_GRADE] ?: true }
+
+    fun definirTopoFixoNaGrade(valor: Boolean) = editar { it[K_TOPO_FIXO_GRADE] = valor }
 
     // ------------------------------------------- cache antigo da biblioteca
 

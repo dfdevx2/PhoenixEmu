@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -93,7 +94,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -156,6 +156,7 @@ import com.dfdx047.phoenixemu.ui.design.SUPORTA_DESFOQUE
 import com.dfdx047.phoenixemu.ui.design.fracaoSuavizada
 import com.dfdx047.phoenixemu.ui.design.halo
 import com.dfdx047.phoenixemu.ui.design.lembrarEstadoDoChrome
+import com.dfdx047.phoenixemu.ui.design.EstadoDoChrome
 import com.dfdx047.phoenixemu.ui.design.TipoDeControle
 import com.dfdx047.phoenixemu.ui.design.lembrarTipoDeControle
 import com.dfdx047.phoenixemu.ui.design.ItemDeNavegacao
@@ -412,6 +413,7 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx
     val alturaDoTopoPx = with(densidade) { alturaDoTopo.toPx() }
     val alturaDaNavegacaoPx = with(densidade) { alturaDoRodape.toPx() }
     val chrome = lembrarEstadoDoChrome(alturaDoTopo)
+    val topoFixoNaGrade by prefs.topoFixoNaGrade.collectAsStateWithLifecycle()
 
     // Trocar de secao com o chrome escondido deixaria a tela sem cabecalho.
     LaunchedEffect(secaoIndice) { chrome.mostrar() }
@@ -520,7 +522,9 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx
                                 comControle = tipoDeControle != TipoDeControle.NENHUM,
                                 onSelecionar = { indiceSelecionado = it },
                                 onAbrir = { jogoParaJogar = it },
-                                onOpcoes = { jogoDoMenu = it }
+                                onOpcoes = { jogoDoMenu = it },
+                                chrome = if (secao == Secao.BIBLIOTECA) chrome else null,
+                                topoFixoNaGrade = topoFixoNaGrade
                             )
                             Secao.CONQUISTAS -> TelaRetroAchievements()
                             Secao.CONTROLES -> TelaControles(prefs)
@@ -538,7 +542,9 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx
                 // a lista rola. Sem isso, em paisagem sobravam menos de duas
                 // fileiras de capas visiveis -- e as pilulas cobriam
                 // justamente a arte que a pessoa esta tentando olhar.
-                val oculto = if (xmbAtivo) 0f else chrome.fracaoSuavizada()
+                val oculto = if (xmbAtivo) 0f
+                    else if (secao == Secao.BIBLIOTECA && modoVisual == ModoVisual.GRADE && topoFixoNaGrade) 0f
+                    else chrome.fracaoSuavizada()
 
                 Column(
                     modifier = Modifier
@@ -932,7 +938,9 @@ fun TelaJogos(
     comControle: Boolean,
     onSelecionar: (Int) -> Unit,
     onAbrir: (Jogo) -> Unit,
-    onOpcoes: (Jogo) -> Unit
+    onOpcoes: (Jogo) -> Unit,
+    chrome: EstadoDoChrome? = null,
+    topoFixoNaGrade: Boolean = false,
 ) {
     val recuo = PaddingValues(
         start = 16.dp,
@@ -1055,28 +1063,87 @@ fun TelaJogos(
                     if (!visivel) estadoGrade.animateScrollToItem(indiceSelecionado)
                 }
 
-                LazyVerticalGrid(
-                    state = estadoGrade,
-                    columns = GridCells.Fixed(colunas),
-                    contentPadding = recuo,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    items(
-                        count = jogos.size,
-                        key = { jogos[it].id },
-                        contentType = { "jogo" }
-                    ) { indice ->
-                        val jogo = jogos[indice]
-                        CartaoDeJogo(
-                            jogo = jogo,
-                            selecionado = indice == indiceSelecionado,
-                            onClicar = { onSelecionar(indice); onAbrir(jogo) },
-                            onOpcoes = { onSelecionar(indice); onOpcoes(jogo) }
-                        )
+                // Controle de ocultacao do chrome via D-pad/analógico (somente
+                // quando topoFixoNaGrade == false).
+                if (chrome != null && !topoFixoNaGrade) {
+                    var indiceAnterior by remember { mutableIntStateOf(0) }
+                    LaunchedEffect(estadoGrade, chrome) {
+                        snapshotFlow { estadoGrade.firstVisibleItemIndex }
+                            .collect { novoIndice ->
+                                if (novoIndice > indiceAnterior && novoIndice > 0) {
+                                    chrome.esconder()
+                                } else if (novoIndice < indiceAnterior && novoIndice == 0) {
+                                    chrome.mostrar()
+                                }
+                                indiceAnterior = novoIndice
+                            }
                     }
-                    item(span = { GridItemSpan(maxCurrentLineSpan) }) { EspacoDaNavegacao() }
+                }
+
+                if (topoFixoNaGrade) {
+                    val statusBarPx = WindowInsets.statusBars
+                        .asPaddingValues()
+                        .calculateTopPadding()
+                    val boxPaddingTop = recuoSuperior + statusBarPx
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                    ) {
+                        Spacer(Modifier.height(boxPaddingTop))
+                        LazyVerticalGrid(
+                            state = estadoGrade,
+                            columns = GridCells.Fixed(colunas),
+                            contentPadding = PaddingValues(
+                                start = 16.dp,
+                                end = 16.dp,
+                                top = 8.dp,
+                                bottom = recuoInferior
+                            ),
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            items(
+                                count = jogos.size,
+                                key = { jogos[it].id },
+                                contentType = { "jogo" }
+                            ) { indice ->
+                                val jogo = jogos[indice]
+                                CartaoDeJogo(
+                                    jogo = jogo,
+                                    selecionado = indice == indiceSelecionado,
+                                    onClicar = { onSelecionar(indice); onAbrir(jogo) },
+                                    onOpcoes = { onSelecionar(indice); onOpcoes(jogo) }
+                                )
+                            }
+                            item(span = { GridItemSpan(maxCurrentLineSpan) }) { EspacoDaNavegacao() }
+                        }
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        state = estadoGrade,
+                        columns = GridCells.Fixed(colunas),
+                        contentPadding = recuo,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(
+                            count = jogos.size,
+                            key = { jogos[it].id },
+                            contentType = { "jogo" }
+                        ) { indice ->
+                            val jogo = jogos[indice]
+                            CartaoDeJogo(
+                                jogo = jogo,
+                                selecionado = indice == indiceSelecionado,
+                                onClicar = { onSelecionar(indice); onAbrir(jogo) },
+                                onOpcoes = { onSelecionar(indice); onOpcoes(jogo) }
+                            )
+                        }
+                        item(span = { GridItemSpan(maxCurrentLineSpan) }) { EspacoDaNavegacao() }
+                    }
                 }
             } else {
                 BoxWithConstraints {
@@ -1086,7 +1153,9 @@ fun TelaJogos(
                         indiceSelecionado = indiceSelecionado,
                         onSelecionar = onSelecionar,
                         onAbrir = onAbrir,
-                        onOpcoes = onOpcoes
+                        onOpcoes = onOpcoes,
+                        paddingTopDp = recuoSuperior,
+                        paddingBottomDp = recuoInferior
                     )
                 }
             }
@@ -1102,6 +1171,10 @@ fun TelaJogos(
  * -- o oposto do que a pilula de vidro precisa, onde o desfoque tem que ser
  * do que esta atras.
  */
+
+// ajuste fino do tamanho das capas
+private const val FATOR_CAPA_XMB = 0.9f
+
 @Composable
 private fun CarrosselXmb(
     jogos: List<Jogo>,
@@ -1109,12 +1182,11 @@ private fun CarrosselXmb(
     indiceSelecionado: Int,
     onSelecionar: (Int) -> Unit,
     onAbrir: (Jogo) -> Unit,
-    onOpcoes: (Jogo) -> Unit
+    onOpcoes: (Jogo) -> Unit,
+    paddingTopDp: Dp,
+    paddingBottomDp: Dp
 ) {
     val primaria = MaterialTheme.colorScheme.primary
-
-    var alturaDaCapa by remember { mutableFloatStateOf(200f) }
-    var larguraDaCapa by remember { mutableFloatStateOf(156f) }
 
     var rolagemProgramatica by remember { mutableStateOf(false) }
     val arrastando by estadoCarrossel.interactionSource.collectIsDraggedAsState()
@@ -1135,46 +1207,49 @@ private fun CarrosselXmb(
     }
 
     val densidade = LocalDensity.current
-    val passoPx: Float = with(densidade) { (larguraDaCapa * 0.42f).dp.toPx() }
     val onSelecionarState by rememberUpdatedState(onSelecionar)
     val indiceSelecionadoState by rememberUpdatedState(indiceSelecionado)
 
-    LaunchedEffect(Unit) {
-        snapshotFlow<Float> {
-            estadoCarrossel.firstVisibleItemIndex + estadoCarrossel.firstVisibleItemScrollOffset / passoPx
-        }.map { it.roundToInt().coerceIn(0, jogos.lastIndex) }
-         .distinctUntilChanged()
-         .collect { novo: Int ->
-             if (!rolagemProgramatica && novo != indiceSelecionadoState) {
-                 onSelecionarState(novo)
-             }
-         }
-    }
-
-    BoxWithConstraints {
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = paddingTopDp, bottom = paddingBottomDp),
+        contentAlignment = Alignment.Center
+    ) {
         val larguraDaTelaDp = maxWidth.value
         val alturaDisponivelDp = maxHeight.value
 
-        val novaAltura = (alturaDisponivelDp - 8f).coerceIn(120f, 640f)
-        val novaLargura = (novaAltura * 0.78f).coerceAtMost(larguraDaTelaDp * 0.42f)
+        // calculo direto (sem estados externos mutableFloatStateOf)
+        val alturaDaCapa = ((alturaDisponivelDp - 8f) * FATOR_CAPA_XMB).coerceIn(120f, 560f)
+        val larguraDaCapa = (alturaDaCapa * 0.78f).coerceAtMost(larguraDaTelaDp * 0.42f)
 
-        if (alturaDaCapa != novaAltura || larguraDaCapa != novaLargura) {
-            alturaDaCapa = novaAltura
-            larguraDaCapa = novaLargura
+        // TEMPORARIO: remover — log de dimensoes
+        Log.i("PhoenixUi", "xmb maxH=${maxHeight.value} maxW=${maxWidth.value} topo=$paddingTopDp base=$paddingBottomDp capaH=$alturaDaCapa capaW=$larguraDaCapa folgaLateral=${(maxWidth.value - larguraDaCapa) / 2f}")
+
+        val folgaLateral = (maxWidth.value - larguraDaCapa) / 2f
+        val passoPx: Float = with(densidade) { (larguraDaCapa * 0.42f).dp.toPx() }
+
+        // TEMPORARIO: remover — sincronizacao de selecao via snapshotFlow
+        LaunchedEffect(Unit) {
+            snapshotFlow<Float> {
+                estadoCarrossel.firstVisibleItemIndex + estadoCarrossel.firstVisibleItemScrollOffset / passoPx
+            }.map { it.roundToInt().coerceIn(0, jogos.lastIndex) }
+             .distinctUntilChanged()
+             .collect { novo: Int ->
+                 if (!rolagemProgramatica && novo != indiceSelecionadoState) {
+                     onSelecionarState(novo)
+                 }
+             }
         }
-
-        val recuoLateral = ((maxWidth.value - larguraDaCapa) / 2).coerceAtLeast(16f)
 
         LazyRow(
             state = estadoCarrossel,
             flingBehavior = rememberSnapFlingBehavior(estadoCarrossel),
+            contentPadding = PaddingValues(horizontal = folgaLateral.dp),
             horizontalArrangement = Arrangement.spacedBy(-(larguraDaCapa * 0.58f).dp),
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxSize()
+            modifier = Modifier.fillMaxSize()
         ) {
-            item { Spacer(Modifier.width((recuoLateral - larguraDaCapa * 0.21f).dp)) }
-
             items(count = jogos.size, key = { jogos[it].id }) { indice ->
                 val d = indice - indiceSelecionado
                 val ad = abs(d)
@@ -1244,7 +1319,23 @@ private fun CarrosselXmb(
                     }
                 }
             }
-            item { Spacer(Modifier.width((recuoLateral - larguraDaCapa * 0.21f).dp)) }
+        }
+
+        // TEMPORARIO: remover — log do desvio do selecionado
+        LaunchedEffect(estadoCarrossel, indiceSelecionado) {
+            val dens = densidade
+            snapshotFlow {
+                val vi = estadoCarrossel.layoutInfo.visibleItemsInfo
+                val selIndex = indiceSelecionado.coerceIn(0, jogos.lastIndex)
+                val selItem = vi.find { it.index == selIndex }
+                val centroItem = selItem?.let { it.offset + it.size / 2f } ?: 0f
+                val centroViewport = (estadoCarrossel.layoutInfo.viewportStartOffset + estadoCarrossel.layoutInfo.viewportEndOffset) / 2f
+                with(dens) {
+                    (centroItem - centroViewport).toDp()
+                }
+            }.distinctUntilChanged().map { it.value.roundToInt() }.distinctUntilChanged().collect { desvioDp ->
+                Log.i("PhoenixUi", "xmb desvioSelecionado=$desvioDp dp")
+            }
         }
     }
 }

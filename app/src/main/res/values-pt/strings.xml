@@ -249,4 +249,9 @@
     <string name="dica_autocarregar">Ao abrir um jogo, continua do último estado salvo automaticamente. Desligado, começa do início.</string>
     <string name="dica_ombros">Com um controle, L1 e R1 passam para a seção anterior ou seguinte da barra de navegação.</string>
     <string name="dica_hashes">Calcula a identificação (CRC32) das ROMs. Ajuda a reconhecer o jogo e a achar a capa certa.</string>
+
+    <!-- Comportamento da barra superior na grade -->
+    <string name="titulo_topo_fixo">Barra superior fixa na grade</string>
+    <string name="desc_topo_fixo">Mantém busca e filtros fixos no topo.</string>
+    <string name="dica_topo_fixo">Ligado, a busca e os filtros ficam fixos e a grade de capas rola numa área própria abaixo deles, sem passar por trás. Desligado, a barra some quando você rola e volta ao subir.</string>
 </resources>

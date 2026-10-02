@@ -378,6 +378,17 @@ fun TelaConfiguracoes(prefs: Preferencias) {
 
                     HorizontalDivider()
 
+                    val topoFixo by prefs.topoFixoNaGrade.collectAsStateWithLifecycle()
+                    LinhaDeInterruptor(
+                        rotulo = R.string.titulo_topo_fixo,
+                        descricao = R.string.desc_topo_fixo,
+                        dica = R.string.dica_topo_fixo,
+                        marcado = topoFixo,
+                        onMudar = { audio.playClick(); prefs.definirTopoFixoNaGrade(it) }
+                    )
+
+                    HorizontalDivider()
+
                     RotuloComDica(R.string.config_idioma, R.string.dica_idioma)
                     Text(
                         stringResource(R.string.boasvindas_idioma_desc),

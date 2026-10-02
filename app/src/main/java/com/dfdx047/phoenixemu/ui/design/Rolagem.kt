@@ -43,6 +43,7 @@ class EstadoDoChrome(private val alturaPx: Float) {
     }
 
     fun mostrar() { fracaoOculta = 0f }
+    fun esconder() { fracaoOculta = 1f }
 }
 
 @Composable
