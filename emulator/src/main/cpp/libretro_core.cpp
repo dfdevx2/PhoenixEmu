@@ -1,4 +1,5 @@
 #include "libretro_core.h"
+#include "video_renderer.h"
 #include <android/log.h>
 #include <dlfcn.h>
 #include <sstream>
@@ -9,7 +10,10 @@
 extern bool cb_environment(unsigned cmd, void *data);
 extern int g_formato_pixel;
 
-static void cb_video_refresh(const void *data, unsigned width, unsigned height, size_t pitch) {}
+static void cb_video_refresh(const void *data, unsigned width, unsigned height, size_t pitch) {
+    if (data == nullptr) return; // Repita o quadro anterior
+    phoenix_video_desenhar_quadro(data, width, height, pitch);
+}
 static void cb_audio_sample(int16_t left, int16_t right) {}
 static size_t cb_audio_sample_batch(const int16_t *data, size_t frames) { return frames; }
 static void cb_input_poll() {}
@@ -133,6 +137,25 @@ std::string LibretroCore::obterInfo() {
     ss << "Pixel Format: " << pixel_str;
 
     return ss.str();
+}
+
+double LibretroCore::obterFps() {
+    if (!get_system_av_info_) return 60.0;
+    retro_system_av_info avInfo = {};
+    get_system_av_info_(&avInfo);
+    return avInfo.timing.fps;
+}
+
+float LibretroCore::obterAspectRatio() {
+    if (!get_system_av_info_) return 4.0f / 3.0f;
+    retro_system_av_info avInfo = {};
+    get_system_av_info_(&avInfo);
+    float aspect = avInfo.geometry.aspect_ratio;
+    if (aspect <= 0.0f) {
+        aspect = static_cast<float>(avInfo.geometry.base_width) /
+                 static_cast<float>(avInfo.geometry.base_height);
+    }
+    return aspect;
 }
 
 void LibretroCore::descarregar() {

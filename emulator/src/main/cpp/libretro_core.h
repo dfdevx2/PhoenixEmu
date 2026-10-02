@@ -31,6 +31,8 @@ public:
     bool carregarJogo(const void* dados, size_t tamanho, const char* caminho);
 
     std::string obterInfo();
+    double obterFps();
+    float obterAspectRatio();
 
 private:
     void *handle_ = nullptr;

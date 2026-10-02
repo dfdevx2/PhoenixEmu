@@ -1,16 +1,27 @@
 package com.dfdx047.phoenixemu.emulator
 
 import android.os.Bundle
+import android.view.SurfaceHolder
+import android.view.SurfaceView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import java.io.File
 
 /**
@@ -31,6 +42,7 @@ import java.io.File
 class EmulatorActivity : ComponentActivity() {
 
     private val nucleo = NucleoLibretro()
+    private var aspectRatio by mutableFloatStateOf(4f / 3f)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,6 +67,7 @@ class EmulatorActivity : ComponentActivity() {
                     displayMessage = "Falha ao carregar o jogo."
                 } else {
                     displayMessage = nucleo.info()
+                    aspectRatio = nucleo.obterAspectRatio()
                 }
             } catch (e: Exception) {
                 displayMessage = "Erro: ${e.message}"
@@ -63,9 +76,29 @@ class EmulatorActivity : ComponentActivity() {
 
         setContent {
             Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
+                AndroidView(
+                    factory = { context ->
+                        SurfaceView(context).apply {
+                            holder.addCallback(object : SurfaceHolder.Callback {
+                                override fun surfaceCreated(holder: SurfaceHolder) {
+                                    nucleo.iniciar(holder.surface)
+                                }
+
+                                override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
+
+                                override fun surfaceDestroyed(holder: SurfaceHolder) {
+                                    nucleo.parar()
+                                }
+                            })
+                        }
+                    },
+                    modifier = Modifier.aspectRatio(aspectRatio)
+                )
+
                 BasicText(
                     text = displayMessage,
-                    style = TextStyle(color = Color.White)
+                    style = TextStyle(color = Color.White, fontSize = 10.sp),
+                    modifier = Modifier.align(Alignment.TopStart).padding(8.dp)
                 )
             }
         }

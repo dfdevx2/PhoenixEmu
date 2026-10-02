@@ -12,12 +12,19 @@
 
 #include <atomic>
 #include <string>
+#include <thread>
+#include <chrono>
+#include <android/native_window_jni.h>
 
 #include "libretro_core.h"
+#include "video_renderer.h"
 
 namespace {
 
 phoenix::LibretroCore g_nucleo;
+std::thread g_thread_emulador;
+std::atomic<bool> g_rodando{false};
+ANativeWindow* g_janela = nullptr;
 
 /**
  * Estado dos botoes por porta, atomico.
@@ -34,6 +41,20 @@ std::string paraStdString(JNIEnv *env, jstring texto) {
     std::string resultado(bruto != nullptr ? bruto : "");
     if (bruto != nullptr) env->ReleaseStringUTFChars(texto, bruto);
     return resultado;
+}
+
+void lacoEmulador() {
+    using clock = std::chrono::steady_clock;
+    double fps = g_nucleo.obterFps();
+    if (fps <= 0.0) fps = 60.0;
+    auto intervalo = std::chrono::nanoseconds(static_cast<long long>(1'000'000'000.0 / fps));
+    auto proximo_quadro = clock::now();
+
+    while (g_rodando.load(std::memory_order_acquire)) {
+        g_nucleo.rodarQuadro();
+        proximo_quadro += intervalo;
+        std::this_thread::sleep_until(proximo_quadro);
+    }
 }
 
 } // namespace
@@ -79,14 +100,33 @@ Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeCarregarJogo(
 
 JNIEXPORT void JNICALL
 Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeIniciarLaco(
-    JNIEnv * /*env*/, jobject /*thiz*/, jobject /*surface*/) {
-    // TODO (Fase 4a): ANativeWindow_fromSurface + criar a thread do emulador.
+    JNIEnv *env, jobject /*thiz*/, jobject surface) {
+    if (g_rodando.load(std::memory_order_acquire)) return;
+
+    if (surface != nullptr) {
+        g_janela = ANativeWindow_fromSurface(env, surface);
+        phoenix_video_inicializar(g_janela);
+    }
+
+    g_rodando.store(true, std::memory_order_release);
+    g_thread_emulador = std::thread(lacoEmulador);
 }
 
 JNIEXPORT void JNICALL
 Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativePararLaco(
     JNIEnv * /*env*/, jobject /*thiz*/) {
-    // TODO: sinalizar a thread, aguardar join, liberar a janela.
+    if (!g_rodando.load(std::memory_order_acquire)) return;
+
+    g_rodando.store(false, std::memory_order_release);
+    if (g_thread_emulador.joinable()) {
+        g_thread_emulador.join();
+    }
+
+    phoenix_video_finalizar();
+    if (g_janela != nullptr) {
+        ANativeWindow_release(g_janela);
+        g_janela = nullptr;
+    }
 }
 
 JNIEXPORT void JNICALL
@@ -100,6 +140,12 @@ JNIEXPORT void JNICALL
 Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeDescarregar(
     JNIEnv * /*env*/, jobject /*thiz*/) {
     g_nucleo.descarregar();
+}
+
+JNIEXPORT jfloat JNICALL
+Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeObterAspectRatio(
+    JNIEnv * /*env*/, jobject /*thiz*/) {
+    return g_nucleo.obterAspectRatio();
 }
 
 } // extern "C"
