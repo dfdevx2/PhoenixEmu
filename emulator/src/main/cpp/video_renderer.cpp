@@ -17,6 +17,7 @@
  *    de conteudo numa tela de 120 Hz produz cadencia irregular.
  */
 #include <android/log.h>
+#include <cstddef>
 
 extern "C" {
 

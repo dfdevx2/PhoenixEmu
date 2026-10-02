@@ -1,5 +1,9 @@
 plugins {
     alias(libs.plugins.android.library)
+    // Sem este plugin o modulo nao compila: desde o Kotlin 2.0 o compilador
+    // do Compose e um plugin separado, e `compose = true` sozinho nao basta.
+    // Passou despercebido porque este modulo nunca tinha sido construido.
+    alias(libs.plugins.kotlin.compose)
 }
 
 android {
@@ -21,9 +25,11 @@ android {
             }
         }
 
-        // O emulador nao roda em x86; limitar aqui corta tempo de build.
+        // So arm64. O Odin 3 e o Snapdragon 665 sao 64 bits, a Play Store exige
+        // 64 bits, e cada ABI a mais dobra o tempo do build nativo -- que vai
+        // rodar a cada etapa da Fase 4.
         ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+            abiFilters += listOf("arm64-v8a")
         }
     }
 
@@ -34,16 +40,14 @@ android {
         }
     }
 
-    packaging {
-        jniLibs {
-            // Os nucleos sao carregados com dlopen em tempo de execucao, entao
-            // precisam existir como arquivo e nao podem ser comprimidos no APK.
-            useLegacyPackaging = true
-        }
-    }
+    // A extracao das .so para dlopen e configurada no app/build.gradle.kts:
+    // opcao de empacotamento so vale no modulo que gera o APK.
 
     buildFeatures {
         compose = true
+        // Oboe chega como pacote prefab: e isto que deixa o CMake achar com
+        // find_package(oboe REQUIRED CONFIG).
+        prefab = true
     }
 
     compileOptions {
@@ -59,4 +63,5 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.oboe)
 }

@@ -1,10 +1,19 @@
 #include "libretro_core.h"
-
 #include <android/log.h>
 #include <dlfcn.h>
+#include <sstream>
 
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, "PhoenixCore", __VA_ARGS__)
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, "PhoenixCore", __VA_ARGS__)
+
+extern bool cb_environment(unsigned cmd, void *data);
+extern int g_formato_pixel;
+
+static void cb_video_refresh(const void *data, unsigned width, unsigned height, size_t pitch) {}
+static void cb_audio_sample(int16_t left, int16_t right) {}
+static size_t cb_audio_sample_batch(const int16_t *data, size_t frames) { return frames; }
+static void cb_input_poll() {}
+static int16_t cb_input_state(unsigned port, unsigned device, unsigned index, unsigned id) { return 0; }
 
 namespace phoenix {
 
@@ -23,9 +32,6 @@ bool LibretroCore::resolver(T &destino, const char *nome) {
 bool LibretroCore::carregar(const std::string &caminhoDoSo) {
     descarregar();
 
-    // RTLD_LOCAL de proposito: os nucleos libretro tem simbolos globais com
-    // nomes iguais entre si. Com RTLD_GLOBAL, carregar um segundo nucleo no
-    // mesmo processo os faria colidir em silencio.
     handle_ = dlopen(caminhoDoSo.c_str(), RTLD_NOW | RTLD_LOCAL);
     if (handle_ == nullptr) {
         LOGE("dlopen falhou: %s", dlerror());
@@ -33,33 +39,59 @@ bool LibretroCore::carregar(const std::string &caminhoDoSo) {
     }
 
     const bool ok =
+        resolver(set_environment_, "retro_set_environment") &&
+        resolver(set_video_refresh_, "retro_set_video_refresh") &&
+        resolver(set_audio_sample_, "retro_set_audio_sample") &&
+        resolver(set_audio_sample_batch_, "retro_set_audio_sample_batch") &&
+        resolver(set_input_poll_, "retro_set_input_poll") &&
+        resolver(set_input_state_, "retro_set_input_state") &&
         resolver(init_, "retro_init") &&
         resolver(deinit_, "retro_deinit") &&
-        resolver(apiVersion_, "retro_api_version") &&
-        resolver(run_, "retro_run") &&
+        resolver(api_version_, "retro_api_version") &&
+        resolver(get_system_info_, "retro_get_system_info") &&
+        resolver(get_system_av_info_, "retro_get_system_av_info") &&
+        resolver(set_controller_port_device_, "retro_set_controller_port_device") &&
         resolver(reset_, "retro_reset") &&
-        resolver(serializeSize_, "retro_serialize_size");
+        resolver(run_, "retro_run") &&
+        resolver(serialize_size_, "retro_serialize_size") &&
+        resolver(serialize_, "retro_serialize") &&
+        resolver(unserialize_, "retro_unserialize") &&
+        resolver(cheat_reset_, "retro_cheat_reset") &&
+        resolver(cheat_set_, "retro_cheat_set") &&
+        resolver(load_game_, "retro_load_game") &&
+        resolver(load_game_special_, "retro_load_game_special") &&
+        resolver(unload_game_, "retro_unload_game") &&
+        resolver(get_region_, "retro_get_region") &&
+        resolver(get_memory_data_, "retro_get_memory_data") &&
+        resolver(get_memory_size_, "retro_get_memory_size");
 
     if (!ok) {
         descarregar();
         return false;
     }
 
-    LOGI("Nucleo carregado, API libretro %u", apiVersion_());
+    if (api_version_() != 1) {
+        LOGE("Versao de API do libretro nao suportada!");
+        descarregar();
+        return false;
+    }
+
+    LOGI("Nucleo carregado, API libretro %u", api_version_());
     return true;
 }
 
 bool LibretroCore::iniciar() {
-    // TODO (Fase 4a): instalar os callbacks antes de retro_init.
-    //   retro_set_environment  -> minimo viavel para Mesen e Mesen-S:
-    //       SET_PIXEL_FORMAT, GET_SYSTEM_DIRECTORY, GET_SAVE_DIRECTORY,
-    //       GET_VARIABLE / SET_VARIABLES, GET_LOG_INTERFACE, GET_CAN_DUPE,
-    //       SET_GEOMETRY
-    //   retro_set_video_refresh -> video_renderer
-    //   retro_set_audio_sample_batch -> audio_output (ring buffer)
-    //   retro_set_input_poll / retro_set_input_state -> input_state
     if (init_ == nullptr) return false;
+
+    set_environment_(cb_environment);
     init_();
+
+    set_video_refresh_(cb_video_refresh);
+    set_audio_sample_(cb_audio_sample);
+    set_audio_sample_batch_(cb_audio_sample_batch);
+    set_input_poll_(cb_input_poll);
+    set_input_state_(cb_input_state);
+
     return true;
 }
 
@@ -67,21 +99,74 @@ void LibretroCore::rodarQuadro() {
     if (run_ != nullptr) run_();
 }
 
+bool LibretroCore::carregarJogo(const void* dados, size_t tamanho, const char* caminho) {
+    if (dados == nullptr && tamanho == 0 && caminho == nullptr) {
+        return load_game_(nullptr);
+    }
+    retro_game_info info = {};
+    info.path = caminho;
+    info.data = dados;
+    info.size = tamanho;
+    info.meta = "";
+    return load_game_(&info);
+}
+
+std::string LibretroCore::obterInfo() {
+    retro_system_info sysInfo = {};
+    get_system_info_(&sysInfo);
+
+    retro_system_av_info avInfo = {};
+    get_system_av_info_(&avInfo);
+
+    std::stringstream ss;
+    ss << "Library: " << (sysInfo.library_name ? sysInfo.library_name : "N/A")
+       << " v" << (sysInfo.library_version ? sysInfo.library_version : "N/A") << "\n";
+    ss << "Resolution: " << avInfo.geometry.base_width << "x" << avInfo.geometry.base_height << "\n";
+    ss << "FPS: " << avInfo.timing.fps << "\n";
+    ss << "Audio Rate: " << avInfo.timing.sample_rate << "\n";
+
+    std::string pixel_str = "Unknown";
+    if (g_formato_pixel == 1) pixel_str = "XRGB8888";
+    else if (g_formato_pixel == 2) pixel_str = "RGB565";
+    else if (g_formato_pixel == 0) pixel_str = "0RGB1555";
+
+    ss << "Pixel Format: " << pixel_str;
+
+    return ss.str();
+}
+
 void LibretroCore::descarregar() {
     if (handle_ == nullptr) return;
     if (deinit_ != nullptr) deinit_();
 
-    // dlclose nao limpa de forma confiavel o estado GLOBAL de um nucleo
-    // libretro. E por isso que a EmulatorActivity roda em processo separado
-    // (:emu): encerrar o processo e a unica garantia de sessao limpa.
     dlclose(handle_);
     handle_ = nullptr;
+
+    set_environment_ = nullptr;
+    set_video_refresh_ = nullptr;
+    set_audio_sample_ = nullptr;
+    set_audio_sample_batch_ = nullptr;
+    set_input_poll_ = nullptr;
+    set_input_state_ = nullptr;
     init_ = nullptr;
     deinit_ = nullptr;
-    apiVersion_ = nullptr;
-    run_ = nullptr;
+    api_version_ = nullptr;
+    get_system_info_ = nullptr;
+    get_system_av_info_ = nullptr;
+    set_controller_port_device_ = nullptr;
     reset_ = nullptr;
-    serializeSize_ = nullptr;
+    run_ = nullptr;
+    serialize_size_ = nullptr;
+    serialize_ = nullptr;
+    unserialize_ = nullptr;
+    cheat_reset_ = nullptr;
+    cheat_set_ = nullptr;
+    load_game_ = nullptr;
+    load_game_special_ = nullptr;
+    unload_game_ = nullptr;
+    get_region_ = nullptr;
+    get_memory_data_ = nullptr;
+    get_memory_size_ = nullptr;
 }
 
 } // namespace phoenix

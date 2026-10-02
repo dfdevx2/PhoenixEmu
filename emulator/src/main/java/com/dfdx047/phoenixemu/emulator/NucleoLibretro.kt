@@ -15,16 +15,22 @@ import android.view.Surface
  */
 class NucleoLibretro {
 
+    private external fun nativeDefinirPastas(sistema: String, saves: String)
+    private external fun nativeInfo(): String
     private external fun nativeCarregar(caminhoDoSo: String): Boolean
-    private external fun nativeCarregarJogo(rom: ByteArray): Boolean
+    private external fun nativeCarregarJogo(rom: ByteArray?): Boolean
     private external fun nativeIniciarLaco(surface: Surface)
     private external fun nativePararLaco()
     private external fun nativeDefinirBotoes(porta: Int, mascara: Int)
     private external fun nativeDescarregar()
 
+    fun definirPastas(sistema: String, saves: String) = nativeDefinirPastas(sistema, saves)
+    
+    fun info(): String = nativeInfo()
+
     fun carregar(caminhoDoSo: String): Boolean = nativeCarregar(caminhoDoSo)
 
-    fun carregarJogo(rom: ByteArray): Boolean = nativeCarregarJogo(rom)
+    fun carregarJogo(rom: ByteArray?): Boolean = nativeCarregarJogo(rom)
 
     fun iniciar(surface: Surface) = nativeIniciarLaco(surface)
 

@@ -137,11 +137,17 @@ grep -qF 'ko-fi.com/dfdx047' "$J/TelasSecundarias.kt" 2>/dev/null \
   && pend "URL_KOFI ainda e o placeholder (troque pelo seu handle)" \
   || ok "URL_KOFI personalizada"
 [ -f "$E/cpp/libretro.h" ] && ok "libretro.h presente" \
-  || pend "libretro.h ausente (so e necessario na Fase 4)"
-if grep -qE '^\s*include\("' settings.gradle.kts 2>/dev/null && \
-   grep -qE '^\s*include\(":emulator"\)' settings.gradle.kts; then
-  falta "include(\":emulator\") ATIVO - quebra o build sem NDK"
-else ok "include(\":emulator\") comentado"; fi
+  || falta "libretro.h ausente em $E/cpp/"
+# Fase 4: o modulo nativo agora TEM de estar ligado.
+grep -qE '^\s*include\(":emulator"\)' settings.gradle.kts 2>/dev/null \
+  && ok "include(\":emulator\") ativo" \
+  || falta "include(\":emulator\") desligado -- a Fase 4 precisa dele"
+chk app/build.gradle.kts 'implementation(project(":emulator"))'
+chk app/build.gradle.kts 'useLegacyPackaging = true'
+chk emulator/build.gradle.kts 'libs.plugins.kotlin.compose'
+chk emulator/build.gradle.kts 'prefab = true'
+chk "$E/cpp/CMakeLists.txt" 'nucleo_falso/nucleo_falso.c'
+[ -f .clinerules ] && ok ".clinerules presente" || falta ".clinerules ausente na raiz"
 grep -qs 'RAWG_API_KEY' "$HOME/.gradle/gradle.properties" \
   && ok "RAWG_API_KEY em ~/.gradle/gradle.properties" \
   || pend "RAWG_API_KEY ausente em ~/.gradle/gradle.properties"

@@ -38,7 +38,23 @@ std::string paraStdString(JNIEnv *env, jstring texto) {
 
 } // namespace
 
+extern std::string g_system_dir;
+extern std::string g_saves_dir;
+
 extern "C" {
+
+JNIEXPORT void JNICALL
+Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeDefinirPastas(
+    JNIEnv *env, jobject /*thiz*/, jstring sistema, jstring saves) {
+    g_system_dir = paraStdString(env, sistema);
+    g_saves_dir = paraStdString(env, saves);
+}
+
+JNIEXPORT jstring JNICALL
+Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeInfo(
+    JNIEnv *env, jobject /*thiz*/) {
+    return env->NewStringUTF(g_nucleo.obterInfo().c_str());
+}
 
 JNIEXPORT jboolean JNICALL
 Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeCarregar(
@@ -50,13 +66,15 @@ Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeCarregar(
 
 JNIEXPORT jboolean JNICALL
 Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeCarregarJogo(
-    JNIEnv * /*env*/, jobject /*thiz*/, jbyteArray /*rom*/) {
-    // TODO (Fase 4a): montar retro_game_info com os bytes recebidos.
-    //
-    // A ROM vem do Kotlin ja lida (e descompactada, se for zip), porque o
-    // lado nativo nao tem como abrir uma URI do SAF. Se o nucleo declarar
-    // need_fullpath, copiamos para o cache e passamos o caminho.
-    return JNI_FALSE;
+    JNIEnv *env, jobject /*thiz*/, jbyteArray rom) {
+    if (rom == nullptr) {
+        return g_nucleo.carregarJogo(nullptr, 0, nullptr) ? JNI_TRUE : JNI_FALSE;
+    }
+    jsize tamanho = env->GetArrayLength(rom);
+    void *dados = env->GetPrimitiveArrayCritical(rom, nullptr);
+    bool ok = g_nucleo.carregarJogo(dados, static_cast<size_t>(tamanho), "");
+    env->ReleasePrimitiveArrayCritical(rom, dados, JNI_ABORT);
+    return ok ? JNI_TRUE : JNI_FALSE;
 }
 
 JNIEXPORT void JNICALL

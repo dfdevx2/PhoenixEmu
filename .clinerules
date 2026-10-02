@@ -1,0 +1,41 @@
+# Regras do projeto PhoenixEmu
+# O Cline le este arquivo em TODA tarefa. Elas valem para qualquer prompt.
+
+## 1. Escopo: so os arquivos permitidos
+- Cada prompt traz uma lista "ARQUIVOS PERMITIDOS". Altere SOMENTE esses.
+- Se achar que precisa mexer em outro arquivo, PARE e diga qual e por que.
+  Nao mexa nele "so um pouquinho".
+- Nunca altere, em hipotese nenhuma (a menos que o prompt cite o arquivo pelo nome):
+  - qualquer arquivo dentro de app/
+  - qualquer *.gradle.kts, settings.gradle.kts, gradle/libs.versions.toml
+  - qualquer AndroidManifest.xml ou arquivo em res/
+  - emulator/src/main/cpp/libretro.h
+  - emulator/src/main/cpp/verificador_ambiente.c
+  - emulator/src/main/cpp/verificador_audio.h
+  - emulator/src/main/cpp/nucleo_falso/  (a pasta inteira)
+  - a pasta fase4/ na raiz
+
+## 2. Nada de "melhorias" por conta propria
+- Nao renomeie, nao reformate, nao reordene codigo que a tarefa nao pede.
+- Nao apague comentarios existentes.
+- Nao troque bibliotecas nem versoes.
+- NUNCA renomeie as constantes do companion object da EmulatorActivity
+  (EXTRA_*, ORDEM_DO_MAPEAMENTO). O app depende desses nomes.
+
+## 3. JNI
+- Ao mudar um `external fun` em NucleoLibretro.kt, mude o JNIEXPORT
+  correspondente em jni_bridge.cpp NA MESMA etapa, e vice-versa.
+- Nome da funcao C: Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_<nome>.
+
+## 4. Threads
+- Funcoes retro_* so rodam na thread do emulador. Excecao: carregar e
+  descarregar o nucleo, e tudo antes de o laco existir.
+- No callback de audio do Oboe: nada de malloc, new, mutex, log ou JNI.
+
+## 5. Ao terminar as edicoes, SEMPRE:
+1. Rode: ./gradlew :app:installDebug
+   - Erro de compilacao: corrija so dentro dos arquivos permitidos e rode de novo.
+   - "No connected devices": rode ./gradlew :app:assembleDebug e avise.
+2. Rode: git status --short   e mostre a saida inteira.
+3. Escreva um resumo curto: para cada arquivo alterado, 1 a 3 linhas do que mudou.
+4. Se algum arquivo fora da lista aparecer no git status, diga isso em destaque.

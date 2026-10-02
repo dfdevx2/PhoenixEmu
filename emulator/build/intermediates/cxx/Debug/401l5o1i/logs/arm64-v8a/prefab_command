@@ -1,0 +1,21 @@
+/opt/android-studio/jbr/bin/java \
+  --enable-native-access \
+  ALL-UNNAMED \
+  --class-path \
+  /home/dfdx047/.gradle/caches/modules-2/files-2.1/com.google.prefab/cli/2.1.0/aa32fec809c44fa531f01dcfb739b5b3304d3050/cli-2.1.0-all.jar \
+  com.google.prefab.cli.AppKt \
+  --build-system \
+  cmake \
+  --platform \
+  android \
+  --abi \
+  arm64-v8a \
+  --os-version \
+  26 \
+  --stl \
+  c++_shared \
+  --ndk-version \
+  28 \
+  --output \
+  /tmp/agp-prefab-staging1572128748979852475/staged-cli-output \
+  /home/dfdx047/.gradle/caches/9.5.0/transforms/cba1c11bb550b1daace1a51c04c1bfd0/transformed/oboe-1.10.0/prefab

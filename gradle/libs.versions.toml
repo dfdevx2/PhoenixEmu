@@ -19,6 +19,9 @@ work = "2.10.0"
 # --- Terceiros ---
 coil = "2.7.0"
 gson = "2.11.0"
+# 1.10.0 e nao a 1.11.0: a 1.11 saiu em setembro de 2026 e ainda tem pouca
+# estrada. Audio e o ultimo lugar para ser o primeiro a achar um bug.
+oboe = "1.10.0"
 okhttp = "4.12.0"
 retrofit = "2.11.0"
 
@@ -63,6 +66,7 @@ coil-gif = { group = "io.coil-kt", name = "coil-gif", version.ref = "coil" }
 
 # --- Rede / JSON ---
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+oboe = { group = "com.google.oboe", name = "oboe", version.ref = "oboe" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 retrofit-converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }

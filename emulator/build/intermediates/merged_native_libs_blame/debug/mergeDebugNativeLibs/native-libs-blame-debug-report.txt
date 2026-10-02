@@ -1,0 +1,3 @@
+lib/arm64-v8a/libc++_shared.so->Project
+lib/arm64-v8a/libnucleo_falso.so->Project
+lib/arm64-v8a/libphoenix_emu.so->Project

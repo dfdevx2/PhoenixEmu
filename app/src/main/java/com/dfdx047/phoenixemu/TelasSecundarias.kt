@@ -89,6 +89,7 @@ import com.dfdx047.phoenixemu.ui.design.CartaoDeVidro
 import com.dfdx047.phoenixemu.ui.design.EspacoDaNavegacao
 import com.dfdx047.phoenixemu.ui.design.SeletorSegmentado
 import com.dfdx047.phoenixemu.data.Trabalhos
+import com.dfdx047.phoenixemu.emulacao.Emulador
 import kotlinx.coroutines.launch
 
 /** Trocar pelo seu handle real do Ko-fi. */
@@ -662,6 +663,24 @@ fun TelaSobre() {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+
+        // Ferramenta da Fase 4, so no build de depuracao: abre o nucleo falso
+        // direto, sem ROM. Texto fixo de proposito -- nao e interface de
+        // usuario, e some sozinho do APK de release.
+        if (BuildConfig.DEBUG) {
+            val contexto = LocalContext.current
+            OutlinedButton(
+                onClick = {
+                    audio.playClick()
+                    Emulador.abrirNucleoFalso(contexto, Preferencias.obter(contexto))
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Testar núcleo falso")
+            }
+        }
+
         EspacoDaNavegacao()
     }
 }

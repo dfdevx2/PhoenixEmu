@@ -1,0 +1,9 @@
+com.dfdx047.phoenixemu.emulator-pngs-0 /home/dfdx047/AndroidStudioProjects/PhoenixEmu/emulator/build/generated/res/pngs/debug
+com.dfdx047.phoenixemu.emulator-updated_navigation_xml-1 /home/dfdx047/AndroidStudioProjects/PhoenixEmu/emulator/build/generated/updated_navigation_xml/debug
+com.dfdx047.phoenixemu.emulator-mergeDebugResources-2 /home/dfdx047/AndroidStudioProjects/PhoenixEmu/emulator/build/intermediates/incremental/debug/mergeDebugResources/merged.dir
+com.dfdx047.phoenixemu.emulator-mergeDebugResources-3 /home/dfdx047/AndroidStudioProjects/PhoenixEmu/emulator/build/intermediates/incremental/debug/mergeDebugResources/stripped.dir
+com.dfdx047.phoenixemu.emulator-debug-4 /home/dfdx047/AndroidStudioProjects/PhoenixEmu/emulator/build/intermediates/merged_res/debug/mergeDebugResources
+com.dfdx047.phoenixemu.emulator-debug-5 /home/dfdx047/AndroidStudioProjects/PhoenixEmu/emulator/build/intermediates/packaged_res/debug/packageDebugResources
+com.dfdx047.phoenixemu.emulator-debug-6 /home/dfdx047/AndroidStudioProjects/PhoenixEmu/emulator/src/debug/res
+com.dfdx047.phoenixemu.emulator-main-7 /home/dfdx047/AndroidStudioProjects/PhoenixEmu/emulator/src/main/res
+gradleHome-0 /home/dfdx047/.gradle

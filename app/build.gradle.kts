@@ -60,6 +60,13 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+        // Os nucleos libretro sao abertos com dlopen por CAMINHO de arquivo.
+        // Isto faz o Android extrair as .so para `nativeLibraryDir` na
+        // instalacao. Tem de ficar aqui, no modulo do APP: no modulo de
+        // biblioteca esta opcao nao chega ao APK final.
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 }
 
@@ -71,6 +78,9 @@ ksp {
 }
 
 dependencies {
+    // Fase 4: o emulador nativo, que roda no processo separado :emu.
+    implementation(project(":emulator"))
+
     // Compose
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.material3)
