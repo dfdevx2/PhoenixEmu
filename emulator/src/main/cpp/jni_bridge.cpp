@@ -30,6 +30,12 @@ std::atomic<bool> g_pedido_salvar_sram{false};
 std::atomic<int> g_ff_velocidade{1};
 std::atomic<bool> g_pular_video{false};
 
+std::atomic<bool> g_rewind{false};
+std::vector<std::vector<uint8_t>> g_rewind_buffer;
+size_t g_rewind_head = 0;
+size_t g_rewind_slot_size = 0;
+std::atomic<size_t> g_rewind_count{0};
+
 std::atomic<float> g_stats_fps{0.0f};
 std::atomic<float> g_stats_ms_medio{0.0f};
 std::atomic<float> g_stats_ms_max{0.0f};
@@ -71,9 +77,39 @@ void lacoEmulador() {
     float tempo_acumulado_ms = 0.0f;
     float tempo_max_ms = 0.0f;
 
+    int quadro_rewind_captura = 0;
+    bool rewind_anterior = false;
+
+    auto processar_quadro_normal = [&]() {
+        auto t0 = clock::now();
+        g_nucleo.rodarQuadro();
+        auto t1 = clock::now();
+
+        if (!g_rewind_buffer.empty()) {
+            quadro_rewind_captura++;
+            if (quadro_rewind_captura >= 2) {
+                quadro_rewind_captura = 0;
+                if (g_nucleo.salvarEstado(g_rewind_buffer[g_rewind_head].data(), g_rewind_slot_size)) {
+                    g_rewind_head = (g_rewind_head + 1) % g_rewind_buffer.size();
+                    size_t count = g_rewind_count.load(std::memory_order_relaxed);
+                    if (count < g_rewind_buffer.size()) {
+                        g_rewind_count.store(count + 1, std::memory_order_relaxed);
+                    }
+                }
+            }
+        }
+
+        float ms = std::chrono::duration<float, std::milli>(t1 - t0).count();
+        tempo_acumulado_ms += ms;
+        if (ms > tempo_max_ms) tempo_max_ms = ms;
+        quadros_contados++;
+    };
+
     while (g_rodando.load(std::memory_order_acquire)) {
         if (g_pedido_reset.exchange(false, std::memory_order_relaxed)) {
             g_nucleo.reiniciar();
+            g_rewind_head = 0;
+            g_rewind_count.store(0, std::memory_order_relaxed);
         }
 
         if (g_pedido_salvar_sram.exchange(false, std::memory_order_relaxed)) {
@@ -91,7 +127,39 @@ void lacoEmulador() {
             proximo_quadro = clock::now();
         }
 
-        if (vel > 1) {
+        bool rewind_atual = g_rewind.load(std::memory_order_relaxed);
+        if (rewind_anterior && !rewind_atual) {
+            __android_log_print(ANDROID_LOG_INFO, "PhoenixLibretro", "rewind: terminou");
+            proximo_quadro = clock::now();
+        }
+        rewind_anterior = rewind_atual;
+
+        if (rewind_atual) {
+            auto agora_inicio = clock::now();
+            if (agora_inicio >= proximo_quadro) {
+                size_t count = g_rewind_count.load(std::memory_order_relaxed);
+                if (count > 0 && !g_rewind_buffer.empty()) {
+                    g_rewind_head = (g_rewind_head == 0) ? (g_rewind_buffer.size() - 1) : (g_rewind_head - 1);
+                    g_nucleo.carregarEstado(g_rewind_buffer[g_rewind_head].data(), g_rewind_slot_size);
+
+                    auto t0 = clock::now();
+                    g_nucleo.rodarQuadro();
+                    auto t1 = clock::now();
+
+                    float ms = std::chrono::duration<float, std::milli>(t1 - t0).count();
+                    tempo_acumulado_ms += ms;
+                    if (ms > tempo_max_ms) tempo_max_ms = ms;
+                    quadros_contados++;
+
+                    count--;
+                    g_rewind_count.store(count, std::memory_order_relaxed);
+                    quadro_rewind_captura = 0;
+                }
+                proximo_quadro += intervalo;
+            } else {
+                std::this_thread::sleep_until(proximo_quadro);
+            }
+        } else if (vel > 1) {
             auto agora_inicio_ff = clock::now();
             if (agora_inicio_ff >= proximo_quadro) {
                 for (int i = 0; i < vel; ++i) {
@@ -120,29 +188,13 @@ void lacoEmulador() {
                 }
 
                 if (phoenix_audio_ocupacao() < ALVO_QUADROS * quadros_minimos) {
-                    auto t0 = clock::now();
-                    g_nucleo.rodarQuadro();
-                    auto t1 = clock::now();
-
-                    float ms = std::chrono::duration<float, std::milli>(t1 - t0).count();
-                    tempo_acumulado_ms += ms;
-                    if (ms > tempo_max_ms) tempo_max_ms = ms;
-                    quadros_contados++;
-
+                    processar_quadro_normal();
                     proximo_quadro = clock::now();
                 } else {
                     std::this_thread::sleep_for(std::chrono::milliseconds(1));
                 }
             } else {
-                auto t0 = clock::now();
-                g_nucleo.rodarQuadro();
-                auto t1 = clock::now();
-
-                float ms = std::chrono::duration<float, std::milli>(t1 - t0).count();
-                tempo_acumulado_ms += ms;
-                if (ms > tempo_max_ms) tempo_max_ms = ms;
-                quadros_contados++;
-
+                processar_quadro_normal();
                 proximo_quadro += intervalo;
                 std::this_thread::sleep_until(proximo_quadro);
             }
@@ -209,6 +261,20 @@ Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeCarregarJogo(
     jsize tamanho = env->GetArrayLength(rom);
     void *dados = env->GetPrimitiveArrayCritical(rom, nullptr);
     bool ok = g_nucleo.carregarJogo(dados, static_cast<size_t>(tamanho), caminho);
+    if (ok) {
+        g_rewind_slot_size = g_nucleo.tamanhoEstado();
+        if (g_rewind_slot_size > 0) {
+            size_t N = std::min<size_t>(128 * 1024 * 1024 / g_rewind_slot_size, 1200);
+            g_rewind_buffer.assign(N, std::vector<uint8_t>(g_rewind_slot_size));
+            double fps = g_nucleo.obterFps();
+            if (fps <= 0.0) fps = 60.0;
+            __android_log_print(ANDROID_LOG_INFO, "PhoenixLibretro", "rewind: %zu estados de %zu bytes (%.1f s)", N, g_rewind_slot_size, (double)N * 2.0 / fps);
+        } else {
+            g_rewind_buffer.clear();
+        }
+        g_rewind_head = 0;
+        g_rewind_count.store(0, std::memory_order_relaxed);
+    }
     env->ReleasePrimitiveArrayCritical(rom, dados, JNI_ABORT);
     return ok ? JNI_TRUE : JNI_FALSE;
 }
@@ -272,6 +338,9 @@ Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativePararLaco(
         ANativeWindow_release(g_janela);
         g_janela = nullptr;
     }
+
+    g_rewind_head = 0;
+    g_rewind_count.store(0, std::memory_order_relaxed);
 }
 
 JNIEXPORT void JNICALL
@@ -342,7 +411,12 @@ Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeCarregarEstado(
     if (tam == 0) return JNI_FALSE;
     std::vector<jbyte> buf(tam);
     env->GetByteArrayRegion(dados, 0, tam, buf.data());
-    return g_nucleo.carregarEstado(buf.data(), static_cast<size_t>(tam)) ? JNI_TRUE : JNI_FALSE;
+    bool ok = g_nucleo.carregarEstado(buf.data(), static_cast<size_t>(tam));
+    if (ok) {
+        g_rewind_head = 0;
+        g_rewind_count.store(0, std::memory_order_relaxed);
+    }
+    return ok ? JNI_TRUE : JNI_FALSE;
 }
 
 JNIEXPORT void JNICALL
@@ -363,6 +437,21 @@ Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeObterStats(
         env->SetFloatArrayRegion(arr, 0, 3, stats);
     }
     return arr;
+}
+
+JNIEXPORT void JNICALL
+Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeDefinirRewind(
+    JNIEnv * /*env*/, jobject /*thiz*/, jboolean ativo) {
+    g_rewind.store(ativo == JNI_TRUE, std::memory_order_relaxed);
+}
+
+JNIEXPORT jfloat JNICALL
+Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeObterRewindSegundos(
+    JNIEnv * /*env*/, jobject /*thiz*/) {
+    double fps = g_nucleo.obterFps();
+    if (fps <= 0.0) fps = 60.0;
+    size_t count = g_rewind_count.load(std::memory_order_relaxed);
+    return static_cast<jfloat>((double)count * 2.0 / fps);
 }
 
 } // extern "C"

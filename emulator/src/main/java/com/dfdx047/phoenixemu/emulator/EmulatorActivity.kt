@@ -22,6 +22,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import kotlin.math.roundToInt
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -120,8 +121,14 @@ class EmulatorActivity : ComponentActivity() {
     private var ffSpeed by mutableStateOf(1)
     private var statsText by mutableStateOf("")
 
+    private var l2KeyPressed = false
+    private var l2AxisPressed = false
+    private var rewindJob: kotlinx.coroutines.Job? = null
+    private var rewindActive = false
+    private var rewindSecs by mutableStateOf(0f)
+
     private fun updateFastForward() {
-        val active = r2KeyPressed || r2AxisPressed
+        val active = (r2KeyPressed || r2AxisPressed) && !rewindActive
         if (active && ffSpeed == 1) {
             ffSpeed = 2
             nucleo.definirAvancoRapido(2)
@@ -139,17 +146,44 @@ class EmulatorActivity : ComponentActivity() {
                 }
             }
         } else if (!active && ffSpeed > 1) {
-            cancelFastForward()
+            ffJob?.cancel()
+            ffJob = null
+            ffSpeed = 1
+            nucleo.definirAvancoRapido(1)
         }
     }
 
-    private fun cancelFastForward() {
+    private fun updateRewind() {
+        val active = l2KeyPressed || l2AxisPressed
+        if (active && !rewindActive) {
+            rewindActive = true
+            nucleo.definirRewind(true)
+            updateFastForward()
+            
+            rewindJob?.cancel()
+            rewindJob = lifecycleScope.launch {
+                while (true) {
+                    rewindSecs = nucleo.obterRewindSegundos()
+                    delay(250)
+                }
+            }
+        } else if (!active && rewindActive) {
+            rewindActive = false
+            nucleo.definirRewind(false)
+            rewindJob?.cancel()
+            rewindJob = null
+            
+            updateFastForward()
+        }
+    }
+
+    private fun resetAllSpeedModifiers() {
         r2KeyPressed = false
         r2AxisPressed = false
-        ffJob?.cancel()
-        ffJob = null
-        ffSpeed = 1
-        nucleo.definirAvancoRapido(1)
+        l2KeyPressed = false
+        l2AxisPressed = false
+        updateRewind()
+        updateFastForward()
     }
 
     private fun bindKey(keyCode: Int, bit: Int) {
@@ -449,7 +483,16 @@ class EmulatorActivity : ComponentActivity() {
                         modifier = Modifier.aspectRatio(aspectRatio)
                     )
 
-                    if (ffSpeed > 1) {
+                    if (rewindActive) {
+                        BasicText(
+                            text = "◀◀ ${rewindSecs.roundToInt()}s",
+                            style = TextStyle(color = Color.White.copy(alpha = 0.85f), fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .windowInsetsPadding(WindowInsets.systemBars)
+                                .padding(top = 16.dp)
+                        )
+                    } else if (ffSpeed > 1) {
                         BasicText(
                             text = "▶▶ ${ffSpeed}x",
                             style = TextStyle(color = Color.White.copy(alpha = 0.85f), fontSize = 14.sp, fontWeight = FontWeight.Bold),
@@ -619,7 +662,7 @@ class EmulatorActivity : ComponentActivity() {
                     keyMask = 0
                     axisMask = 0
                     nucleo.definirBotoes(0, 0)
-                    cancelFastForward()
+                    resetAllSpeedModifiers()
 
                     if (isPaused) {
                         nucleo.parar()
@@ -645,7 +688,7 @@ class EmulatorActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         nucleo.parar()
-        cancelFastForward()
+        resetAllSpeedModifiers()
         srmPath?.let { nucleo.salvarSram(it) }
     }
 
@@ -677,7 +720,7 @@ class EmulatorActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         nucleo.parar()
-        cancelFastForward()
+        resetAllSpeedModifiers()
         srmPath?.let { nucleo.salvarSram(it) }
         nucleo.descarregar()
         if (isFinishing) {
@@ -702,7 +745,20 @@ class EmulatorActivity : ComponentActivity() {
             return super.dispatchKeyEvent(event)
         }
 
+        if (event.keyCode == KeyEvent.KEYCODE_BUTTON_L2) {
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+                l2KeyPressed = true
+                updateRewind()
+                return true
+            } else if (event.action == KeyEvent.ACTION_UP) {
+                l2KeyPressed = false
+                updateRewind()
+                return true
+            }
+        }
+
         if (event.keyCode == KeyEvent.KEYCODE_BUTTON_R2) {
+            if (rewindActive) return true
             if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
                 r2KeyPressed = true
                 updateFastForward()
@@ -732,6 +788,14 @@ class EmulatorActivity : ComponentActivity() {
         if (isPaused) return super.dispatchGenericMotionEvent(event)
 
         if (event.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK && event.action == MotionEvent.ACTION_MOVE) {
+            val ltrigger = event.getAxisValue(MotionEvent.AXIS_LTRIGGER)
+            val brake = event.getAxisValue(MotionEvent.AXIS_BRAKE)
+            val newL2Axis = ltrigger > 0.5f || brake > 0.5f
+            if (newL2Axis != l2AxisPressed) {
+                l2AxisPressed = newL2Axis
+                updateRewind()
+            }
+
             val rtrigger = event.getAxisValue(MotionEvent.AXIS_RTRIGGER)
             val gas = event.getAxisValue(MotionEvent.AXIS_GAS)
             val newR2Axis = rtrigger > 0.5f || gas > 0.5f

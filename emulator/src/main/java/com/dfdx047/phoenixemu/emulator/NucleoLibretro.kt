@@ -35,6 +35,8 @@ class NucleoLibretro {
     private external fun nativeCarregarEstado(dados: ByteArray): Boolean
     private external fun nativeDefinirAvancoRapido(velocidade: Int)
     private external fun nativeObterStats(): FloatArray
+    private external fun nativeDefinirRewind(ativo: Boolean)
+    private external fun nativeObterRewindSegundos(): Float
 
     fun definirPastas(sistema: String, saves: String) = nativeDefinirPastas(sistema, saves)
     
@@ -79,6 +81,9 @@ class NucleoLibretro {
     fun definirAvancoRapido(velocidade: Int) = nativeDefinirAvancoRapido(velocidade)
     
     fun obterStats(): FloatArray = nativeObterStats()
+
+    fun definirRewind(ativo: Boolean) = nativeDefinirRewind(ativo)
+    fun obterRewindSegundos(): Float = nativeObterRewindSegundos()
 
     /** Bits do RETRO_DEVICE_ID_JOYPAD, na ordem da API libretro. */
     object Botao {
