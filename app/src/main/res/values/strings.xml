@@ -157,6 +157,23 @@
     <string name="nav_controles">Controls</string>
     <string name="nav_controles_curto">Controls</string>
 
+    <string name="controles_atalhos">Shortcuts</string>
+    <string name="atalhos_botao_hotkey">Shortcut button (hotkey)</string>
+    <string name="atalhos_nenhum">None</string>
+    <string name="atalhos_usar_hotkey">Use shortcut button</string>
+    <string name="atalhos_limpar">Clear</string>
+    <string name="atalhos_hotkey_descricao">Hold the shortcut button and press another key to activate combos.</string>
+    <string name="atalhos_aviso">A shortcut assigned to a single key will take that key away from the game. To avoid losing buttons, enable "Use shortcut button".</string>
+
+    <string name="atalhos_salvar_estado">Save state</string>
+    <string name="atalhos_carregar_estado">Load state</string>
+    <string name="atalhos_slot_anterior">Previous slot</string>
+    <string name="atalhos_slot_proximo">Next slot</string>
+    <string name="atalhos_avanco_rapido">Fast forward</string>
+    <string name="atalhos_voltar_tempo">Rewind</string>
+    <string name="atalhos_menu_pausa">Pause menu</string>
+    <string name="atalhos_reiniciar">Restart game</string>
+
     <!-- controls: physical mapping -->
     <string name="controles_fisico">Gamepad</string>
     <string name="controles_tela">On-screen</string>

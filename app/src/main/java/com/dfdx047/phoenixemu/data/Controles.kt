@@ -115,3 +115,50 @@ fun nomeDaTecla(codigo: Int): String = when (codigo) {
     KeyEvent.KEYCODE_BUTTON_MODE -> "Home"
     else -> KeyEvent.keyCodeToString(codigo).removePrefix("KEYCODE_").replace('_', ' ')
 }
+
+enum class AcaoAtalho(@StringRes val rotulo: Int) {
+    SALVAR_ESTADO(Recursos.string.atalhos_salvar_estado),
+    CARREGAR_ESTADO(Recursos.string.atalhos_carregar_estado),
+    SLOT_ANTERIOR(Recursos.string.atalhos_slot_anterior),
+    SLOT_PROXIMO(Recursos.string.atalhos_slot_proximo),
+    AVANCAR(Recursos.string.atalhos_avanco_rapido),
+    VOLTAR(Recursos.string.atalhos_voltar_tempo),
+    MENU(Recursos.string.atalhos_menu_pausa),
+    REINICIAR(Recursos.string.atalhos_reiniciar)
+}
+
+@Immutable
+data class AtalhoDaAcao(
+    val tecla: Int = 0,
+    val usarHotkey: Boolean = true
+)
+
+@Immutable
+data class ConfigDeAtalhos(
+    val hotkey: Int = 0,
+    val acoes: Map<String, AtalhoDaAcao> = emptyMap()
+) {
+    companion object {
+        fun padrao(): ConfigDeAtalhos {
+            val mapa = AcaoAtalho.entries.associate { acao ->
+                when (acao) {
+                    AcaoAtalho.AVANCAR -> acao.name to AtalhoDaAcao(KeyEvent.KEYCODE_BUTTON_R2, usarHotkey = false)
+                    AcaoAtalho.VOLTAR -> acao.name to AtalhoDaAcao(KeyEvent.KEYCODE_BUTTON_L2, usarHotkey = false)
+                    else -> acao.name to AtalhoDaAcao(0, usarHotkey = true)
+                }
+            }
+            return ConfigDeAtalhos(hotkey = 0, acoes = mapa)
+        }
+    }
+}
+
+fun ConfigDeAtalhos.combo(acao: AcaoAtalho): List<Int> {
+    val atalho = acoes[acao.name] ?: return emptyList()
+    if (atalho.tecla == 0) return emptyList()
+    return if (atalho.usarHotkey && hotkey != 0) {
+        listOf(hotkey, atalho.tecla).distinct()
+    } else {
+        listOf(atalho.tecla)
+    }
+}
+

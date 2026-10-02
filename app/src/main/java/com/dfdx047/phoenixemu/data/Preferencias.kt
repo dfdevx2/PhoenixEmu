@@ -59,6 +59,7 @@ private val K_PASTAS = stringSetPreferencesKey("pastas_roms_uris")
 private val K_PRIMEIRA_EXECUCAO = booleanPreferencesKey("primeira_execucao_concluida")
 private val K_MAPEAMENTO = stringPreferencesKey("mapeamento_controle")
 private val K_OVERLAY = stringPreferencesKey("overlay_controle")
+private val K_ATALHOS = stringPreferencesKey("atalhos_controle")
 
 /**
  * Chaves trazidas do SharedPreferences antigo, uma a uma.
@@ -296,11 +297,71 @@ class Preferencias private constructor(context: Context) {
             .getOrDefault(ConfigDoOverlay())
     }
 
+    val atalhos: StateFlow<ConfigDeAtalhos> = derivar(ConfigDeAtalhos.padrao()) { prefs ->
+        val json = prefs[K_ATALHOS]
+        if (json.isNullOrBlank()) ConfigDeAtalhos.padrao()
+        else runCatching {
+            val cru = gson.fromJson(json, ConfigDeAtalhos::class.java) ?: return@runCatching ConfigDeAtalhos.padrao()
+            val padrao = ConfigDeAtalhos.padrao()
+            
+            val validas = cru.acoes.filterKeys { k -> AcaoAtalho.entries.any { it.name == k } }
+            cru.copy(acoes = padrao.acoes + validas)
+        }.getOrDefault(ConfigDeAtalhos.padrao())
+    }
+
     fun definirOverlay(config: ConfigDoOverlay) = editar {
         it[K_OVERLAY] = gson.toJson(config)
     }
 
     fun restaurarOverlay() = editar { it.remove(K_OVERLAY) }
+    
+    fun definirHotkey(codigo: Int) = editar { prefs ->
+        val atual = atalhos.value
+        val nova = atual.copy(hotkey = codigo)
+        prefs[K_ATALHOS] = gson.toJson(nova)
+    }
+
+    fun definirAtalho(acao: AcaoAtalho, codigo: Int) = editar { prefs ->
+        val atual = atalhos.value
+        val acoes = atual.acoes.toMutableMap()
+        val atalhoAntigo = acoes[acao.name] ?: AtalhoDaAcao()
+        
+        acoes[acao.name] = atalhoAntigo.copy(tecla = codigo)
+        var nova = atual.copy(acoes = acoes)
+        
+        val comboNovo = nova.combo(acao)
+        if (comboNovo.isNotEmpty()) {
+            AcaoAtalho.entries.forEach { outra ->
+                if (outra != acao && nova.combo(outra) == comboNovo) {
+                    acoes[outra.name] = (acoes[outra.name] ?: AtalhoDaAcao()).copy(tecla = 0)
+                }
+            }
+        }
+        nova = atual.copy(acoes = acoes)
+        prefs[K_ATALHOS] = gson.toJson(nova)
+    }
+
+    fun definirUsarHotkey(acao: AcaoAtalho, usar: Boolean) = editar { prefs ->
+        val atual = atalhos.value
+        val acoes = atual.acoes.toMutableMap()
+        val atalhoAntigo = acoes[acao.name] ?: AtalhoDaAcao()
+        
+        acoes[acao.name] = atalhoAntigo.copy(usarHotkey = usar)
+        var nova = atual.copy(acoes = acoes)
+        
+        val comboNovo = nova.combo(acao)
+        if (comboNovo.isNotEmpty()) {
+            AcaoAtalho.entries.forEach { outra ->
+                if (outra != acao && nova.combo(outra) == comboNovo) {
+                    acoes[outra.name] = (acoes[outra.name] ?: AtalhoDaAcao()).copy(tecla = 0)
+                }
+            }
+        }
+        nova = atual.copy(acoes = acoes)
+        prefs[K_ATALHOS] = gson.toJson(nova)
+    }
+
+    fun restaurarAtalhos() = editar { it.remove(K_ATALHOS) }
 
     // ------------------------------------------- cache antigo da biblioteca
 

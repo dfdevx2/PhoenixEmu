@@ -5,9 +5,13 @@ import android.content.Intent
 import com.google.gson.Gson
 import com.dfdx047.phoenixemu.Jogo
 import com.dfdx047.phoenixemu.Sistema
+import com.dfdx047.phoenixemu.data.AcaoAtalho
 import com.dfdx047.phoenixemu.data.BotaoVirtual
 import com.dfdx047.phoenixemu.data.Preferencias
+import com.dfdx047.phoenixemu.data.combo
 import com.dfdx047.phoenixemu.emulator.EmulatorActivity
+import org.json.JSONArray
+import org.json.JSONObject
 
 /**
  * O unico ponto do app que abre o emulador.
@@ -55,6 +59,19 @@ object Emulador {
         rom: String?,
         nomeSave: String
     ) {
+        val atalhos = prefs.atalhos.value
+        val atalhosJson = JSONObject()
+        AcaoAtalho.entries.forEach { acao ->
+            val combo = atalhos.combo(acao)
+            if (combo.isNotEmpty()) {
+                val array = JSONArray()
+                combo.forEach { array.put(it) }
+                atalhosJson.put(acao.name, array)
+            } else {
+                atalhosJson.put(acao.name, JSONArray())
+            }
+        }
+
         val intent = Intent(context, EmulatorActivity::class.java)
             .putExtra(EmulatorActivity.EXTRA_NUCLEO, nucleo)
             .putExtra(EmulatorActivity.EXTRA_NOME_SAVE, nomeSave)
@@ -62,6 +79,7 @@ object Emulador {
             // Mesmo JSON que as Preferencias ja gravam: o modulo le com
             // org.json e nao precisa conhecer a classe ConfigDoOverlay.
             .putExtra(EmulatorActivity.EXTRA_OVERLAY, Gson().toJson(prefs.overlay.value))
+            .putExtra(EmulatorActivity.EXTRA_ATALHOS, atalhosJson.toString())
         if (rom != null) intent.putExtra(EmulatorActivity.EXTRA_ROM, rom)
         context.startActivity(intent)
     }

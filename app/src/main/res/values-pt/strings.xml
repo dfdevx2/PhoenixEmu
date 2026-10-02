@@ -156,6 +156,23 @@
     <string name="nav_controles">Controles</string>
     <string name="nav_controles_curto">Controles</string>
 
+    <string name="controles_atalhos">Atalhos</string>
+    <string name="atalhos_botao_hotkey">Botão de atalho (hotkey)</string>
+    <string name="atalhos_nenhum">Nenhum</string>
+    <string name="atalhos_usar_hotkey">Usar botão de atalho</string>
+    <string name="atalhos_limpar">Limpar</string>
+    <string name="atalhos_hotkey_descricao">Segure o botão de atalho e aperte outra tecla para ativar os combos.</string>
+    <string name="atalhos_aviso">Um atalho de tecla única "toma" essa tecla do jogo. Para não perder botões, ligue "Usar botão de atalho".</string>
+
+    <string name="atalhos_salvar_estado">Salvar estado</string>
+    <string name="atalhos_carregar_estado">Carregar estado</string>
+    <string name="atalhos_slot_anterior">Slot anterior</string>
+    <string name="atalhos_slot_proximo">Próximo slot</string>
+    <string name="atalhos_avanco_rapido">Avanço rápido</string>
+    <string name="atalhos_voltar_tempo">Voltar no tempo (rewind)</string>
+    <string name="atalhos_menu_pausa">Menu de pausa</string>
+    <string name="atalhos_reiniciar">Reiniciar</string>
+
     <!-- controles: mapeamento fisico -->
     <string name="controles_fisico">Controle</string>
     <string name="controles_tela">Na tela</string>

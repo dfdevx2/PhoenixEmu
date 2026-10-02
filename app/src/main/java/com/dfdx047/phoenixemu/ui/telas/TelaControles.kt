@@ -57,6 +57,9 @@ import com.dfdx047.phoenixemu.data.BotaoVirtual
 import com.dfdx047.phoenixemu.data.ConfigDoOverlay
 import com.dfdx047.phoenixemu.data.Preferencias
 import com.dfdx047.phoenixemu.data.nomeDaTecla
+import com.dfdx047.phoenixemu.data.AcaoAtalho
+import com.dfdx047.phoenixemu.data.ConfigDeAtalhos
+import com.dfdx047.phoenixemu.data.combo
 import com.dfdx047.phoenixemu.ui.design.CartaoDeVidro
 import com.dfdx047.phoenixemu.ui.design.EspacoDaNavegacao
 import com.dfdx047.phoenixemu.ui.design.SeletorSegmentado
@@ -86,13 +89,14 @@ fun TelaControles(prefs: Preferencias) {
         SeletorSegmentado(
             opcoes = listOf(
                 stringResource(R.string.controles_fisico),
-                stringResource(R.string.controles_tela)
+                stringResource(R.string.controles_tela),
+                stringResource(R.string.controles_atalhos)
             ),
             indiceSelecionado = aba,
             onSelecionar = { aba = it }
         )
 
-        if (aba == 0) MapeamentoFisico(prefs) else EditorDoOverlay(prefs)
+        if (aba == 0) MapeamentoFisico(prefs) else if (aba == 1) EditorDoOverlay(prefs) else AtalhosDeJogo(prefs)
 
         EspacoDaNavegacao()
     }
@@ -140,13 +144,150 @@ private fun MapeamentoFisico(prefs: Preferencias) {
     val alvo = capturando
     if (alvo != null) {
         DialogoDeCaptura(
-            botao = alvo,
+            titulo = stringResource(alvo.rotulo),
             onCapturar = { codigo ->
                 prefs.definirTecla(alvo, codigo)
                 capturando = null
             },
             onCancelar = { capturando = null }
         )
+    }
+}
+
+@Composable
+fun AtalhosDeJogo(prefs: Preferencias) {
+    val atalhosCfg by prefs.atalhos.collectAsStateWithLifecycle()
+    var editandoHotkey by remember { mutableStateOf(false) }
+    var editandoAcao by remember { mutableStateOf<AcaoAtalho?>(null) }
+    val audio = LocalAudio.current
+
+    if (editandoHotkey) {
+        DialogoDeCaptura(
+            titulo = stringResource(R.string.atalhos_botao_hotkey),
+            onCapturar = {
+                prefs.definirHotkey(it)
+                editandoHotkey = false
+            },
+            onCancelar = { editandoHotkey = false },
+            onLimpar = {
+                prefs.definirHotkey(0)
+                editandoHotkey = false
+            }
+        )
+    }
+    
+    if (editandoAcao != null) {
+        DialogoDeCaptura(
+            titulo = stringResource(editandoAcao!!.rotulo),
+            onCapturar = {
+                prefs.definirAtalho(editandoAcao!!, it)
+                editandoAcao = null
+            },
+            onCancelar = { editandoAcao = null },
+            onLimpar = {
+                prefs.definirAtalho(editandoAcao!!, 0)
+                editandoAcao = null
+            }
+        )
+    }
+
+    CartaoDeVidro {
+        Column {
+            Text(
+                text = stringResource(R.string.atalhos_hotkey_descricao),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+            
+            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+            
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { audio.playClick(); editandoHotkey = true }
+                    .padding(vertical = 10.dp, horizontal = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(stringResource(R.string.atalhos_botao_hotkey), style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    text = if (atalhosCfg.hotkey != 0) nomeDaTecla(atalhosCfg.hotkey) else stringResource(R.string.atalhos_nenhum),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            
+            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+            
+            AcaoAtalho.entries.forEachIndexed { i, acao ->
+                val atalho = atalhosCfg.acoes[acao.name]
+                val comboLista = atalhosCfg.combo(acao)
+                val textoCombo = if (comboLista.isEmpty()) {
+                    stringResource(R.string.atalhos_nenhum)
+                } else {
+                    comboLista.joinToString(" + ") { nomeDaTecla(it) }
+                }
+                
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { audio.playClick(); editandoAcao = acao }
+                        .padding(vertical = 10.dp, horizontal = 4.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(stringResource(acao.rotulo), style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            text = textoCombo,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    
+                    if (atalhosCfg.hotkey != 0 && (atalho?.tecla ?: 0) != 0) {
+                        Spacer(Modifier.height(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = stringResource(R.string.atalhos_usar_hotkey),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Switch(
+                                checked = atalho?.usarHotkey ?: true,
+                                onCheckedChange = {
+                                    audio.playClick()
+                                    prefs.definirUsarHotkey(acao, it)
+                                }
+                            )
+                        }
+                    }
+                }
+                
+                if (i < AcaoAtalho.entries.size - 1) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
+                }
+            }
+        }
+    }
+    
+    Text(
+        text = stringResource(R.string.atalhos_aviso),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 8.dp)
+    )
+    
+    OutlinedButton(
+        onClick = { audio.playClick(); prefs.restaurarAtalhos() },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(stringResource(R.string.acao_restaurar_padrao))
     }
 }
 
@@ -159,26 +300,39 @@ private fun MapeamentoFisico(prefs: Preferencias) {
  */
 @Composable
 private fun DialogoDeCaptura(
-    botao: BotaoVirtual,
+    titulo: String,
     onCapturar: (Int) -> Unit,
-    onCancelar: () -> Unit
+    onCancelar: () -> Unit,
+    onLimpar: (() -> Unit)? = null
 ) {
+    val audio = LocalAudio.current
     AlertDialog(
         onDismissRequest = onCancelar,
         shape = RoundedCornerShape(28.dp),
-        title = { Text(stringResource(botao.rotulo), fontWeight = FontWeight.Bold) },
+        title = { Text(titulo, fontWeight = FontWeight.Bold) },
         text = {
             // A escuta fica DENTRO do slot de propósito. Aqui `LocalView` e a
             // view do dialogo; do lado de fora seria a da Activity -- e
             // enquanto o dialogo esta aberto a Activity nao tem o foco, entao
             // nenhuma tecla chegaria ali.
-            EscutaDeTeclas(botao, onCapturar)
-            Text(
-                stringResource(
-                    R.string.controles_pressione,
-                    stringResource(botao.rotulo)
+            EscutaDeTeclas(titulo, onCapturar)
+            Column {
+                Text(
+                    stringResource(
+                        R.string.controles_pressione,
+                        titulo
+                    )
                 )
-            )
+                if (onLimpar != null) {
+                    Spacer(Modifier.height(16.dp))
+                    TextButton(onClick = {
+                        audio.playClick()
+                        onLimpar()
+                    }) {
+                        Text(stringResource(R.string.atalhos_limpar))
+                    }
+                }
+            }
         },
         confirmButton = {
             TextButton(onClick = onCancelar) { Text(stringResource(R.string.acao_cancelar)) }
@@ -187,9 +341,9 @@ private fun DialogoDeCaptura(
 }
 
 @Composable
-private fun EscutaDeTeclas(botao: BotaoVirtual, onCapturar: (Int) -> Unit) {
+private fun EscutaDeTeclas(chave: Any, onCapturar: (Int) -> Unit) {
     val vista = LocalView.current
-    DisposableEffect(botao) {
+    DisposableEffect(chave) {
         val raiz = vista.rootView
         val focavelAntes = raiz.isFocusableInTouchMode
         raiz.isFocusableInTouchMode = true
