@@ -30,6 +30,9 @@ class NucleoLibretro {
     private external fun nativeSalvarSram(caminho: String)
     private external fun nativeDefinirCaminhoSram(caminho: String)
     private external fun nativePedirSalvarSram()
+    private external fun nativeTamanhoEstado(): Int
+    private external fun nativeSalvarEstado(): ByteArray?
+    private external fun nativeCarregarEstado(dados: ByteArray): Boolean
 
     fun definirPastas(sistema: String, saves: String) = nativeDefinirPastas(sistema, saves)
     
@@ -61,6 +64,15 @@ class NucleoLibretro {
     fun definirCaminhoSram(caminho: String) = nativeDefinirCaminhoSram(caminho)
     
     fun pedirSalvarSram() = nativePedirSalvarSram()
+
+    /** Retorna o tamanho do save-state em bytes (0 se indisponivel). */
+    fun tamanhoEstado(): Int = nativeTamanhoEstado()
+
+    /** Salva o estado atual e retorna os bytes. Null se falhar ou laço rodando. */
+    fun salvarEstado(): ByteArray? = nativeSalvarEstado()
+
+    /** Carrega um estado a partir de dados. Retorna true se ok. */
+    fun carregarEstado(dados: ByteArray): Boolean = nativeCarregarEstado(dados)
 
     /** Bits do RETRO_DEVICE_ID_JOYPAD, na ordem da API libretro. */
     object Botao {

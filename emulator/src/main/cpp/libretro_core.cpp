@@ -131,7 +131,12 @@ bool LibretroCore::carregarJogo(const void* dados, size_t tamanho, const char* c
     info.data = dados;
     info.size = tamanho;
     info.meta = "";
-    return load_game_(&info);
+    bool ok = load_game_(&info);
+    if (ok && serialize_size_) {
+        size_t sz = serialize_size_();
+        LOGI("serialize_size: %zu", sz);
+    }
+    return ok;
 }
 
 std::string LibretroCore::obterInfo() {
@@ -219,6 +224,26 @@ void LibretroCore::salvarSram(const std::string &caminho) {
 
 void LibretroCore::reiniciar() {
     if (reset_) reset_();
+}
+
+size_t LibretroCore::tamanhoEstado() const {
+    if (!serialize_size_) return 0;
+    size_t sz = serialize_size_();
+    return sz;
+}
+
+bool LibretroCore::salvarEstado(void *buf, size_t tam) const {
+    if (!serialize_ || !serialize_size_) return false;
+    size_t sz = serialize_size_();
+    if (sz == 0 || sz > tam || buf == nullptr) return false;
+    return serialize_(buf, tam) ? true : false;
+}
+
+bool LibretroCore::carregarEstado(const void *buf, size_t tam) const {
+    if (!unserialize_ || !serialize_size_) return false;
+    size_t sz = serialize_size_();
+    if (sz == 0 || sz > tam || buf == nullptr) return false;
+    return unserialize_(buf, tam) ? true : false;
 }
 
 void LibretroCore::descarregar() {

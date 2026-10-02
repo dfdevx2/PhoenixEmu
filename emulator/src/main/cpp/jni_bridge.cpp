@@ -9,11 +9,13 @@
  * input, o ring buffer de audio) ou por postagem no looper da UI.
  */
 #include <jni.h>
+#include <android/log.h>
 
 #include <atomic>
 #include <string>
 #include <thread>
 #include <chrono>
+#include <vector>
 #include <android/native_window_jni.h>
 
 #include "libretro_core.h"
@@ -229,6 +231,52 @@ JNIEXPORT void JNICALL
 Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeReiniciar(
     JNIEnv * /*env*/, jobject /*thiz*/) {
     g_pedido_reset.store(true, std::memory_order_relaxed);
+}
+
+JNIEXPORT jint JNICALL
+Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeTamanhoEstado(
+    JNIEnv * /*env*/, jobject /*thiz*/) {
+    if (g_rodando.load(std::memory_order_acquire)) {
+        __android_log_print(ANDROID_LOG_INFO, "PhoenixLibretro", "estado: laço rodando");
+        return 0;
+    }
+    size_t sz = g_nucleo.tamanhoEstado();
+    return static_cast<jint>(sz);
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeSalvarEstado(
+    JNIEnv *env, jobject /*thiz*/) {
+    if (g_rodando.load(std::memory_order_acquire)) {
+        __android_log_print(ANDROID_LOG_INFO, "PhoenixLibretro", "estado: laço rodando");
+        return nullptr;
+    }
+    size_t sz = g_nucleo.tamanhoEstado();
+    if (sz == 0) return nullptr;
+    jbyteArray arr = env->NewByteArray(static_cast<jsize>(sz));
+    if (!arr) return nullptr;
+    std::vector<jbyte> buf(sz);
+    if (!g_nucleo.salvarEstado(buf.data(), sz)) {
+        env->DeleteLocalRef(arr);
+        return nullptr;
+    }
+    env->SetByteArrayRegion(arr, 0, static_cast<jsize>(sz), buf.data());
+    return arr;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeCarregarEstado(
+    JNIEnv *env, jobject /*thiz*/, jbyteArray dados) {
+    if (g_rodando.load(std::memory_order_acquire)) {
+        __android_log_print(ANDROID_LOG_INFO, "PhoenixLibretro", "estado: laço rodando");
+        return JNI_FALSE;
+    }
+    if (!dados) return JNI_FALSE;
+    jsize tam = env->GetArrayLength(dados);
+    if (tam == 0) return JNI_FALSE;
+    std::vector<jbyte> buf(tam);
+    env->GetByteArrayRegion(dados, 0, tam, buf.data());
+    return g_nucleo.carregarEstado(buf.data(), static_cast<size_t>(tam)) ? JNI_TRUE : JNI_FALSE;
 }
 
 } // extern "C"

@@ -41,6 +41,13 @@ public:
 
     void reiniciar();
 
+    /** Tamanho do estado de save-state (0 se indisponivel). */
+    size_t tamanhoEstado() const;
+    /** Salva estado em buf (tam deve ser >= tamanhoEstado()). Retorna true se ok. */
+    bool salvarEstado(void *buf, size_t tam) const;
+    /** Carrega estado a partir de buf (tam bytes). Retorna true se ok. */
+    bool carregarEstado(const void *buf, size_t tam) const;
+
 private:
     void *handle_ = nullptr;
 
