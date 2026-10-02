@@ -1,17 +1,35 @@
 package com.dfdx047.phoenixemu.emulator
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.provider.OpenableColumns
+import android.util.Log
+import android.view.InputDevice
+import android.view.KeyEvent
+import android.view.MotionEvent
+import android.view.PixelCopy
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
@@ -19,30 +37,45 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import android.view.InputDevice
-import android.view.KeyEvent
-import android.view.MotionEvent
-import android.view.WindowManager
-import androidx.compose.runtime.remember
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import android.net.Uri
-import android.provider.OpenableColumns
-import android.util.Log
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.zip.ZipInputStream
+
+private enum class MenuState {
+    MAIN,
+    SAVE_SLOTS,
+    LOAD_SLOTS
+}
+
+private data class SlotData(
+    val slotNumber: Int,
+    val exists: Boolean,
+    val dateText: String,
+    val bitmap: Bitmap?
+)
 
 /**
  * Host da emulacao.
@@ -64,21 +97,176 @@ class EmulatorActivity : ComponentActivity() {
     private val nucleo = NucleoLibretro()
     private var aspectRatio by mutableFloatStateOf(4f / 3f)
     private var activeSurfaceHolder: SurfaceHolder? = null
-    
+    private var activeSurfaceView: SurfaceView? = null
+    private var lastCapturedBitmap: Bitmap? = null
+
     private var isPaused by mutableStateOf(false)
+    private var menuState by mutableStateOf(MenuState.MAIN)
+    private var mensagemFeedback by mutableStateOf("")
+    private var slotsInfo by mutableStateOf<List<SlotData>>(emptyList())
+
     private var keyMask = 0
     private var axisMask = 0
     private val keyToBit = mutableMapOf<Int, Int>()
 
     private var srmPath: String? = null
-    
+
     private fun bindKey(keyCode: Int, bit: Int) {
         keyToBit[keyCode] = (keyToBit[keyCode] ?: 0) or bit
+    }
+
+    private fun carregarSlotsInfo() {
+        val savesDir = srmPath?.let { File(it).parentFile }
+        val list = mutableListOf<SlotData>()
+        val dateFormat = SimpleDateFormat("dd/MM HH:mm", Locale.getDefault())
+        val nomeSave = intent.getStringExtra(EXTRA_NOME_SAVE) ?: "save"
+
+        for (slot in 1..4) {
+            if (savesDir != null) {
+                val stateFile = File(savesDir, "$nomeSave.state$slot")
+                val pngFile = File(savesDir, "$nomeSave.state$slot.png")
+
+                if (stateFile.exists() && stateFile.length() > 0) {
+                    val dateStr = dateFormat.format(Date(stateFile.lastModified()))
+                    val bmp = if (pngFile.exists()) {
+                        try {
+                            BitmapFactory.decodeFile(pngFile.absolutePath)
+                        } catch (e: Exception) {
+                            null
+                        }
+                    } else null
+                    list.add(SlotData(slot, true, dateStr, bmp))
+                } else {
+                    list.add(SlotData(slot, false, "vazio", null))
+                }
+            } else {
+                list.add(SlotData(slot, false, "vazio", null))
+            }
+        }
+        slotsInfo = list
+    }
+
+    private fun capturarMiniatura(onDone: () -> Unit) {
+        val sv = activeSurfaceView
+        if (sv != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && sv.holder.surface.isValid) {
+            val width = 160
+            val height = if (sv.width > 0 && sv.height > 0) (160 * sv.height / sv.width).coerceAtLeast(1) else 120
+            val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            try {
+                PixelCopy.request(sv, bmp, { result ->
+                    lastCapturedBitmap = if (result == PixelCopy.SUCCESS) bmp else null
+                    onDone()
+                }, Handler(Looper.getMainLooper()))
+            } catch (e: Exception) {
+                lastCapturedBitmap = null
+                onDone()
+            }
+        } else {
+            lastCapturedBitmap = null
+            onDone()
+        }
+    }
+
+    private fun pausarJogo() {
+        capturarMiniatura {
+            menuState = MenuState.MAIN
+            mensagemFeedback = ""
+            isPaused = true
+        }
+    }
+
+    private fun alternarMenu() {
+        if (isPaused) {
+            if (menuState != MenuState.MAIN) {
+                menuState = MenuState.MAIN
+            } else {
+                isPaused = false
+            }
+        } else {
+            pausarJogo()
+        }
+    }
+
+    private fun executarSalvarEstado(slot: Int) {
+        val bytes = nucleo.salvarEstado()
+        if (bytes == null || bytes.isEmpty()) {
+            mensagemFeedback = "Falha ao salvar"
+            return
+        }
+        val nomeSave = intent.getStringExtra(EXTRA_NOME_SAVE) ?: "save"
+        val savesDir = srmPath?.let { File(it).parentFile } ?: return
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val stateFile = File(savesDir, "$nomeSave.state$slot")
+                val tmpStateFile = File(savesDir, "$nomeSave.state$slot.tmp")
+                tmpStateFile.writeBytes(bytes)
+                if (!tmpStateFile.renameTo(stateFile)) {
+                    tmpStateFile.copyTo(stateFile, overwrite = true)
+                    tmpStateFile.delete()
+                }
+
+                val currentBmp = lastCapturedBitmap
+                if (currentBmp != null) {
+                    val pngFile = File(savesDir, "$nomeSave.state$slot.png")
+                    val tmpPngFile = File(savesDir, "$nomeSave.state$slot.png.tmp")
+                    FileOutputStream(tmpPngFile).use { out ->
+                        currentBmp.compress(Bitmap.CompressFormat.PNG, 100, out)
+                    }
+                    if (!tmpPngFile.renameTo(pngFile)) {
+                        tmpPngFile.copyTo(pngFile, overwrite = true)
+                        tmpPngFile.delete()
+                    }
+                }
+
+                withContext(Dispatchers.Main) {
+                    mensagemFeedback = "Estado salvo no slot $slot"
+                    carregarSlotsInfo()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    mensagemFeedback = "Falha ao salvar"
+                }
+            }
+        }
+    }
+
+    private fun executarCarregarEstado(slot: Int) {
+        val nomeSave = intent.getStringExtra(EXTRA_NOME_SAVE) ?: "save"
+        val savesDir = srmPath?.let { File(it).parentFile } ?: return
+        val stateFile = File(savesDir, "$nomeSave.state$slot")
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val bytes = if (stateFile.exists()) {
+                try { stateFile.readBytes() } catch (e: Exception) { null }
+            } else null
+
+            withContext(Dispatchers.Main) {
+                if (bytes == null || bytes.isEmpty()) {
+                    mensagemFeedback = "Falha ao carregar estado"
+                } else {
+                    val ok = nucleo.carregarEstado(bytes)
+                    if (ok) {
+                        mensagemFeedback = ""
+                        isPaused = false
+                    } else {
+                        mensagemFeedback = "Falha ao carregar estado"
+                    }
+                }
+            }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                Log.i("PhoenixInput", "voltar do sistema")
+                alternarMenu()
+            }
+        })
+
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         hideSystemBars()
         
@@ -200,6 +388,7 @@ class EmulatorActivity : ComponentActivity() {
                     AndroidView(
                         factory = { context ->
                             SurfaceView(context).apply {
+                                activeSurfaceView = this
                                 holder.addCallback(object : SurfaceHolder.Callback {
                                     override fun surfaceCreated(holder: SurfaceHolder) {
                                         activeSurfaceHolder = holder
@@ -210,6 +399,7 @@ class EmulatorActivity : ComponentActivity() {
 
                                     override fun surfaceDestroyed(holder: SurfaceHolder) {
                                         activeSurfaceHolder = null
+                                        activeSurfaceView = null
                                         nucleo.parar()
                                     }
                                 })
@@ -227,24 +417,115 @@ class EmulatorActivity : ComponentActivity() {
                         ) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.padding(16.dp)
                             ) {
-                                BasicText(
-                                    text = infoMessage,
-                                    style = TextStyle(color = Color.White, fontSize = 12.sp)
-                                )
-                                Button(
-                                    onClick = { isPaused = false },
-                                    modifier = Modifier.focusRequester(focusRequester)
-                                ) { Text("Continuar") }
-                                Button(onClick = { 
-                                    isPaused = false
-                                    nucleo.reiniciar()
-                                }) { Text("Reiniciar") }
-                                Button(onClick = { finish() }) { Text("Sair") }
+                                if (infoMessage.isNotEmpty()) {
+                                    BasicText(
+                                        text = infoMessage,
+                                        style = TextStyle(color = Color.White, fontSize = 12.sp)
+                                    )
+                                }
+
+                                if (mensagemFeedback.isNotEmpty()) {
+                                    BasicText(
+                                        text = mensagemFeedback,
+                                        style = TextStyle(color = Color(0xFFFFD700), fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                                    )
+                                }
+
+                                when (menuState) {
+                                    MenuState.MAIN -> {
+                                        Button(
+                                            onClick = { isPaused = false },
+                                            modifier = Modifier.focusRequester(focusRequester)
+                                        ) { Text("Continuar") }
+
+                                        Button(onClick = {
+                                            carregarSlotsInfo()
+                                            menuState = MenuState.SAVE_SLOTS
+                                        }) { Text("Salvar estado") }
+
+                                        Button(onClick = {
+                                            carregarSlotsInfo()
+                                            menuState = MenuState.LOAD_SLOTS
+                                        }) { Text("Carregar estado") }
+
+                                        Button(onClick = { 
+                                            isPaused = false
+                                            nucleo.reiniciar()
+                                        }) { Text("Reiniciar") }
+
+                                        Button(onClick = { finish() }) { Text("Sair") }
+                                    }
+
+                                    MenuState.SAVE_SLOTS, MenuState.LOAD_SLOTS -> {
+                                        val isSaving = (menuState == MenuState.SAVE_SLOTS)
+                                        Text(
+                                            text = if (isSaving) "Salvar estado" else "Carregar estado",
+                                            style = TextStyle(color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                                        )
+
+                                        slotsInfo.forEachIndexed { index, slot ->
+                                            val isFirst = (index == 0)
+                                            Button(
+                                                onClick = {
+                                                    if (isSaving) {
+                                                        executarSalvarEstado(slot.slotNumber)
+                                                    } else {
+                                                        executarCarregarEstado(slot.slotNumber)
+                                                    }
+                                                },
+                                                enabled = if (isSaving) true else slot.exists,
+                                                modifier = if (isFirst) Modifier.focusRequester(focusRequester) else Modifier
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                                    modifier = Modifier.fillMaxWidth(0.6f)
+                                                ) {
+                                                    if (slot.bitmap != null) {
+                                                        Image(
+                                                            bitmap = slot.bitmap.asImageBitmap(),
+                                                            contentDescription = null,
+                                                            modifier = Modifier.size(width = 80.dp, height = 60.dp)
+                                                        )
+                                                    } else {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(width = 80.dp, height = 60.dp)
+                                                                .background(Color.DarkGray),
+                                                            contentAlignment = Alignment.Center
+                                                        ) {
+                                                            Text(
+                                                                text = if (slot.exists) "Sem img" else "Vazio",
+                                                                style = TextStyle(color = Color.LightGray, fontSize = 12.sp)
+                                                            )
+                                                        }
+                                                    }
+                                                    Column {
+                                                        Text(
+                                                            text = "Slot ${slot.slotNumber}",
+                                                            style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                                        )
+                                                        Text(
+                                                            text = slot.dateText,
+                                                            style = TextStyle(fontSize = 12.sp, color = Color.LightGray)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        Button(onClick = { menuState = MenuState.MAIN }) {
+                                            Text("Voltar")
+                                        }
+                                    }
+                                }
                             }
                         }
-                        LaunchedEffect(Unit) {
+
+                        LaunchedEffect(menuState) {
                             try { focusRequester.requestFocus() } catch (e: Exception) {}
                         }
                     }
@@ -260,6 +541,7 @@ class EmulatorActivity : ComponentActivity() {
                     if (isPaused) {
                         nucleo.parar()
                         srmPath?.let { nucleo.salvarSram(it) }
+                        carregarSlotsInfo()
                     } else {
                         activeSurfaceHolder?.surface?.let {
                             if (it.isValid) nucleo.iniciar(it)
@@ -319,9 +601,10 @@ class EmulatorActivity : ComponentActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        Log.i("PhoenixInput", "tecla=" + KeyEvent.keyCodeToString(event.keyCode) + " acao=" + event.action)
         if (event.keyCode == KeyEvent.KEYCODE_BACK || event.keyCode == KeyEvent.KEYCODE_BUTTON_MODE) {
             if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
-                isPaused = !isPaused
+                alternarMenu()
             }
             return true
         }
@@ -406,3 +689,4 @@ class EmulatorActivity : ComponentActivity() {
         )
     }
 }
+
