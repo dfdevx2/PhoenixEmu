@@ -36,6 +36,10 @@ size_t g_rewind_head = 0;
 size_t g_rewind_slot_size = 0;
 std::atomic<size_t> g_rewind_count{0};
 
+std::atomic<int> g_pedido_estado_tipo{0};
+std::string g_pedido_estado_caminho;
+std::atomic<int> g_pedido_estado_resultado{0};
+
 std::atomic<float> g_stats_fps{0.0f};
 std::atomic<float> g_stats_ms_medio{0.0f};
 std::atomic<float> g_stats_ms_max{0.0f};
@@ -106,6 +110,67 @@ void lacoEmulador() {
     };
 
     while (g_rodando.load(std::memory_order_acquire)) {
+        int tipo_pedido = g_pedido_estado_tipo.load(std::memory_order_acquire);
+        if (tipo_pedido != 0) {
+            std::string caminho = g_pedido_estado_caminho;
+            if (tipo_pedido == 1) {
+                size_t sz = g_nucleo.tamanhoEstado();
+                if (sz > 0) {
+                    std::vector<uint8_t> buf(sz);
+                    if (g_nucleo.salvarEstado(buf.data(), sz)) {
+                        std::string tmp = caminho + ".tmp";
+                        FILE* f = fopen(tmp.c_str(), "wb");
+                        if (f) {
+                            fwrite(buf.data(), 1, sz, f);
+                            fclose(f);
+                            rename(tmp.c_str(), caminho.c_str());
+                            g_pedido_estado_resultado.store(1, std::memory_order_relaxed);
+                            __android_log_print(ANDROID_LOG_INFO, "PhoenixLibretro", "estado: salvar ok (%zu bytes)", sz);
+                        } else {
+                            g_pedido_estado_resultado.store(-1, std::memory_order_relaxed);
+                            __android_log_print(ANDROID_LOG_INFO, "PhoenixLibretro", "estado: falhou");
+                        }
+                    } else {
+                        g_pedido_estado_resultado.store(-1, std::memory_order_relaxed);
+                        __android_log_print(ANDROID_LOG_INFO, "PhoenixLibretro", "estado: falhou");
+                    }
+                } else {
+                    g_pedido_estado_resultado.store(-1, std::memory_order_relaxed);
+                    __android_log_print(ANDROID_LOG_INFO, "PhoenixLibretro", "estado: falhou");
+                }
+            } else if (tipo_pedido == 2) {
+                FILE* f = fopen(caminho.c_str(), "rb");
+                if (f) {
+                    fseek(f, 0, SEEK_END);
+                    size_t sz = ftell(f);
+                    fseek(f, 0, SEEK_SET);
+                    size_t min_sz = g_nucleo.tamanhoEstado();
+                    if (sz >= min_sz) {
+                        std::vector<uint8_t> buf(sz);
+                        fread(buf.data(), 1, sz, f);
+                        fclose(f);
+                        if (g_nucleo.carregarEstado(buf.data(), sz)) {
+                            g_rewind_head = 0;
+                            g_rewind_count.store(0, std::memory_order_relaxed);
+                            g_pedido_estado_resultado.store(2, std::memory_order_relaxed);
+                            __android_log_print(ANDROID_LOG_INFO, "PhoenixLibretro", "estado: carregar ok");
+                        } else {
+                            g_pedido_estado_resultado.store(-2, std::memory_order_relaxed);
+                            __android_log_print(ANDROID_LOG_INFO, "PhoenixLibretro", "estado: falhou");
+                        }
+                    } else {
+                        fclose(f);
+                        g_pedido_estado_resultado.store(-2, std::memory_order_relaxed);
+                        __android_log_print(ANDROID_LOG_INFO, "PhoenixLibretro", "estado: falhou");
+                    }
+                } else {
+                    g_pedido_estado_resultado.store(-2, std::memory_order_relaxed);
+                    __android_log_print(ANDROID_LOG_INFO, "PhoenixLibretro", "estado: falhou");
+                }
+            }
+            g_pedido_estado_tipo.store(0, std::memory_order_release);
+        }
+
         if (g_pedido_reset.exchange(false, std::memory_order_relaxed)) {
             g_nucleo.reiniciar();
             g_rewind_head = 0;
@@ -452,6 +517,21 @@ Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeObterRewindSegundos(
     if (fps <= 0.0) fps = 60.0;
     size_t count = g_rewind_count.load(std::memory_order_relaxed);
     return static_cast<jfloat>((double)count * 2.0 / fps);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativePedirEstado(
+    JNIEnv *env, jobject /*thiz*/, jint tipo, jstring caminho) {
+    if (g_pedido_estado_tipo.load(std::memory_order_acquire) != 0) return JNI_FALSE;
+    g_pedido_estado_caminho = paraStdString(env, caminho);
+    g_pedido_estado_tipo.store(tipo, std::memory_order_release);
+    return JNI_TRUE;
+}
+
+JNIEXPORT jint JNICALL
+Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeResultadoEstado(
+    JNIEnv * /*env*/, jobject /*thiz*/) {
+    return g_pedido_estado_resultado.exchange(0, std::memory_order_relaxed);
 }
 
 } // extern "C"

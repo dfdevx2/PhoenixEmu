@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import org.json.JSONObject
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -74,6 +75,10 @@ private enum class MenuState {
     LOAD_SLOTS
 }
 
+private enum class Acao {
+    SALVAR_ESTADO, CARREGAR_ESTADO, SLOT_ANTERIOR, SLOT_PROXIMO, AVANCAR, VOLTAR, MENU, REINICIAR
+}
+
 private data class SlotData(
     val slotNumber: Int,
     val exists: Boolean,
@@ -115,21 +120,34 @@ class EmulatorActivity : ComponentActivity() {
 
     private var srmPath: String? = null
 
-    private var r2KeyPressed = false
-    private var r2AxisPressed = false
+    private val atalhos = mutableMapOf<Acao, List<Int>>()
+    private val teclasPressionadas = mutableSetOf<Int>()
+    private val teclasConsumidas = mutableSetOf<Int>()
+    private val acoesDisparadas = mutableSetOf<Acao>()
+
+    private var leftTriggerPressed = false
+    private var rightTriggerPressed = false
+    private var dpadUpPressed = false
+    private var dpadDownPressed = false
+    private var dpadLeftPressed = false
+    private var dpadRightPressed = false
+
+    private var avisoTexto by mutableStateOf("")
+    private var avisoJob: kotlinx.coroutines.Job? = null
+    private var slotAtual = 1
+    private var estadoPendingJob: kotlinx.coroutines.Job? = null
+
     private var ffJob: kotlinx.coroutines.Job? = null
     private var ffSpeed by mutableStateOf(1)
     private var statsText by mutableStateOf("")
 
-    private var l2KeyPressed = false
-    private var l2AxisPressed = false
     private var rewindJob: kotlinx.coroutines.Job? = null
     private var rewindActive = false
     private var rewindSecs by mutableStateOf(0f)
 
-    private fun updateFastForward() {
-        val active = (r2KeyPressed || r2AxisPressed) && !rewindActive
-        if (active && ffSpeed == 1) {
+    private fun setFfActive(active: Boolean) {
+        val shouldBeActive = active && !rewindActive
+        if (shouldBeActive && ffSpeed == 1) {
             ffSpeed = 2
             nucleo.definirAvancoRapido(2)
             ffJob?.cancel()
@@ -145,7 +163,7 @@ class EmulatorActivity : ComponentActivity() {
                     nucleo.definirAvancoRapido(8)
                 }
             }
-        } else if (!active && ffSpeed > 1) {
+        } else if (!shouldBeActive && ffSpeed > 1) {
             ffJob?.cancel()
             ffJob = null
             ffSpeed = 1
@@ -153,12 +171,11 @@ class EmulatorActivity : ComponentActivity() {
         }
     }
 
-    private fun updateRewind() {
-        val active = l2KeyPressed || l2AxisPressed
+    private fun setRewindActive(active: Boolean) {
         if (active && !rewindActive) {
             rewindActive = true
             nucleo.definirRewind(true)
-            updateFastForward()
+            setFfActive(false)
             
             rewindJob?.cancel()
             rewindJob = lifecycleScope.launch {
@@ -172,18 +189,188 @@ class EmulatorActivity : ComponentActivity() {
             nucleo.definirRewind(false)
             rewindJob?.cancel()
             rewindJob = null
-            
-            updateFastForward()
         }
     }
 
-    private fun resetAllSpeedModifiers() {
-        r2KeyPressed = false
-        r2AxisPressed = false
-        l2KeyPressed = false
-        l2AxisPressed = false
-        updateRewind()
-        updateFastForward()
+    private fun processarEntradaVirtual(keyCode: Int, isDown: Boolean) {
+        if (isDown) {
+            teclasPressionadas.add(keyCode)
+        } else {
+            teclasPressionadas.remove(keyCode)
+            teclasConsumidas.remove(keyCode)
+        }
+        verificarAtalhos()
+    }
+
+    private fun verificarAtalhos() {
+        if (isPaused) return
+
+        val acoesAtivas = mutableSetOf<Acao>()
+
+        for ((acao, combo) in atalhos) {
+            if (combo.isEmpty()) continue
+            if (teclasPressionadas.containsAll(combo)) {
+                acoesAtivas.add(acao)
+            }
+        }
+
+        for (acao in acoesAtivas) {
+            val combo = atalhos[acao] ?: continue
+            if (acao != Acao.AVANCAR && acao != Acao.VOLTAR) {
+                if (!acoesDisparadas.contains(acao)) {
+                    acoesDisparadas.add(acao)
+                    Log.i("PhoenixInput", "atalho=${acao.name}")
+                    executarAcao(acao)
+                    combo.forEach { teclasConsumidas.add(it) }
+                }
+            } else {
+                combo.forEach { teclasConsumidas.add(it) }
+            }
+        }
+
+        val toRemove = mutableListOf<Acao>()
+        for (acao in acoesDisparadas) {
+            val combo = atalhos[acao] ?: continue
+            if (!teclasPressionadas.containsAll(combo)) {
+                toRemove.add(acao)
+            }
+        }
+        acoesDisparadas.removeAll(toRemove)
+
+        val voltarAtivo = acoesAtivas.contains(Acao.VOLTAR)
+        val avancarAtivo = acoesAtivas.contains(Acao.AVANCAR)
+        setRewindActive(voltarAtivo)
+        setFfActive(avancarAtivo)
+
+        var newKeyMask = 0
+        for (key in teclasPressionadas) {
+            if (!teclasConsumidas.contains(key)) {
+                keyToBit[key]?.let { newKeyMask = newKeyMask or it }
+            }
+        }
+        if (newKeyMask != keyMask) {
+            keyMask = newKeyMask
+            nucleo.definirBotoes(0, keyMask or axisMask)
+        }
+    }
+
+    private fun mostrarAviso(texto: String) {
+        avisoTexto = texto
+        avisoJob?.cancel()
+        avisoJob = lifecycleScope.launch {
+            delay(1500)
+            avisoTexto = ""
+        }
+    }
+
+    private fun executarAcao(acao: Acao) {
+        when (acao) {
+            Acao.MENU -> alternarMenu()
+            Acao.REINICIAR -> {
+                nucleo.reiniciar()
+                mostrarAviso("Reiniciado")
+            }
+            Acao.SLOT_ANTERIOR -> {
+                slotAtual = if (slotAtual > 1) slotAtual - 1 else 4
+                mostrarAviso("Slot $slotAtual")
+            }
+            Acao.SLOT_PROXIMO -> {
+                slotAtual = if (slotAtual < 4) slotAtual + 1 else 1
+                mostrarAviso("Slot $slotAtual")
+            }
+            Acao.SALVAR_ESTADO -> {
+                val nomeSave = intent.getStringExtra(EXTRA_NOME_SAVE) ?: "save"
+                val savesDir = srmPath?.let { File(it).parentFile }
+                if (savesDir != null) {
+                    capturarMiniatura {
+                        val fileState = File(savesDir, "$nomeSave.state$slotAtual")
+                        if (nucleo.pedirEstado(1, fileState.absolutePath)) {
+                            estadoPendingJob?.cancel()
+                            estadoPendingJob = lifecycleScope.launch {
+                                var result = 0
+                                for (i in 0 until 40) { // 40 * 50ms = 2s
+                                    delay(50)
+                                    result = nucleo.resultadoEstado()
+                                    if (result != 0) break
+                                }
+                                if (result == 1) {
+                                    mostrarAviso("Estado salvo no slot $slotAtual")
+                                    val currentBmp = lastCapturedBitmap
+                                    if (currentBmp != null) {
+                                        withContext(Dispatchers.IO) {
+                                            try {
+                                                val pngFile = File(savesDir, "$nomeSave.state$slotAtual.png")
+                                                val tmpPngFile = File(savesDir, "$nomeSave.state$slotAtual.png.tmp")
+                                                FileOutputStream(tmpPngFile).use { out ->
+                                                    currentBmp.compress(Bitmap.CompressFormat.PNG, 100, out)
+                                                }
+                                                if (!tmpPngFile.renameTo(pngFile)) {
+                                                    tmpPngFile.copyTo(pngFile, overwrite = true)
+                                                    tmpPngFile.delete()
+                                                }
+                                            } catch (e: Exception) {}
+                                        }
+                                    }
+                                } else {
+                                    mostrarAviso("Falha ao salvar")
+                                }
+                            }
+                        } else {
+                            mostrarAviso("Falha ao salvar")
+                        }
+                    }
+                }
+            }
+            Acao.CARREGAR_ESTADO -> {
+                val nomeSave = intent.getStringExtra(EXTRA_NOME_SAVE) ?: "save"
+                val savesDir = srmPath?.let { File(it).parentFile }
+                if (savesDir != null) {
+                    val fileState = File(savesDir, "$nomeSave.state$slotAtual")
+                    if (!fileState.exists() || fileState.length() == 0L) {
+                        mostrarAviso("Slot $slotAtual vazio")
+                    } else {
+                        if (nucleo.pedirEstado(2, fileState.absolutePath)) {
+                            estadoPendingJob?.cancel()
+                            estadoPendingJob = lifecycleScope.launch {
+                                var result = 0
+                                for (i in 0 until 40) {
+                                    delay(50)
+                                    result = nucleo.resultadoEstado()
+                                    if (result != 0) break
+                                }
+                                if (result == 2) {
+                                    mostrarAviso("Estado carregado do slot $slotAtual")
+                                } else {
+                                    mostrarAviso("Falha ao carregar")
+                                }
+                            }
+                        } else {
+                            mostrarAviso("Falha ao carregar")
+                        }
+                    }
+                }
+            }
+            else -> {}
+        }
+    }
+
+    private fun resetMotorAtalhos() {
+        teclasPressionadas.clear()
+        teclasConsumidas.clear()
+        acoesDisparadas.clear()
+        leftTriggerPressed = false
+        rightTriggerPressed = false
+        dpadUpPressed = false
+        dpadDownPressed = false
+        dpadLeftPressed = false
+        dpadRightPressed = false
+        setRewindActive(false)
+        setFfActive(false)
+        estadoPendingJob?.cancel()
+        estadoPendingJob = null
+        keyMask = 0
+        axisMask = 0
+        nucleo.definirBotoes(0, 0)
     }
 
     private fun bindKey(keyCode: Int, bit: Int) {
@@ -361,6 +548,39 @@ class EmulatorActivity : ComponentActivity() {
             bindKey(mapKeys[11], NucleoLibretro.Botao.START)
         }
 
+        atalhos[Acao.AVANCAR] = listOf(KeyEvent.KEYCODE_BUTTON_R2)
+        atalhos[Acao.VOLTAR] = listOf(KeyEvent.KEYCODE_BUTTON_L2)
+        if ((applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+            atalhos[Acao.SALVAR_ESTADO] = listOf(KeyEvent.KEYCODE_BUTTON_SELECT, KeyEvent.KEYCODE_BUTTON_R1)
+            atalhos[Acao.CARREGAR_ESTADO] = listOf(KeyEvent.KEYCODE_BUTTON_SELECT, KeyEvent.KEYCODE_BUTTON_L1)
+            atalhos[Acao.SLOT_ANTERIOR] = listOf(KeyEvent.KEYCODE_BUTTON_SELECT, KeyEvent.KEYCODE_DPAD_LEFT)
+            atalhos[Acao.SLOT_PROXIMO] = listOf(KeyEvent.KEYCODE_BUTTON_SELECT, KeyEvent.KEYCODE_DPAD_RIGHT)
+            atalhos[Acao.MENU] = listOf(KeyEvent.KEYCODE_BUTTON_SELECT, KeyEvent.KEYCODE_BUTTON_START)
+            atalhos[Acao.REINICIAR] = emptyList()
+        } else {
+            atalhos[Acao.SALVAR_ESTADO] = emptyList()
+            atalhos[Acao.CARREGAR_ESTADO] = emptyList()
+            atalhos[Acao.SLOT_ANTERIOR] = emptyList()
+            atalhos[Acao.SLOT_PROXIMO] = emptyList()
+            atalhos[Acao.MENU] = emptyList()
+            atalhos[Acao.REINICIAR] = emptyList()
+        }
+
+        val atalhosJson = intent.getStringExtra(EXTRA_ATALHOS)
+        if (atalhosJson != null) {
+            try {
+                val json = JSONObject(atalhosJson)
+                Acao.entries.forEach { acao ->
+                    if (json.has(acao.name)) {
+                        val arr = json.getJSONArray(acao.name)
+                        val list = mutableListOf<Int>()
+                        for (i in 0 until arr.length()) list.add(arr.getInt(i))
+                        atalhos[acao] = list
+                    }
+                }
+            } catch (e: Exception) {}
+        }
+
         val nucleoName = intent.getStringExtra(EXTRA_NUCLEO) ?: ""
         val libraryPath = "${applicationInfo.nativeLibraryDir}/$nucleoName"
         val file = File(libraryPath)
@@ -514,6 +734,17 @@ class EmulatorActivity : ComponentActivity() {
                         )
                     }
 
+                    if (avisoTexto.isNotEmpty()) {
+                        BasicText(
+                            text = avisoTexto,
+                            style = TextStyle(color = Color.White.copy(alpha = 0.85f), fontSize = 14.sp),
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .windowInsetsPadding(WindowInsets.systemBars)
+                                .padding(top = 48.dp)
+                        )
+                    }
+
                     if (isPaused) {
                         Box(
                             modifier = Modifier
@@ -659,10 +890,7 @@ class EmulatorActivity : ComponentActivity() {
                 }
 
                 LaunchedEffect(isPaused) {
-                    keyMask = 0
-                    axisMask = 0
-                    nucleo.definirBotoes(0, 0)
-                    resetAllSpeedModifiers()
+                    resetMotorAtalhos()
 
                     if (isPaused) {
                         nucleo.parar()
@@ -688,7 +916,7 @@ class EmulatorActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         nucleo.parar()
-        resetAllSpeedModifiers()
+        resetMotorAtalhos()
         srmPath?.let { nucleo.salvarSram(it) }
     }
 
@@ -720,7 +948,7 @@ class EmulatorActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         nucleo.parar()
-        resetAllSpeedModifiers()
+        resetMotorAtalhos()
         srmPath?.let { nucleo.salvarSram(it) }
         nucleo.descarregar()
         if (isFinishing) {
@@ -745,41 +973,17 @@ class EmulatorActivity : ComponentActivity() {
             return super.dispatchKeyEvent(event)
         }
 
-        if (event.keyCode == KeyEvent.KEYCODE_BUTTON_L2) {
-            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
-                l2KeyPressed = true
-                updateRewind()
-                return true
-            } else if (event.action == KeyEvent.ACTION_UP) {
-                l2KeyPressed = false
-                updateRewind()
-                return true
-            }
-        }
+        val ehMapeado = keyToBit.containsKey(event.keyCode)
+        val ehAtalho = atalhos.values.any { it.contains(event.keyCode) }
 
-        if (event.keyCode == KeyEvent.KEYCODE_BUTTON_R2) {
-            if (rewindActive) return true
+        if (ehMapeado || ehAtalho) {
             if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
-                r2KeyPressed = true
-                updateFastForward()
+                processarEntradaVirtual(event.keyCode, true)
                 return true
             } else if (event.action == KeyEvent.ACTION_UP) {
-                r2KeyPressed = false
-                updateFastForward()
+                processarEntradaVirtual(event.keyCode, false)
                 return true
             }
-        }
-
-        val bit = keyToBit[event.keyCode]
-        if (bit != null) {
-            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
-                keyMask = keyMask or bit
-                nucleo.definirBotoes(0, keyMask or axisMask)
-            } else if (event.action == KeyEvent.ACTION_UP) {
-                keyMask = keyMask and bit.inv()
-                nucleo.definirBotoes(0, keyMask or axisMask)
-            }
-            return true
         }
         return super.dispatchKeyEvent(event)
     }
@@ -790,30 +994,52 @@ class EmulatorActivity : ComponentActivity() {
         if (event.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK && event.action == MotionEvent.ACTION_MOVE) {
             val ltrigger = event.getAxisValue(MotionEvent.AXIS_LTRIGGER)
             val brake = event.getAxisValue(MotionEvent.AXIS_BRAKE)
-            val newL2Axis = ltrigger > 0.5f || brake > 0.5f
-            if (newL2Axis != l2AxisPressed) {
-                l2AxisPressed = newL2Axis
-                updateRewind()
+            val newL2 = ltrigger > 0.5f || brake > 0.5f
+            if (newL2 != leftTriggerPressed) {
+                leftTriggerPressed = newL2
+                processarEntradaVirtual(KeyEvent.KEYCODE_BUTTON_L2, newL2)
             }
 
             val rtrigger = event.getAxisValue(MotionEvent.AXIS_RTRIGGER)
             val gas = event.getAxisValue(MotionEvent.AXIS_GAS)
-            val newR2Axis = rtrigger > 0.5f || gas > 0.5f
-            if (newR2Axis != r2AxisPressed) {
-                r2AxisPressed = newR2Axis
-                updateFastForward()
+            val newR2 = rtrigger > 0.5f || gas > 0.5f
+            if (newR2 != rightTriggerPressed) {
+                rightTriggerPressed = newR2
+                processarEntradaVirtual(KeyEvent.KEYCODE_BUTTON_R2, newR2)
+            }
+
+            val hatx = event.getAxisValue(MotionEvent.AXIS_HAT_X)
+            val haty = event.getAxisValue(MotionEvent.AXIS_HAT_Y)
+
+            val newDpadLeft = hatx < -0.5f
+            if (newDpadLeft != dpadLeftPressed) {
+                dpadLeftPressed = newDpadLeft
+                processarEntradaVirtual(KeyEvent.KEYCODE_DPAD_LEFT, newDpadLeft)
+            }
+            val newDpadRight = hatx > 0.5f
+            if (newDpadRight != dpadRightPressed) {
+                dpadRightPressed = newDpadRight
+                processarEntradaVirtual(KeyEvent.KEYCODE_DPAD_RIGHT, newDpadRight)
+            }
+            val newDpadUp = haty < -0.5f
+            if (newDpadUp != dpadUpPressed) {
+                dpadUpPressed = newDpadUp
+                processarEntradaVirtual(KeyEvent.KEYCODE_DPAD_UP, newDpadUp)
+            }
+            val newDpadDown = haty > 0.5f
+            if (newDpadDown != dpadDownPressed) {
+                dpadDownPressed = newDpadDown
+                processarEntradaVirtual(KeyEvent.KEYCODE_DPAD_DOWN, newDpadDown)
             }
 
             val xaxis = event.getAxisValue(MotionEvent.AXIS_X)
             val yaxis = event.getAxisValue(MotionEvent.AXIS_Y)
-            val hatx = event.getAxisValue(MotionEvent.AXIS_HAT_X)
-            val haty = event.getAxisValue(MotionEvent.AXIS_HAT_Y)
 
             var newAxisMask = 0
-            if (xaxis < -0.5f || hatx < -0.5f) newAxisMask = newAxisMask or NucleoLibretro.Botao.ESQUERDA
-            if (xaxis > 0.5f || hatx > 0.5f) newAxisMask = newAxisMask or NucleoLibretro.Botao.DIREITA
-            if (yaxis < -0.5f || haty < -0.5f) newAxisMask = newAxisMask or NucleoLibretro.Botao.CIMA
-            if (yaxis > 0.5f || haty > 0.5f) newAxisMask = newAxisMask or NucleoLibretro.Botao.BAIXO
+            if (xaxis < -0.5f) newAxisMask = newAxisMask or NucleoLibretro.Botao.ESQUERDA
+            if (xaxis > 0.5f) newAxisMask = newAxisMask or NucleoLibretro.Botao.DIREITA
+            if (yaxis < -0.5f) newAxisMask = newAxisMask or NucleoLibretro.Botao.CIMA
+            if (yaxis > 0.5f) newAxisMask = newAxisMask or NucleoLibretro.Botao.BAIXO
 
             if (newAxisMask != axisMask) {
                 axisMask = newAxisMask
@@ -851,6 +1077,8 @@ class EmulatorActivity : ComponentActivity() {
          * x e y sao fracoes (0..1) da tela inteira. Leia com org.json.
          */
         const val EXTRA_OVERLAY = "phoenix.overlay"
+
+        const val EXTRA_ATALHOS = "phoenix.atalhos"
 
         val ORDEM_DO_MAPEAMENTO = listOf(
             "CIMA", "BAIXO", "ESQUERDA", "DIREITA",
