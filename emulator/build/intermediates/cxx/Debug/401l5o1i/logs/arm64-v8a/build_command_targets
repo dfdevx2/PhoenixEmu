@@ -1,5 +1,0 @@
-/home/dfdx047/Android/Sdk/cmake/3.22.1/bin/ninja \
-  -C \
-  /home/dfdx047/AndroidStudioProjects/PhoenixEmu/emulator/.cxx/Debug/401l5o1i/arm64-v8a \
-  nucleo_falso \
-  phoenix_emu
