@@ -22,6 +22,8 @@
 
 std::atomic<uint32_t> g_botoes[2] = {};
 std::atomic<bool> g_pedido_reset{false};
+std::string g_sram_path;
+std::atomic<bool> g_pedido_salvar_sram{false};
 
 namespace {
 
@@ -58,6 +60,12 @@ void lacoEmulador() {
     while (g_rodando.load(std::memory_order_acquire)) {
         if (g_pedido_reset.exchange(false, std::memory_order_relaxed)) {
             g_nucleo.reiniciar();
+        }
+
+        if (g_pedido_salvar_sram.exchange(false, std::memory_order_relaxed)) {
+            if (!g_sram_path.empty()) {
+                g_nucleo.salvarSram(g_sram_path);
+            }
         }
 
         if (phoenix_audio_ativo()) {
@@ -123,15 +131,48 @@ Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeCarregar(
 
 JNIEXPORT jboolean JNICALL
 Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeCarregarJogo(
-    JNIEnv *env, jobject /*thiz*/, jbyteArray rom) {
+    JNIEnv *env, jobject /*thiz*/, jbyteArray rom, jstring caminhoDoJogo) {
+    const std::string caminhoStr = paraStdString(env, caminhoDoJogo);
+    const char* caminho = caminhoStr.empty() ? nullptr : caminhoStr.c_str();
+
     if (rom == nullptr) {
-        return g_nucleo.carregarJogo(nullptr, 0, nullptr) ? JNI_TRUE : JNI_FALSE;
+        return g_nucleo.carregarJogo(nullptr, 0, caminho) ? JNI_TRUE : JNI_FALSE;
     }
     jsize tamanho = env->GetArrayLength(rom);
     void *dados = env->GetPrimitiveArrayCritical(rom, nullptr);
-    bool ok = g_nucleo.carregarJogo(dados, static_cast<size_t>(tamanho), "");
+    bool ok = g_nucleo.carregarJogo(dados, static_cast<size_t>(tamanho), caminho);
     env->ReleasePrimitiveArrayCritical(rom, dados, JNI_ABORT);
     return ok ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativePrecisaDeFullPath(
+    JNIEnv * /*env*/, jobject /*thiz*/) {
+    return g_nucleo.precisaDeFullPath() ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL
+Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeCarregarSram(
+    JNIEnv *env, jobject /*thiz*/, jstring caminho) {
+    g_nucleo.carregarSram(paraStdString(env, caminho));
+}
+
+JNIEXPORT void JNICALL
+Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeSalvarSram(
+    JNIEnv *env, jobject /*thiz*/, jstring caminho) {
+    g_nucleo.salvarSram(paraStdString(env, caminho));
+}
+
+JNIEXPORT void JNICALL
+Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeDefinirCaminhoSram(
+    JNIEnv *env, jobject /*thiz*/, jstring caminho) {
+    g_sram_path = paraStdString(env, caminho);
+}
+
+JNIEXPORT void JNICALL
+Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativePedirSalvarSram(
+    JNIEnv * /*env*/, jobject /*thiz*/) {
+    g_pedido_salvar_sram.store(true, std::memory_order_relaxed);
 }
 
 JNIEXPORT void JNICALL

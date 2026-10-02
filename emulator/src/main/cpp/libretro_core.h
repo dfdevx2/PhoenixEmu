@@ -35,6 +35,10 @@ public:
     float obterAspectRatio();
     double obterSampleRate();
 
+    bool precisaDeFullPath();
+    void carregarSram(const std::string &caminho);
+    void salvarSram(const std::string &caminho);
+
     void reiniciar();
 
 private:

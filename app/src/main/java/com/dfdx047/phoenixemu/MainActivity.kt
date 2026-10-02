@@ -127,6 +127,7 @@ import com.dfdx047.phoenixemu.data.EstadoScan
 import com.dfdx047.phoenixemu.data.Idioma
 import com.dfdx047.phoenixemu.data.Preferencias
 import com.dfdx047.phoenixemu.data.Trabalhos
+import com.dfdx047.phoenixemu.emulacao.Emulador
 import com.dfdx047.phoenixemu.ui.design.BarraDeBusca
 import com.dfdx047.phoenixemu.ui.design.BotaoPilula
 import com.dfdx047.phoenixemu.ui.design.BarraDeDicas
@@ -337,7 +338,7 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore) {
     LaunchedEffect(jogoParaJogar) {
         val jogo = jogoParaJogar ?: return@LaunchedEffect
         jogoParaJogar = null
-        hostDeSnackbar.showSnackbar(aindaSemNucleo)
+        Emulador.abrirJogo(context, prefs, jogo)
     }
 
     // ------------------------------------------------- filtro e ordenacao

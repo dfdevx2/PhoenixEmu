@@ -123,7 +123,7 @@ void LibretroCore::rodarQuadro() {
 }
 
 bool LibretroCore::carregarJogo(const void* dados, size_t tamanho, const char* caminho) {
-    if (dados == nullptr && tamanho == 0 && caminho == nullptr) {
+    if (dados == nullptr && tamanho == 0 && (caminho == nullptr || caminho[0] == '\0')) {
         return load_game_(nullptr);
     }
     retro_game_info info = {};
@@ -182,6 +182,39 @@ double LibretroCore::obterSampleRate() {
     retro_system_av_info avInfo = {};
     get_system_av_info_(&avInfo);
     return avInfo.timing.sample_rate;
+}
+
+bool LibretroCore::precisaDeFullPath() {
+    if (!get_system_info_) return false;
+    retro_system_info info = {};
+    get_system_info_(&info);
+    return info.need_fullpath;
+}
+
+void LibretroCore::carregarSram(const std::string &caminho) {
+    if (!get_memory_size_ || !get_memory_data_) return;
+    size_t size = get_memory_size_(RETRO_MEMORY_SAVE_RAM);
+    void *data = get_memory_data_(RETRO_MEMORY_SAVE_RAM);
+    if (size == 0 || data == nullptr) return;
+
+    FILE *f = fopen(caminho.c_str(), "rb");
+    if (f) {
+        fread(data, 1, size, f);
+        fclose(f);
+    }
+}
+
+void LibretroCore::salvarSram(const std::string &caminho) {
+    if (!get_memory_size_ || !get_memory_data_) return;
+    size_t size = get_memory_size_(RETRO_MEMORY_SAVE_RAM);
+    void *data = get_memory_data_(RETRO_MEMORY_SAVE_RAM);
+    if (size == 0 || data == nullptr) return;
+
+    FILE *f = fopen(caminho.c_str(), "wb");
+    if (f) {
+        fwrite(data, 1, size, f);
+        fclose(f);
+    }
 }
 
 void LibretroCore::reiniciar() {

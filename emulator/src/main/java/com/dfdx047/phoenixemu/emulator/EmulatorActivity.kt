@@ -36,7 +36,13 @@ import android.view.WindowManager
 import androidx.compose.runtime.remember
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import android.net.Uri
+import android.provider.OpenableColumns
+import android.util.Log
+import kotlinx.coroutines.delay
 import java.io.File
+import java.io.FileOutputStream
+import java.util.zip.ZipInputStream
 
 /**
  * Host da emulacao.
@@ -64,6 +70,8 @@ class EmulatorActivity : ComponentActivity() {
     private var axisMask = 0
     private val keyToBit = mutableMapOf<Int, Int>()
 
+    private var srmPath: String? = null
+    
     private fun bindKey(keyCode: Int, bit: Int) {
         keyToBit[keyCode] = (keyToBit[keyCode] ?: 0) or bit
     }
@@ -93,27 +101,88 @@ class EmulatorActivity : ComponentActivity() {
         val nucleoName = intent.getStringExtra(EXTRA_NUCLEO) ?: ""
         val libraryPath = "${applicationInfo.nativeLibraryDir}/$nucleoName"
         val file = File(libraryPath)
+        val romUriString = intent.getStringExtra(EXTRA_ROM)
+        val nomeSave = intent.getStringExtra(EXTRA_NOME_SAVE) ?: "save"
 
-        var displayMessage = ""
+        var infoMessage = ""
+        var loadError: String? = null
 
         if (!file.exists()) {
-            displayMessage = "Núcleo não encontrado: $libraryPath"
+            loadError = "Núcleo não encontrado: $libraryPath"
         } else {
             val systemDir = File(filesDir, "system").apply { mkdirs() }
             val savesDir = File(filesDir, "saves").apply { mkdirs() }
+            srmPath = File(savesDir, "$nomeSave.srm").absolutePath
 
             try {
                 nucleo.definirPastas(systemDir.absolutePath, savesDir.absolutePath)
                 if (!nucleo.carregar(libraryPath)) {
-                    displayMessage = "Falha ao carregar o núcleo."
-                } else if (!nucleo.carregarJogo(null)) {
-                    displayMessage = "Falha ao carregar o jogo."
+                    loadError = "Falha ao carregar o núcleo."
                 } else {
-                    displayMessage = nucleo.info()
-                    aspectRatio = nucleo.obterAspectRatio()
+                    var romBytes: ByteArray? = null
+                    var romPath: String? = null
+                    
+                    if (romUriString != null) {
+                        val uri = Uri.parse(romUriString)
+                        val resolver = contentResolver
+                        
+                        var romDisplayName = "rom.bin"
+                        resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                            if (cursor.moveToFirst()) {
+                                romDisplayName = cursor.getString(0) ?: "rom.bin"
+                            }
+                        }
+                        
+                        var effectiveRomName = romDisplayName
+                        
+                        var inputStream = resolver.openInputStream(uri)
+                        
+                        if (inputStream != null) {
+                            if (romDisplayName.lowercase().endsWith(".zip")) {
+                                val zis = ZipInputStream(inputStream)
+                                var entry = zis.nextEntry
+                                while (entry != null) {
+                                    val name = entry.name.lowercase()
+                                    if (name.endsWith(".nes") || name.endsWith(".sfc") || name.endsWith(".smc")) {
+                                        romBytes = zis.readBytes()
+                                        effectiveRomName = entry.name.substringAfterLast('/')
+                                        break
+                                    }
+                                    entry = zis.nextEntry
+                                }
+                                zis.close()
+                            } else {
+                                romBytes = inputStream.readBytes()
+                                inputStream.close()
+                            }
+                        }
+                        
+                        val needFullpath = nucleo.precisaDeFullPath()
+                        romPath = File(cacheDir, effectiveRomName).absolutePath
+                        
+                        if (needFullpath && romBytes != null) {
+                            File(romPath).writeBytes(romBytes!!)
+                        }
+                        
+                        Log.i("PhoenixLibretro", "Núcleo: $nucleoName, ROM: $effectiveRomName, need_fullpath: $needFullpath, bytes: ${romBytes?.size ?: 0}")
+                    }
+                    
+                    if (romUriString != null && romBytes == null) {
+                        loadError = "Falha ao ler a ROM."
+                    } else if (!nucleo.carregarJogo(romBytes, romPath)) {
+                        loadError = "Falha ao carregar o jogo."
+                    } else {
+                        infoMessage = nucleo.info()
+                        aspectRatio = nucleo.obterAspectRatio()
+                        
+                        srmPath?.let {
+                            nucleo.carregarSram(it)
+                            nucleo.definirCaminhoSram(it)
+                        }
+                    }
                 }
             } catch (e: Exception) {
-                displayMessage = "Erro: ${e.message}"
+                loadError = "Erro: ${e.message}"
             }
         }
 
@@ -121,69 +190,87 @@ class EmulatorActivity : ComponentActivity() {
             val focusRequester = remember { FocusRequester() }
 
             Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
-                AndroidView(
-                    factory = { context ->
-                        SurfaceView(context).apply {
-                            holder.addCallback(object : SurfaceHolder.Callback {
-                                override fun surfaceCreated(holder: SurfaceHolder) {
-                                    activeSurfaceHolder = holder
-                                    nucleo.iniciar(holder.surface)
-                                }
+                if (loadError != null) {
+                    BasicText(
+                        text = loadError!!,
+                        style = TextStyle(color = Color.White, fontSize = 18.sp),
+                        modifier = Modifier.padding(16.dp)
+                    )
+                } else {
+                    AndroidView(
+                        factory = { context ->
+                            SurfaceView(context).apply {
+                                holder.addCallback(object : SurfaceHolder.Callback {
+                                    override fun surfaceCreated(holder: SurfaceHolder) {
+                                        activeSurfaceHolder = holder
+                                        nucleo.iniciar(holder.surface)
+                                    }
 
-                                override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
+                                    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
 
-                                override fun surfaceDestroyed(holder: SurfaceHolder) {
-                                    activeSurfaceHolder = null
-                                    nucleo.parar()
-                                }
-                            })
-                        }
-                    },
-                    modifier = Modifier.aspectRatio(aspectRatio)
-                )
+                                    override fun surfaceDestroyed(holder: SurfaceHolder) {
+                                        activeSurfaceHolder = null
+                                        nucleo.parar()
+                                    }
+                                })
+                            }
+                        },
+                        modifier = Modifier.aspectRatio(aspectRatio)
+                    )
 
-                if (isPaused) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.7f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                    if (isPaused) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.7f)),
+                            contentAlignment = Alignment.Center
                         ) {
-                            BasicText(
-                                text = displayMessage,
-                                style = TextStyle(color = Color.White, fontSize = 12.sp)
-                            )
-                            Button(
-                                onClick = { isPaused = false },
-                                modifier = Modifier.focusRequester(focusRequester)
-                            ) { Text("Continuar") }
-                            Button(onClick = { 
-                                isPaused = false
-                                nucleo.reiniciar()
-                            }) { Text("Reiniciar") }
-                            Button(onClick = { finish() }) { Text("Sair") }
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                BasicText(
+                                    text = infoMessage,
+                                    style = TextStyle(color = Color.White, fontSize = 12.sp)
+                                )
+                                Button(
+                                    onClick = { isPaused = false },
+                                    modifier = Modifier.focusRequester(focusRequester)
+                                ) { Text("Continuar") }
+                                Button(onClick = { 
+                                    isPaused = false
+                                    nucleo.reiniciar()
+                                }) { Text("Reiniciar") }
+                                Button(onClick = { finish() }) { Text("Sair") }
+                            }
                         }
-                    }
-                    LaunchedEffect(Unit) {
-                        try { focusRequester.requestFocus() } catch (e: Exception) {}
+                        LaunchedEffect(Unit) {
+                            try { focusRequester.requestFocus() } catch (e: Exception) {}
+                        }
                     }
                 }
             }
 
-            LaunchedEffect(isPaused) {
-                keyMask = 0
-                axisMask = 0
-                nucleo.definirBotoes(0, 0)
+            if (loadError == null) {
+                LaunchedEffect(isPaused) {
+                    keyMask = 0
+                    axisMask = 0
+                    nucleo.definirBotoes(0, 0)
 
-                if (isPaused) {
-                    nucleo.parar()
-                } else {
-                    activeSurfaceHolder?.surface?.let {
-                        if (it.isValid) nucleo.iniciar(it)
+                    if (isPaused) {
+                        nucleo.parar()
+                        srmPath?.let { nucleo.salvarSram(it) }
+                    } else {
+                        activeSurfaceHolder?.surface?.let {
+                            if (it.isValid) nucleo.iniciar(it)
+                        }
+                    }
+                }
+                
+                LaunchedEffect(Unit) {
+                    while(true) {
+                        delay(30_000)
+                        nucleo.pedirSalvarSram()
                     }
                 }
             }
@@ -193,6 +280,7 @@ class EmulatorActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         nucleo.parar()
+        srmPath?.let { nucleo.salvarSram(it) }
     }
 
     override fun onResume() {
@@ -223,6 +311,7 @@ class EmulatorActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         nucleo.parar()
+        srmPath?.let { nucleo.salvarSram(it) }
         nucleo.descarregar()
         if (isFinishing) {
             android.os.Process.killProcess(android.os.Process.myPid())
