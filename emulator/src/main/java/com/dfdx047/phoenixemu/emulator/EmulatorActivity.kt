@@ -119,6 +119,9 @@ class EmulatorActivity : ComponentActivity() {
     private val keyToBit = mutableMapOf<Int, Int>()
 
     private var srmPath: String? = null
+    private var isJogoReal = false
+    private var precisaAvisoAutoload = false
+    private var autosavePendente = false
 
     private val atalhos = mutableMapOf<Acao, List<Int>>()
     private val teclasPressionadas = mutableSetOf<Int>()
@@ -655,12 +658,33 @@ class EmulatorActivity : ComponentActivity() {
                     } else if (!nucleo.carregarJogo(romBytes, romPath)) {
                         loadError = "Falha ao carregar o jogo."
                     } else {
+                        if (romUriString != null) {
+                            isJogoReal = true
+                            autosavePendente = true
+                        }
                         infoMessage = nucleo.info()
                         aspectRatio = nucleo.obterAspectRatio()
                         
                         srmPath?.let {
                             nucleo.carregarSram(it)
                             nucleo.definirCaminhoSram(it)
+                        }
+
+                        if (isJogoReal && intent.getBooleanExtra(EXTRA_AUTOCARREGAR, false)) {
+                            val autoFile = File(savesDir, "$nomeSave.auto")
+                            if (autoFile.exists() && autoFile.length() > 0) {
+                                try {
+                                    val bytes = autoFile.readBytes()
+                                    if (nucleo.carregarEstado(bytes)) {
+                                        precisaAvisoAutoload = true
+                                        Log.i("PhoenixLibretro", "autoload: ok")
+                                    } else {
+                                        Log.w("PhoenixLibretro", "autoload: falhou")
+                                    }
+                                } catch (e: Exception) {
+                                    Log.w("PhoenixLibretro", "autoload: falhou")
+                                }
+                            }
                         }
                     }
                 }
@@ -870,6 +894,13 @@ class EmulatorActivity : ComponentActivity() {
             }
 
             if (loadError == null) {
+                if (precisaAvisoAutoload) {
+                    LaunchedEffect(Unit) {
+                        mostrarAviso("Jogo retomado")
+                        precisaAvisoAutoload = false
+                    }
+                }
+
                 if ((applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
                     LaunchedEffect(isPaused) {
                         if (!isPaused) {
@@ -913,11 +944,39 @@ class EmulatorActivity : ComponentActivity() {
         }
     }
 
+    private fun tentarAutosave() {
+        if (!isJogoReal || !autosavePendente) return
+        if (!intent.getBooleanExtra(EXTRA_AUTOSALVAR, false)) return
+
+        val nomeSave = intent.getStringExtra(EXTRA_NOME_SAVE) ?: "save"
+        val savesDir = srmPath?.let { File(it).parentFile } ?: return
+
+        try {
+            val bytes = nucleo.salvarEstado()
+            if (bytes != null && bytes.isNotEmpty()) {
+                val autoFile = File(savesDir, "$nomeSave.auto")
+                val tmpFile = File(savesDir, "$nomeSave.auto.tmp")
+                tmpFile.writeBytes(bytes)
+                if (!tmpFile.renameTo(autoFile)) {
+                    tmpFile.copyTo(autoFile, overwrite = true)
+                    tmpFile.delete()
+                }
+                Log.i("PhoenixLibretro", "autosave: ok (${bytes.size} bytes)")
+                autosavePendente = false
+            } else {
+                Log.i("PhoenixLibretro", "autosave: falhou")
+            }
+        } catch (e: Exception) {
+            Log.i("PhoenixLibretro", "autosave: falhou")
+        }
+    }
+
     override fun onPause() {
         super.onPause()
         nucleo.parar()
         resetMotorAtalhos()
         srmPath?.let { nucleo.salvarSram(it) }
+        tentarAutosave()
     }
 
     override fun onResume() {
@@ -950,6 +1009,7 @@ class EmulatorActivity : ComponentActivity() {
         nucleo.parar()
         resetMotorAtalhos()
         srmPath?.let { nucleo.salvarSram(it) }
+        tentarAutosave()
         nucleo.descarregar()
         if (isFinishing) {
             android.os.Process.killProcess(android.os.Process.myPid())
@@ -1079,6 +1139,8 @@ class EmulatorActivity : ComponentActivity() {
         const val EXTRA_OVERLAY = "phoenix.overlay"
 
         const val EXTRA_ATALHOS = "phoenix.atalhos"
+        const val EXTRA_AUTOSALVAR = "phoenix.autosalvar"
+        const val EXTRA_AUTOCARREGAR = "phoenix.autocarregar"
 
         val ORDEM_DO_MAPEAMENTO = listOf(
             "CIMA", "BAIXO", "ESQUERDA", "DIREITA",

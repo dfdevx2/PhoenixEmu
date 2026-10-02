@@ -80,6 +80,8 @@ object Emulador {
             // org.json e nao precisa conhecer a classe ConfigDoOverlay.
             .putExtra(EmulatorActivity.EXTRA_OVERLAY, Gson().toJson(prefs.overlay.value))
             .putExtra(EmulatorActivity.EXTRA_ATALHOS, atalhosJson.toString())
+            .putExtra(EmulatorActivity.EXTRA_AUTOSALVAR, prefs.autoSalvar.value)
+            .putExtra(EmulatorActivity.EXTRA_AUTOCARREGAR, prefs.autoCarregar.value)
         if (rom != null) intent.putExtra(EmulatorActivity.EXTRA_ROM, rom)
         context.startActivity(intent)
     }
