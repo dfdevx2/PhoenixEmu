@@ -25,11 +25,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
@@ -110,6 +113,44 @@ class EmulatorActivity : ComponentActivity() {
     private val keyToBit = mutableMapOf<Int, Int>()
 
     private var srmPath: String? = null
+
+    private var r2KeyPressed = false
+    private var r2AxisPressed = false
+    private var ffJob: kotlinx.coroutines.Job? = null
+    private var ffSpeed by mutableStateOf(1)
+    private var statsText by mutableStateOf("")
+
+    private fun updateFastForward() {
+        val active = r2KeyPressed || r2AxisPressed
+        if (active && ffSpeed == 1) {
+            ffSpeed = 2
+            nucleo.definirAvancoRapido(2)
+            ffJob?.cancel()
+            ffJob = lifecycleScope.launch {
+                delay(1500)
+                if (ffSpeed > 1) {
+                    ffSpeed = 4
+                    nucleo.definirAvancoRapido(4)
+                }
+                delay(1500)
+                if (ffSpeed > 1) {
+                    ffSpeed = 8
+                    nucleo.definirAvancoRapido(8)
+                }
+            }
+        } else if (!active && ffSpeed > 1) {
+            cancelFastForward()
+        }
+    }
+
+    private fun cancelFastForward() {
+        r2KeyPressed = false
+        r2AxisPressed = false
+        ffJob?.cancel()
+        ffJob = null
+        ffSpeed = 1
+        nucleo.definirAvancoRapido(1)
+    }
 
     private fun bindKey(keyCode: Int, bit: Int) {
         keyToBit[keyCode] = (keyToBit[keyCode] ?: 0) or bit
@@ -408,6 +449,28 @@ class EmulatorActivity : ComponentActivity() {
                         modifier = Modifier.aspectRatio(aspectRatio)
                     )
 
+                    if (ffSpeed > 1) {
+                        BasicText(
+                            text = "▶▶ ${ffSpeed}x",
+                            style = TextStyle(color = Color.White.copy(alpha = 0.85f), fontSize = 14.sp, fontWeight = FontWeight.Bold),
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .windowInsetsPadding(WindowInsets.systemBars)
+                                .padding(top = 16.dp)
+                        )
+                    }
+
+                    if (statsText.isNotEmpty() && !isPaused && (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+                        BasicText(
+                            text = statsText,
+                            style = TextStyle(color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp),
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .windowInsetsPadding(WindowInsets.systemBars)
+                                .padding(16.dp)
+                        )
+                    }
+
                     if (isPaused) {
                         Box(
                             modifier = Modifier
@@ -533,10 +596,30 @@ class EmulatorActivity : ComponentActivity() {
             }
 
             if (loadError == null) {
+                if ((applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+                    LaunchedEffect(isPaused) {
+                        if (!isPaused) {
+                            while(true) {
+                                delay(500)
+                                val stats = nucleo.obterStats()
+                                if (stats.size >= 3) {
+                                    val fpsStr = String.format(Locale.US, "%.1f", stats[0])
+                                    val msStr = String.format(Locale.US, "%.1f", stats[1])
+                                    val maxStr = String.format(Locale.US, "%.1f", stats[2])
+                                    statsText = "$fpsStr fps | $msStr ms (max $maxStr)"
+                                }
+                            }
+                        } else {
+                            statsText = ""
+                        }
+                    }
+                }
+
                 LaunchedEffect(isPaused) {
                     keyMask = 0
                     axisMask = 0
                     nucleo.definirBotoes(0, 0)
+                    cancelFastForward()
 
                     if (isPaused) {
                         nucleo.parar()
@@ -562,6 +645,7 @@ class EmulatorActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         nucleo.parar()
+        cancelFastForward()
         srmPath?.let { nucleo.salvarSram(it) }
     }
 
@@ -593,6 +677,7 @@ class EmulatorActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         nucleo.parar()
+        cancelFastForward()
         srmPath?.let { nucleo.salvarSram(it) }
         nucleo.descarregar()
         if (isFinishing) {
@@ -617,6 +702,18 @@ class EmulatorActivity : ComponentActivity() {
             return super.dispatchKeyEvent(event)
         }
 
+        if (event.keyCode == KeyEvent.KEYCODE_BUTTON_R2) {
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+                r2KeyPressed = true
+                updateFastForward()
+                return true
+            } else if (event.action == KeyEvent.ACTION_UP) {
+                r2KeyPressed = false
+                updateFastForward()
+                return true
+            }
+        }
+
         val bit = keyToBit[event.keyCode]
         if (bit != null) {
             if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
@@ -635,6 +732,14 @@ class EmulatorActivity : ComponentActivity() {
         if (isPaused) return super.dispatchGenericMotionEvent(event)
 
         if (event.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK && event.action == MotionEvent.ACTION_MOVE) {
+            val rtrigger = event.getAxisValue(MotionEvent.AXIS_RTRIGGER)
+            val gas = event.getAxisValue(MotionEvent.AXIS_GAS)
+            val newR2Axis = rtrigger > 0.5f || gas > 0.5f
+            if (newR2Axis != r2AxisPressed) {
+                r2AxisPressed = newR2Axis
+                updateFastForward()
+            }
+
             val xaxis = event.getAxisValue(MotionEvent.AXIS_X)
             val yaxis = event.getAxisValue(MotionEvent.AXIS_Y)
             val hatx = event.getAxisValue(MotionEvent.AXIS_HAT_X)

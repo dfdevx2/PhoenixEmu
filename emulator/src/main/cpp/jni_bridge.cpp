@@ -27,6 +27,13 @@ std::atomic<bool> g_pedido_reset{false};
 std::string g_sram_path;
 std::atomic<bool> g_pedido_salvar_sram{false};
 
+std::atomic<int> g_ff_velocidade{1};
+std::atomic<bool> g_pular_video{false};
+
+std::atomic<float> g_stats_fps{0.0f};
+std::atomic<float> g_stats_ms_medio{0.0f};
+std::atomic<float> g_stats_ms_max{0.0f};
+
 namespace {
 
 phoenix::LibretroCore g_nucleo;
@@ -54,10 +61,15 @@ void lacoEmulador() {
     size_t quadros_minimos = phoenix_audio_tamanho_minimo();
     constexpr int ALVO_QUADROS = 2;
     bool stream_iniciado = false;
+    int ff_anterior = 1;
 
     auto proximo_relato = clock::now() + std::chrono::seconds(1);
     auto intervalo = std::chrono::nanoseconds(static_cast<long long>(1'000'000'000.0 / fps));
     auto proximo_quadro = clock::now();
+
+    int quadros_contados = 0;
+    float tempo_acumulado_ms = 0.0f;
+    float tempo_max_ms = 0.0f;
 
     while (g_rodando.load(std::memory_order_acquire)) {
         if (g_pedido_reset.exchange(false, std::memory_order_relaxed)) {
@@ -70,25 +82,70 @@ void lacoEmulador() {
             }
         }
 
-        if (phoenix_audio_ativo()) {
-            if (!stream_iniciado) {
-                if (phoenix_audio_ocupacao() >= ALVO_QUADROS * quadros_minimos) {
-                    phoenix_audio_iniciar_stream();
-                    stream_iniciado = true;
-                }
+        int vel = g_ff_velocidade.load(std::memory_order_relaxed);
+        if (vel != ff_anterior) {
+            if (ff_anterior > 1 && vel == 1) {
+                __android_log_print(ANDROID_LOG_INFO, "PhoenixLibretro", "ff: terminou");
             }
+            ff_anterior = vel;
+            proximo_quadro = clock::now();
+        }
 
-            if (phoenix_audio_ocupacao() < ALVO_QUADROS * quadros_minimos) {
-                g_nucleo.rodarQuadro();
-                proximo_quadro = clock::now();
+        if (vel > 1) {
+            auto agora_inicio_ff = clock::now();
+            if (agora_inicio_ff >= proximo_quadro) {
+                for (int i = 0; i < vel; ++i) {
+                    g_pular_video.store(i != vel - 1, std::memory_order_relaxed);
+                    auto t0 = clock::now();
+                    g_nucleo.rodarQuadro();
+                    auto t1 = clock::now();
+
+                    float ms = std::chrono::duration<float, std::milli>(t1 - t0).count();
+                    tempo_acumulado_ms += ms;
+                    if (ms > tempo_max_ms) tempo_max_ms = ms;
+                    quadros_contados++;
+                }
+                g_pular_video.store(false, std::memory_order_relaxed);
+                proximo_quadro += intervalo;
             } else {
-                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                std::this_thread::sleep_until(proximo_quadro);
             }
         } else {
-            // Fallback para relogio (stream falhou ou desconectou)
-            g_nucleo.rodarQuadro();
-            proximo_quadro += intervalo;
-            std::this_thread::sleep_until(proximo_quadro);
+            if (phoenix_audio_ativo()) {
+                if (!stream_iniciado) {
+                    if (phoenix_audio_ocupacao() >= ALVO_QUADROS * quadros_minimos) {
+                        phoenix_audio_iniciar_stream();
+                        stream_iniciado = true;
+                    }
+                }
+
+                if (phoenix_audio_ocupacao() < ALVO_QUADROS * quadros_minimos) {
+                    auto t0 = clock::now();
+                    g_nucleo.rodarQuadro();
+                    auto t1 = clock::now();
+
+                    float ms = std::chrono::duration<float, std::milli>(t1 - t0).count();
+                    tempo_acumulado_ms += ms;
+                    if (ms > tempo_max_ms) tempo_max_ms = ms;
+                    quadros_contados++;
+
+                    proximo_quadro = clock::now();
+                } else {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                }
+            } else {
+                auto t0 = clock::now();
+                g_nucleo.rodarQuadro();
+                auto t1 = clock::now();
+
+                float ms = std::chrono::duration<float, std::milli>(t1 - t0).count();
+                tempo_acumulado_ms += ms;
+                if (ms > tempo_max_ms) tempo_max_ms = ms;
+                quadros_contados++;
+
+                proximo_quadro += intervalo;
+                std::this_thread::sleep_until(proximo_quadro);
+            }
         }
 
         auto agora = clock::now();
@@ -96,6 +153,15 @@ void lacoEmulador() {
             if (stream_iniciado && phoenix_audio_ativo()) {
                 phoenix_audio_relatar();
             }
+
+            g_stats_fps.store(static_cast<float>(quadros_contados), std::memory_order_relaxed);
+            g_stats_ms_medio.store(quadros_contados > 0 ? tempo_acumulado_ms / quadros_contados : 0.0f, std::memory_order_relaxed);
+            g_stats_ms_max.store(tempo_max_ms, std::memory_order_relaxed);
+
+            quadros_contados = 0;
+            tempo_acumulado_ms = 0.0f;
+            tempo_max_ms = 0.0f;
+
             proximo_relato = agora + std::chrono::seconds(1);
         }
     }
@@ -277,6 +343,26 @@ Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeCarregarEstado(
     std::vector<jbyte> buf(tam);
     env->GetByteArrayRegion(dados, 0, tam, buf.data());
     return g_nucleo.carregarEstado(buf.data(), static_cast<size_t>(tam)) ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL
+Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeDefinirAvancoRapido(
+    JNIEnv * /*env*/, jobject /*thiz*/, jint velocidade) {
+    g_ff_velocidade.store(velocidade, std::memory_order_relaxed);
+}
+
+JNIEXPORT jfloatArray JNICALL
+Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeObterStats(
+    JNIEnv *env, jobject /*thiz*/) {
+    jfloatArray arr = env->NewFloatArray(3);
+    if (arr) {
+        float stats[3];
+        stats[0] = g_stats_fps.load(std::memory_order_relaxed);
+        stats[1] = g_stats_ms_medio.load(std::memory_order_relaxed);
+        stats[2] = g_stats_ms_max.load(std::memory_order_relaxed);
+        env->SetFloatArrayRegion(arr, 0, 3, stats);
+    }
+    return arr;
 }
 
 } // extern "C"

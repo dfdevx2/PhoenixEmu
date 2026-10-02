@@ -10,16 +10,21 @@
 
 extern bool cb_environment(unsigned cmd, void *data);
 extern int g_formato_pixel;
+extern std::atomic<bool> g_pular_video;
+extern std::atomic<int> g_ff_velocidade;
 
 static void cb_video_refresh(const void *data, unsigned width, unsigned height, size_t pitch) {
     if (data == nullptr) return; // Repita o quadro anterior
+    if (g_pular_video.load(std::memory_order_relaxed)) return;
     phoenix_video_desenhar_quadro(data, width, height, pitch);
 }
 static void cb_audio_sample(int16_t left, int16_t right) {
+    if (g_ff_velocidade.load(std::memory_order_relaxed) > 1) return;
     int16_t frame[2] = {left, right};
     phoenix_audio_enviar(frame, 1);
 }
 static size_t cb_audio_sample_batch(const int16_t *data, size_t frames) {
+    if (g_ff_velocidade.load(std::memory_order_relaxed) > 1) return frames;
     return phoenix_audio_enviar(data, frames);
 }
 static void cb_input_poll() {}

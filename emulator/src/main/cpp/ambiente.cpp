@@ -8,9 +8,13 @@
 
 #include "verificador_ambiente.c"
 
+#include <atomic>
+
 std::string g_system_dir;
 std::string g_saves_dir;
 int g_formato_pixel = -1;
+
+extern std::atomic<int> g_ff_velocidade;
 
 static void retro_log_printf(enum retro_log_level level, const char *fmt, ...) {
     va_list args;
@@ -74,6 +78,9 @@ bool cb_environment(unsigned cmd, void *data) {
         case 35: // RETRO_ENVIRONMENT_SET_CONTROLLER_INFO
             return true;
         case 37: // RETRO_ENVIRONMENT_SET_GEOMETRY
+            return true;
+        case 49: // RETRO_ENVIRONMENT_GET_FASTFORWARDING
+            if (data) *(bool*)data = (g_ff_velocidade.load(std::memory_order_relaxed) > 1);
             return true;
         case 51: // RETRO_ENVIRONMENT_GET_INPUT_BITMASKS
             if (data) *(bool*)data = true;
