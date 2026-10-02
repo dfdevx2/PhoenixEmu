@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -94,6 +93,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -114,6 +114,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.onKeyEvent
+import android.view.KeyEvent
 import androidx.compose.foundation.border
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.runtime.rememberUpdatedState
@@ -174,12 +175,34 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.MutableSharedFlow
 import java.io.File
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.sign
 
 class MainActivity : ComponentActivity() {
+
+    private val trocasDeSecao = MutableSharedFlow<Int>(extraBufferCapacity = 8)
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val prefs = Preferencias.obter(this)
+        if (prefs.ombrosTrocamSecao.value &&
+            event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0
+        ) {
+            return when (event.keyCode) {
+                KeyEvent.KEYCODE_BUTTON_L1 -> { trocasDeSecao.tryEmit(-1); true }
+                KeyEvent.KEYCODE_BUTTON_R1 -> { trocasDeSecao.tryEmit(+1); true }
+                else -> super.dispatchKeyEvent(event)
+            }
+        }
+        if (event.action == KeyEvent.ACTION_UP &&
+            (event.keyCode == KeyEvent.KEYCODE_BUTTON_L1 || event.keyCode == KeyEvent.KEYCODE_BUTTON_R1)
+        ) {
+            return true // consome o UP tambem para evitar re-dispatch
+        }
+        return super.dispatchKeyEvent(event)
+    }
 
     // O idioma tem de estar escolhido antes de qualquer recurso ser
     // resolvido, e este e o unico ponto do ciclo de vida anterior a isso.
@@ -262,7 +285,7 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     } else {
-                        PhoenixApp(prefs = prefs, biblioteca = biblioteca)
+                        PhoenixApp(prefs = prefs, biblioteca = biblioteca, trocas = trocasDeSecao)
                     }
                 }
             }
@@ -289,7 +312,7 @@ private fun itensDeNavegacao(): List<ItemDeNavegacao> = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore) {
+fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx.coroutines.flow.SharedFlow<Int>) {
     val context = LocalContext.current
     val audio = LocalAudio.current
     val estilo = LocalVidro.current
@@ -378,19 +401,34 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore) {
     // Altura do chrome do topo: barra de busca + linha de sistema/filtros.
     // E o mesmo numero usado como recuo superior da lista, entao os dois
     // nunca saem de sincronia.
-    val alturaDoTopo = if (secao == Secao.BIBLIOTECA) 124.dp else 72.dp
+    val TOPO_XMB = 72.dp
+    val BASE_XMB = 100.dp
+
+    val xmbAtivo = modoVisual == ModoVisual.XMB && secao == Secao.BIBLIOTECA
+    val tipoDeControle = lembrarTipoDeControle()
+    val alturaDoTopo = if (secao != Secao.BIBLIOTECA) 72.dp else if (xmbAtivo) TOPO_XMB else 124.dp
+    val alturaDoRodape = if (xmbAtivo) BASE_XMB else if (tipoDeControle == TipoDeControle.NENHUM) 104.dp else 148.dp
     val densidade = LocalDensity.current
     val alturaDoTopoPx = with(densidade) { alturaDoTopo.toPx() }
-    val alturaDaNavegacaoPx = with(densidade) { 140.dp.toPx() }
+    val alturaDaNavegacaoPx = with(densidade) { alturaDoRodape.toPx() }
     val chrome = lembrarEstadoDoChrome(alturaDoTopo)
-    val tipoDeControle = lembrarTipoDeControle()
-
-    // Altura reservada para o rodape flutuante (dicas + navegacao). No XMB ela
-    // vira recuo do carrossel, e por isso nada mais fica por baixo da capa.
-    val alturaDoRodape = if (tipoDeControle == TipoDeControle.NENHUM) 104.dp else 148.dp
 
     // Trocar de secao com o chrome escondido deixaria a tela sem cabecalho.
     LaunchedEffect(secaoIndice) { chrome.mostrar() }
+
+    // Trocar de secao via L1/R1 (SharedFlow do dispatchKeyEvent)
+    val audioRef = audio
+    val chromeRef = chrome
+    LaunchedEffect(Unit) {
+        trocas.collect { delta ->
+            val novo = (secaoIndice + delta).coerceIn(0, Secao.entries.lastIndex)
+            if (novo != secaoIndice) {
+                audioRef.playSwipe()
+                secaoIndice = novo
+                chromeRef.mostrar()
+            }
+        }
+    }
 
     val fabExpandido by remember {
         derivedStateOf { estadoGrade.firstVisibleItemIndex == 0 && estadoGrade.firstVisibleItemScrollOffset < 48 }
@@ -442,27 +480,6 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore) {
         Box(
             Modifier
                 .fillMaxSize()
-                .onPreviewKeyEvent { evento ->
-                    if (!ombrosTrocamSecao) return@onPreviewKeyEvent false
-                    if (evento.type != KeyEventType.KeyDown || evento.nativeKeyEvent.repeatCount != 0) return@onPreviewKeyEvent false
-
-                    when (evento.key) {
-                        Key.ButtonL1 -> {
-                            audio.playSwipe()
-                            secaoIndice = (secaoIndice - 1 + Secao.entries.size) % Secao.entries.size
-                            chrome.mostrar()
-                            true
-                        }
-                        Key.ButtonR1 -> {
-                            audio.playSwipe()
-                            secaoIndice = (secaoIndice + 1) % Secao.entries.size
-                            chrome.mostrar()
-                            true
-                        }
-                        else -> false
-                    }
-                }
-                .focusable()
         ) {
 
             // ---------------------------------------------- camada 1: fundo
@@ -1062,18 +1079,16 @@ fun TelaJogos(
                     item(span = { GridItemSpan(maxCurrentLineSpan) }) { EspacoDaNavegacao() }
                 }
             } else {
-                CarrosselXmb(
-                    jogos = jogos,
-                    estadoCarrossel = estadoCarrossel,
-                    larguraDaTela = larguraTotal,
-                    alturaDisponivel = alturaTotal - recuo.calculateTopPadding() - recuoInferior,
-                    recuoSuperior = recuo.calculateTopPadding(),
-                    recuoInferior = recuoInferior,
-                    indiceSelecionado = indiceSelecionado,
-                    onSelecionar = onSelecionar,
-                    onAbrir = onAbrir,
-                    onOpcoes = onOpcoes
-                )
+                BoxWithConstraints {
+                    CarrosselXmb(
+                        jogos = jogos,
+                        estadoCarrossel = estadoCarrossel,
+                        indiceSelecionado = indiceSelecionado,
+                        onSelecionar = onSelecionar,
+                        onAbrir = onAbrir,
+                        onOpcoes = onOpcoes
+                    )
+                }
             }
         }
     }
@@ -1091,24 +1106,15 @@ fun TelaJogos(
 private fun CarrosselXmb(
     jogos: List<Jogo>,
     estadoCarrossel: LazyListState,
-    larguraDaTela: Dp,
-    alturaDisponivel: Dp,
-    recuoSuperior: Dp,
-    recuoInferior: Dp,
     indiceSelecionado: Int,
     onSelecionar: (Int) -> Unit,
     onAbrir: (Jogo) -> Unit,
     onOpcoes: (Jogo) -> Unit
 ) {
     val primaria = MaterialTheme.colorScheme.primary
-    val alturaDaCapa = (alturaDisponivel - 12.dp).coerceIn(200.dp, 560.dp)
-    val larguraDaCapa = (alturaDaCapa * 0.78f).coerceAtMost(larguraDaTela * 0.42f)
 
-    LaunchedEffect(alturaDisponivel, larguraDaCapa) {
-        Log.i("PhoenixUi", "TEMPORARIO: remover | alturaTotal: ${larguraDaTela}, recuoSup: ${recuoSuperior}, recuoInf: ${recuoInferior}, disponivel: $alturaDisponivel, capa: $alturaDaCapa")
-    }
-
-    val recuoLateral = ((larguraDaTela - larguraDaCapa) / 2).coerceAtLeast(16.dp)
+    var alturaDaCapa by remember { mutableFloatStateOf(200f) }
+    var larguraDaCapa by remember { mutableFloatStateOf(156f) }
 
     var rolagemProgramatica by remember { mutableStateOf(false) }
     val arrastando by estadoCarrossel.interactionSource.collectIsDraggedAsState()
@@ -1117,7 +1123,7 @@ private fun CarrosselXmb(
         val info = estadoCarrossel.layoutInfo
         val centro = (info.viewportStartOffset + info.viewportEndOffset) / 2f
         val central = info.visibleItemsInfo.minByOrNull { abs((it.offset + it.size / 2f) - centro) }?.index ?: 0
-        
+
         if (!arrastando && central != indiceSelecionado) {
             rolagemProgramatica = true
             try {
@@ -1128,106 +1134,120 @@ private fun CarrosselXmb(
         }
     }
 
-    val passoPx = with(LocalDensity.current) { (larguraDaCapa * 0.42f).toPx() }
+    val densidade = LocalDensity.current
+    val passoPx: Float = with(densidade) { (larguraDaCapa * 0.42f).dp.toPx() }
     val onSelecionarState by rememberUpdatedState(onSelecionar)
     val indiceSelecionadoState by rememberUpdatedState(indiceSelecionado)
 
     LaunchedEffect(Unit) {
-        snapshotFlow { 
+        snapshotFlow<Float> {
             estadoCarrossel.firstVisibleItemIndex + estadoCarrossel.firstVisibleItemScrollOffset / passoPx
         }.map { it.roundToInt().coerceIn(0, jogos.lastIndex) }
          .distinctUntilChanged()
-         .collect { novo ->
+         .collect { novo: Int ->
              if (!rolagemProgramatica && novo != indiceSelecionadoState) {
                  onSelecionarState(novo)
              }
          }
     }
 
-    LazyRow(
-        state = estadoCarrossel,
-        flingBehavior = rememberSnapFlingBehavior(estadoCarrossel),
-        contentPadding = PaddingValues(
-            start = recuoLateral,
-            end = recuoLateral,
-            top = recuoSuperior,
-            bottom = recuoInferior
-        ),
-        horizontalArrangement = Arrangement.spacedBy(-(larguraDaCapa * 0.58f)),
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        items(count = jogos.size, key = { jogos[it].id }) { indice ->
-            val d = indice - indiceSelecionado
-            val ad = abs(d)
+    BoxWithConstraints {
+        val larguraDaTelaDp = maxWidth.value
+        val alturaDisponivelDp = maxHeight.value
 
-            if (ad > 4) {
-                Spacer(Modifier.width(larguraDaCapa).height(alturaDaCapa))
-            } else {
-                val jogo = jogos[indice]
-                
-                Box(
-                    modifier = Modifier
-                        .zIndex((10 - ad).toFloat())
-                        .graphicsLayer {
-                            val pos = estadoCarrossel.firstVisibleItemIndex + estadoCarrossel.firstVisibleItemScrollOffset / passoPx
-                            val f = indice - pos
-                            val af = abs(f).coerceAtMost(4f)
-                            
-                            val tabelaEscala = floatArrayOf(1.00f, 0.94f, 0.82f, 0.70f, 0.60f)
-                            val tabelaAlfa = floatArrayOf(1.00f, 0.92f, 0.75f, 0.50f, 0.00f)
-                            val tabelaDesloc = floatArrayOf(0.00f, 0.46f, 0.80f, 1.02f, 1.12f)
-                            
-                            fun interpolar(tabela: FloatArray, x: Float): Float {
-                                val ix = x.toInt().coerceAtMost(3)
-                                val p = x - ix
-                                return tabela[ix] * (1f - p) + tabela[ix + 1] * p
+        val novaAltura = (alturaDisponivelDp - 8f).coerceIn(120f, 640f)
+        val novaLargura = (novaAltura * 0.78f).coerceAtMost(larguraDaTelaDp * 0.42f)
+
+        if (alturaDaCapa != novaAltura || larguraDaCapa != novaLargura) {
+            alturaDaCapa = novaAltura
+            larguraDaCapa = novaLargura
+        }
+
+        val recuoLateral = ((maxWidth.value - larguraDaCapa) / 2).coerceAtLeast(16f)
+
+        LazyRow(
+            state = estadoCarrossel,
+            flingBehavior = rememberSnapFlingBehavior(estadoCarrossel),
+            horizontalArrangement = Arrangement.spacedBy(-(larguraDaCapa * 0.58f).dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            item { Spacer(Modifier.width((recuoLateral - larguraDaCapa * 0.21f).dp)) }
+
+            items(count = jogos.size, key = { jogos[it].id }) { indice ->
+                val d = indice - indiceSelecionado
+                val ad = abs(d)
+
+                if (ad > 4) {
+                    Spacer(Modifier.width(larguraDaCapa.dp).height(alturaDaCapa.dp))
+                } else {
+                    val jogo = jogos[indice]
+
+                    Box(
+                        modifier = Modifier
+                            .zIndex((10 - ad).toFloat())
+                            .graphicsLayer {
+                                val pos = estadoCarrossel.firstVisibleItemIndex + estadoCarrossel.firstVisibleItemScrollOffset / passoPx
+                                val f = indice - pos
+                                val af = abs(f).coerceAtMost(4f)
+                                
+                                val tabelaEscala = floatArrayOf(1.00f, 0.94f, 0.82f, 0.70f, 0.60f)
+                                val tabelaAlfa = floatArrayOf(1.00f, 0.92f, 0.75f, 0.50f, 0.00f)
+                                val tabelaDesloc = floatArrayOf(0.00f, 0.46f, 0.80f, 1.02f, 1.12f)
+                                
+                                fun interpolar(tabela: FloatArray, x: Float): Float {
+                                    val ix = x.toInt().coerceAtMost(3)
+                                    val p = x - ix
+                                    return tabela[ix] * (1f - p) + tabela[ix + 1] * p
+                                }
+                                
+                                val escala = interpolar(tabelaEscala, af)
+                                scaleX = escala
+                                scaleY = escala
+                                alpha = interpolar(tabelaAlfa, af)
+                                
+                                val sinal = if (f < 0f) -1f else if (f > 0f) 1f else 0f
+                                translationX = sinal * (interpolar(tabelaDesloc, af) * with(densidade) { larguraDaCapa.dp.toPx() } - passoPx * af)
                             }
-                            
-                            val escala = interpolar(tabelaEscala, af)
-                            scaleX = escala
-                            scaleY = escala
-                            alpha = interpolar(tabelaAlfa, af)
-                            
-                            val sinal = if (f < 0) -1f else if (f > 0) 1f else 0f
-                            translationX = sinal * (interpolar(tabelaDesloc, af) * larguraDaCapa.toPx() - passoPx * af)
-                        }
-                        .drawWithContent {
-                            drawContent()
-                            val pos = estadoCarrossel.firstVisibleItemIndex + estadoCarrossel.firstVisibleItemScrollOffset / passoPx
-                            val f = indice - pos
-                            val af = abs(f).coerceAtMost(4f)
-                            val tabelaEscurecer = floatArrayOf(0.00f, 0.12f, 0.28f, 0.42f, 0.55f)
-                            fun interpolar(tabela: FloatArray, x: Float): Float {
-                                val ix = x.toInt().coerceAtMost(3)
-                                val p = x - ix
-                                return tabela[ix] * (1f - p) + tabela[ix + 1] * p
+                            .drawWithContent {
+                                drawContent()
+                                val pos = estadoCarrossel.firstVisibleItemIndex + estadoCarrossel.firstVisibleItemScrollOffset / passoPx
+                                val f = indice - pos
+                                val af = abs(f).coerceAtMost(4f)
+                                val tabelaEscurecer = floatArrayOf(0.00f, 0.12f, 0.28f, 0.42f, 0.55f)
+                                fun interpolar(tabela: FloatArray, x: Float): Float {
+                                    val ix = x.toInt().coerceAtMost(3)
+                                    val p = x - ix
+                                    return tabela[ix] * (1f - p) + tabela[ix + 1] * p
+                                }
+                                val escurecimento = interpolar(tabelaEscurecer, af)
+                                if (escurecimento > 0f) {
+                                    drawRect(Color.Black.copy(alpha = escurecimento))
+                                }
                             }
-                            val escurecimento = interpolar(tabelaEscurecer, af)
-                            if (escurecimento > 0f) {
-                                drawRect(Color.Black.copy(alpha = escurecimento))
-                            }
-                        }
-                ) {
-                    CartaoDeJogo(
-                        jogo = jogo,
-                        altura = alturaDaCapa,
-                        largura = larguraDaCapa,
-                        selecionado = ad == 0,
-                        bordaDeFoco = ad == 0,
-                        capaCheia = true,
-                        corDoHalo = primaria,
-                        onClicar = {
-                            if (ad == 0) onAbrir(jogo)
-                            else onSelecionar(indice)
-                        },
-                        onOpcoes = { onSelecionar(indice); onOpcoes(jogo) }
-                    )
+                    ) {
+                        CartaoDeJogo(
+                            jogo = jogo,
+                            altura = with(densidade) { alturaDaCapa.dp },
+                            largura = with(densidade) { larguraDaCapa.dp },
+                            selecionado = ad == 0,
+                            bordaDeFoco = ad == 0,
+                            capaCheia = true,
+                            corDoHalo = primaria,
+                            onClicar = {
+                                if (ad == 0) onAbrir(jogo)
+                                else onSelecionar(indice)
+                            },
+                            onOpcoes = { onSelecionar(indice); onOpcoes(jogo) }
+                        )
+                    }
                 }
             }
+            item { Spacer(Modifier.width((recuoLateral - larguraDaCapa * 0.21f).dp)) }
         }
     }
-    }
+}
 
 @Composable
 private fun BotaoRedondoDeVidro(icone: ImageVector, descricao: String, onClick: () -> Unit) {

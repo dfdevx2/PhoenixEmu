@@ -636,12 +636,12 @@ fun BotaoDeDica(texto: String, modifier: Modifier = Modifier) {
     ) {
         IconButton(
             onClick = { coroutineScope.launch { state.show() } },
-            modifier = Modifier.size(32.dp)
+            modifier = Modifier.size(40.dp)
         ) {
             Icon(
                 Icons.AutoMirrored.Outlined.HelpOutline,
                 contentDescription = stringResource(R.string.acao_dica),
-                tint = LocalVidro.current.corDoConteudo.copy(alpha = 0.7f),
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                 modifier = Modifier.size(20.dp)
             )
         }

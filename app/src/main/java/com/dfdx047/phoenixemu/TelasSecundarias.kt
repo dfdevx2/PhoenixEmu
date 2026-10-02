@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -180,8 +181,12 @@ private fun LinhaDeInterruptor(
 
 @Composable
 private fun RotuloComDica(@StringRes rotulo: Int, @StringRes dica: Int) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(rotulo), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(stringResource(rotulo), fontWeight = FontWeight.Bold)
         BotaoDeDica(stringResource(dica))
     }
 }
@@ -235,323 +240,328 @@ fun TelaConfiguracoes(prefs: Preferencias) {
         }
     }
 
+    var abaSelecionada by rememberSaveable { mutableIntStateOf(0) }
+    val abasStr = listOf(
+        stringResource(R.string.aba_aparencia),
+        stringResource(R.string.aba_audio),
+        stringResource(R.string.aba_video),
+        stringResource(R.string.aba_jogo),
+        stringResource(R.string.aba_navegacao),
+        stringResource(R.string.aba_manutencao)
+    )
+
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp),
+        modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        // Folga para o titulo flutuante que vive na camada de vidro.
         Spacer(Modifier.height(88.dp))
-
-        // ------------------------------------------------ personalizacao
-        TituloDeSecao(R.string.sec_personalizacao)
-        Cartao {
-            // A lista de radio buttons virou um botao com amostra: o nome do
-            // tema sozinho nao diz nada sobre o que voce vai ver.
-            Text(stringResource(R.string.config_tema), fontWeight = FontWeight.Bold)
-            OutlinedButton(
-                onClick = { audio.playClick(); mostrarSeletorDeTema = true },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                AmostraDeTema(temaAtual)
-                Spacer(Modifier.width(12.dp))
-                Text(stringResource(temaAtual.rotulo), modifier = Modifier.weight(1f))
-                Text(
-                    stringResource(R.string.acao_escolher_tema),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            LinhaDeInterruptor(
-                rotulo = R.string.config_amoled,
-                descricao = R.string.config_amoled_desc,
-                marcado = amoled,
-                onMudar = { audio.playClick(); prefs.definirAmoled(it) }
-            )
-
-            HorizontalDivider()
-
-            Text(stringResource(R.string.config_acabamento), fontWeight = FontWeight.Bold)
-            Text(
-                stringResource(R.string.config_acabamento_desc),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            SeletorSegmentado(
-                opcoes = Acabamento.entries.map { stringResource(it.rotulo) },
-                indiceSelecionado = Acabamento.entries.indexOf(acabamento),
-                onSelecionar = {
-                    audio.playClick()
-                    prefs.definirAcabamento(Acabamento.entries[it])
-                }
-            )
-
-            HorizontalDivider()
-
-            Text(stringResource(R.string.config_fundo), fontWeight = FontWeight.Bold)
-            Text(
-                stringResource(R.string.config_fundo_desc),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = { escolherWallpaper.launch(arrayOf("image/*")) },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Default.Image, null, Modifier.padding(end = 8.dp))
-                    Text(stringResource(R.string.acao_escolher_fundo))
-                }
-                OutlinedButton(
-                    onClick = { prefs.definirWallpaper(null); audio.playClick() },
-                    enabled = wallpaperUri != null
-                ) {
-                    Icon(
-                        Icons.Default.Delete,
-                        stringResource(R.string.acao_remover_fundo),
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
-
-            // Os dois sliders so aparecem com wallpaper escolhido: sem imagem
-            // eles nao teriam o que ajustar.
-            if (wallpaperUri != null) {
-                Text(
-                    stringResource(R.string.config_wallpaper_desfoque),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Slider(
-                    value = desfoqueArrastado,
-                    onValueChange = { desfoqueArrastado = it },
-                    onValueChangeFinished = { prefs.definirWallpaperDesfoque(desfoqueArrastado) },
-                    valueRange = 0f..1f
-                )
-                Text(
-                    stringResource(R.string.config_wallpaper_opacidade),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Slider(
-                    value = opacidadeArrastada,
-                    onValueChange = { opacidadeArrastada = it },
-                    onValueChangeFinished = { prefs.definirWallpaperOpacidade(opacidadeArrastada) },
-                    valueRange = 0.15f..1f
-                )
-                Text(
-                    stringResource(R.string.config_wallpaper_aviso),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            HorizontalDivider()
-
-            LinhaDeInterruptor(
-                rotulo = R.string.config_reduzir_efeitos,
-                descricao = R.string.config_reduzir_efeitos_desc,
-                marcado = reduzirEfeitos,
-                onMudar = { audio.playClick(); prefs.definirReduzirEfeitos(it) }
-            )
-        }
-            
-        // -------------------------------------------------------- navegacao
-        TituloDeSecao(R.string.sec_navegacao)
-        Cartao {
-            val ombrosTrocamSecao by prefs.ombrosTrocamSecao.collectAsStateWithLifecycle()
-            LinhaDeInterruptor(
-                rotulo = R.string.config_ombros_secao,
-                descricao = R.string.config_ombros_secao_desc,
-                marcado = ombrosTrocamSecao,
-                onMudar = { audio.playClick(); prefs.definirOmbrosTrocamSecao(it) }
-            )
-        }
-
-        Cartao {
-            // O idioma tambem e perguntado na primeira execucao, mas ninguem
-            // decide isso bem numa tela que ainda pode estar no idioma errado.
-            Text(stringResource(R.string.config_idioma), fontWeight = FontWeight.Bold)
-            Text(
-                stringResource(R.string.boasvindas_idioma_desc),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            SeletorSegmentado(
-                opcoes = listOf(
-                    stringResource(R.string.idioma_sistema),
-                    stringResource(R.string.idioma_portugues),
-                    stringResource(R.string.idioma_ingles)
-                ),
-                indiceSelecionado = Idioma.disponiveis.indexOf(idioma).coerceAtLeast(0),
-                onSelecionar = { indice ->
-                    audio.playClick()
-                    Idioma.definir(context, Idioma.disponiveis[indice])
-                    // Recursos sao resolvidos em attachBaseContext; so nascer de
-                    // novo troca a tabela de strings.
-                    (context as? Activity)?.recreate()
-                }
-            )
-        }
-
-        if (mostrarSeletorDeTema) {
-            SeletorDeTema(
-                temaAtual = temaAtual,
-                onEscolher = { audio.playClick(); prefs.definirTema(it) },
-                onFechar = { mostrarSeletorDeTema = false }
-            )
-        }
-
-        // -------------------------------------------------------- audio
-        TituloDeSecao(R.string.sec_audio)
-        Cartao {
-            LinhaDeInterruptor(
-                rotulo = R.string.config_bgm,
-                marcado = bgmAtivo,
-                onMudar = { audio.playClick(); prefs.definirBgmAtivo(it) }
-            )
-            if (bgmAtivo) {
-                Slider(
-                    value = bgmArrastado,
-                    onValueChange = { bgmArrastado = it },
-                    onValueChangeFinished = { prefs.definirBgmVolume(bgmArrastado) },
-                    valueRange = 0f..1f
-                )
-            }
-
-            HorizontalDivider()
-
-            LinhaDeInterruptor(
-                rotulo = R.string.config_sfx,
-                marcado = sfxAtivo,
-                onMudar = { audio.playClick(); prefs.definirSfxAtivo(it) }
-            )
-            if (sfxAtivo) {
-                Slider(
-                    value = sfxArrastado,
-                    onValueChange = { sfxArrastado = it },
-                    onValueChangeFinished = {
-                        prefs.definirSfxVolume(sfxArrastado)
-                        audio.playClick() // devolve o volume novo como feedback
-                    },
-                    valueRange = 0f..1f
-                )
-            }
-        }
-
-        // -------------------------------------------------------- video
-        TituloDeSecao(R.string.sec_video)
-        Cartao {
-            Text(stringResource(R.string.config_proporcao), fontWeight = FontWeight.Bold)
-            val proporcoes = listOf(
-                R.string.proporcao_4_3,
-                R.string.proporcao_16_9,
-                R.string.proporcao_esticar
-            )
-            proporcoes.forEachIndexed { indice, rotulo ->
-                LinhaDeOpcao(
-                    rotulo = rotulo,
-                    selecionado = proporcao == indice,
-                    onSelecionar = { audio.playClick(); prefs.definirProporcaoTela(indice) }
-                )
-            }
-
-            HorizontalDivider()
-
-            Text(stringResource(R.string.config_filtro_video), fontWeight = FontWeight.Bold)
-            val filtros = listOf(
-                R.string.filtro_nenhum,
-                R.string.filtro_bilinear,
-                R.string.filtro_crt
-            )
-            filtros.forEachIndexed { indice, rotulo ->
-                LinhaDeOpcao(
-                    rotulo = rotulo,
-                    selecionado = filtroVideo == indice,
-                    onSelecionar = { audio.playClick(); prefs.definirFiltroVideo(indice) }
-                )
-            }
-
-            Text(
-                stringResource(R.string.config_aviso_video),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
         
-        // ----------------------------------------------------------- jogo
-        TituloDeSecao(R.string.sec_jogo)
-        Cartao {
-            val autoSalvar by prefs.autoSalvar.collectAsStateWithLifecycle()
-            val autoCarregar by prefs.autoCarregar.collectAsStateWithLifecycle()
-            
-            LinhaDeInterruptor(
-                rotulo = R.string.config_autosalvar,
-                descricao = R.string.config_autosalvar_desc,
-                marcado = autoSalvar,
-                onMudar = { audio.playClick(); prefs.definirAutoSalvar(it) }
-            )
-            HorizontalDivider()
-            LinhaDeInterruptor(
-                rotulo = R.string.config_autocarregar,
-                descricao = R.string.config_autocarregar_desc,
-                marcado = autoCarregar,
-                onMudar = { audio.playClick(); prefs.definirAutoCarregar(it) }
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp)
+        ) {
+            SeletorSegmentado(
+                opcoes = abasStr,
+                indiceSelecionado = abaSelecionada,
+                onSelecionar = { audio.playSwipe(); abaSelecionada = it }
             )
         }
 
-        // --------------------------------------------------- manutencao
-        TituloDeSecao(R.string.sec_manutencao)
-        Cartao {
-            Text(stringResource(R.string.config_hashes), fontWeight = FontWeight.Bold)
-            Text(
-                stringResource(R.string.config_hashes_desc),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            if (abaSelecionada == 0) {
+                Cartao {
+                    RotuloComDica(R.string.config_tema, R.string.dica_tema)
+                    OutlinedButton(
+                        onClick = { audio.playClick(); mostrarSeletorDeTema = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        AmostraDeTema(temaAtual)
+                        Spacer(Modifier.width(12.dp))
+                        Text(stringResource(temaAtual.rotulo), modifier = Modifier.weight(1f))
+                        Text(
+                            stringResource(R.string.acao_escolher_tema),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
 
-            // O calculo roda no WorkManager, entao continua depois de fechar
-            // o app e pode ser cancelado sem perder o que ja foi feito.
-            val progressoHashes by remember { Trabalhos.progresso(context, Trabalhos.HASHES) }
-                .collectAsStateWithLifecycle(initialValue = null)
-            val andamento = progressoHashes
-
-            if (andamento != null) {
-                LinearProgressIndicator(
-                    progress = { andamento.fracao },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp))
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        stringResource(
-                            R.string.progresso_contagem,
-                            andamento.feitos,
-                            andamento.total
-                        ),
-                        style = MaterialTheme.typography.bodySmall
+                    LinhaDeInterruptor(
+                        rotulo = R.string.config_amoled,
+                        descricao = R.string.config_amoled_desc,
+                        dica = R.string.dica_amoled,
+                        marcado = amoled,
+                        onMudar = { audio.playClick(); prefs.definirAmoled(it) }
                     )
-                    OutlinedButton(onClick = {
-                        audio.playClick()
-                        Trabalhos.cancelar(context, Trabalhos.HASHES)
-                    }) { Text(stringResource(R.string.acao_cancelar)) }
-                }
-            } else {
-                Button(
-                    onClick = { audio.playClick(); Trabalhos.enfileirarHashes(context) },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text(stringResource(R.string.acao_calcular)) }
-            }
-        }
 
-        EspacoDaNavegacao()
+                    HorizontalDivider()
+
+                    RotuloComDica(R.string.config_acabamento, R.string.dica_acabamento)
+                    Text(
+                        stringResource(R.string.config_acabamento_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    SeletorSegmentado(
+                        opcoes = Acabamento.entries.map { stringResource(it.rotulo) },
+                        indiceSelecionado = Acabamento.entries.indexOf(acabamento),
+                        onSelecionar = {
+                            audio.playClick()
+                            prefs.definirAcabamento(Acabamento.entries[it])
+                        }
+                    )
+
+                    HorizontalDivider()
+
+                    RotuloComDica(R.string.config_fundo, R.string.dica_fundo)
+                    Text(
+                        stringResource(R.string.config_fundo_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = { escolherWallpaper.launch(arrayOf("image/*")) },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.Image, null, Modifier.padding(end = 8.dp))
+                            Text(stringResource(R.string.acao_escolher_fundo))
+                        }
+                        OutlinedButton(
+                            onClick = { prefs.definirWallpaper(null); audio.playClick() },
+                            enabled = wallpaperUri != null
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                stringResource(R.string.acao_remover_fundo),
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+
+                    if (wallpaperUri != null) {
+                        RotuloComDica(R.string.config_wallpaper_desfoque, R.string.dica_desfoque)
+                        Slider(
+                            value = desfoqueArrastado,
+                            onValueChange = { desfoqueArrastado = it },
+                            onValueChangeFinished = { prefs.definirWallpaperDesfoque(desfoqueArrastado) },
+                            valueRange = 0f..1f
+                        )
+                        RotuloComDica(R.string.config_wallpaper_opacidade, R.string.dica_opacidade)
+                        Slider(
+                            value = opacidadeArrastada,
+                            onValueChange = { opacidadeArrastada = it },
+                            onValueChangeFinished = { prefs.definirWallpaperOpacidade(opacidadeArrastada) },
+                            valueRange = 0.15f..1f
+                        )
+                        Text(
+                            stringResource(R.string.config_wallpaper_aviso),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    HorizontalDivider()
+
+                    LinhaDeInterruptor(
+                        rotulo = R.string.config_reduzir_efeitos,
+                        descricao = R.string.config_reduzir_efeitos_desc,
+                        dica = R.string.dica_reduzir_efeitos,
+                        marcado = reduzirEfeitos,
+                        onMudar = { audio.playClick(); prefs.definirReduzirEfeitos(it) }
+                    )
+
+                    HorizontalDivider()
+
+                    RotuloComDica(R.string.config_idioma, R.string.dica_idioma)
+                    Text(
+                        stringResource(R.string.boasvindas_idioma_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    SeletorSegmentado(
+                        opcoes = listOf(
+                            stringResource(R.string.idioma_sistema),
+                            stringResource(R.string.idioma_portugues),
+                            stringResource(R.string.idioma_ingles)
+                        ),
+                        indiceSelecionado = Idioma.disponiveis.indexOf(idioma).coerceAtLeast(0),
+                        onSelecionar = { indice ->
+                            audio.playClick()
+                            Idioma.definir(context, Idioma.disponiveis[indice])
+                            (context as? Activity)?.recreate()
+                        }
+                    )
+                }
+
+                if (mostrarSeletorDeTema) {
+                    SeletorDeTema(
+                        temaAtual = temaAtual,
+                        onEscolher = { audio.playClick(); prefs.definirTema(it) },
+                        onFechar = { mostrarSeletorDeTema = false }
+                    )
+                }
+            } else if (abaSelecionada == 1) {
+                Cartao {
+                    LinhaDeInterruptor(
+                        rotulo = R.string.config_bgm,
+                        dica = R.string.dica_bgm,
+                        marcado = bgmAtivo,
+                        onMudar = { audio.playClick(); prefs.definirBgmAtivo(it) }
+                    )
+                    if (bgmAtivo) {
+                        Slider(
+                            value = bgmArrastado,
+                            onValueChange = { bgmArrastado = it },
+                            onValueChangeFinished = { prefs.definirBgmVolume(bgmArrastado) },
+                            valueRange = 0f..1f
+                        )
+                    }
+
+                    HorizontalDivider()
+
+                    LinhaDeInterruptor(
+                        rotulo = R.string.config_sfx,
+                        dica = R.string.dica_sfx,
+                        marcado = sfxAtivo,
+                        onMudar = { audio.playClick(); prefs.definirSfxAtivo(it) }
+                    )
+                    if (sfxAtivo) {
+                        Slider(
+                            value = sfxArrastado,
+                            onValueChange = { sfxArrastado = it },
+                            onValueChangeFinished = {
+                                prefs.definirSfxVolume(sfxArrastado)
+                                audio.playClick()
+                            },
+                            valueRange = 0f..1f
+                        )
+                    }
+                }
+            } else if (abaSelecionada == 2) {
+                Cartao {
+                    RotuloComDica(R.string.config_proporcao, R.string.dica_proporcao)
+                    val proporcoes = listOf(
+                        R.string.proporcao_4_3,
+                        R.string.proporcao_16_9,
+                        R.string.proporcao_esticar
+                    )
+                    proporcoes.forEachIndexed { indice, rotulo ->
+                        LinhaDeOpcao(
+                            rotulo = rotulo,
+                            selecionado = proporcao == indice,
+                            onSelecionar = { audio.playClick(); prefs.definirProporcaoTela(indice) }
+                        )
+                    }
+
+                    HorizontalDivider()
+
+                    RotuloComDica(R.string.config_filtro_video, R.string.dica_filtro_video)
+                    val filtros = listOf(
+                        R.string.filtro_nenhum,
+                        R.string.filtro_bilinear,
+                        R.string.filtro_crt
+                    )
+                    filtros.forEachIndexed { indice, rotulo ->
+                        LinhaDeOpcao(
+                            rotulo = rotulo,
+                            selecionado = filtroVideo == indice,
+                            onSelecionar = { audio.playClick(); prefs.definirFiltroVideo(indice) }
+                        )
+                    }
+
+                    Text(
+                        stringResource(R.string.config_aviso_video),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else if (abaSelecionada == 3) {
+                Cartao {
+                    val autoSalvar by prefs.autoSalvar.collectAsStateWithLifecycle()
+                    val autoCarregar by prefs.autoCarregar.collectAsStateWithLifecycle()
+                    
+                    LinhaDeInterruptor(
+                        rotulo = R.string.config_autosalvar,
+                        descricao = R.string.config_autosalvar_desc,
+                        dica = R.string.dica_autosalvar,
+                        marcado = autoSalvar,
+                        onMudar = { audio.playClick(); prefs.definirAutoSalvar(it) }
+                    )
+                    HorizontalDivider()
+                    LinhaDeInterruptor(
+                        rotulo = R.string.config_autocarregar,
+                        descricao = R.string.config_autocarregar_desc,
+                        dica = R.string.dica_autocarregar,
+                        marcado = autoCarregar,
+                        onMudar = { audio.playClick(); prefs.definirAutoCarregar(it) }
+                    )
+                }
+            } else if (abaSelecionada == 4) {
+                Cartao {
+                    val ombrosTrocamSecao by prefs.ombrosTrocamSecao.collectAsStateWithLifecycle()
+                    LinhaDeInterruptor(
+                        rotulo = R.string.config_ombros_secao,
+                        descricao = R.string.config_ombros_secao_desc,
+                        dica = R.string.dica_ombros,
+                        marcado = ombrosTrocamSecao,
+                        onMudar = { audio.playClick(); prefs.definirOmbrosTrocamSecao(it) }
+                    )
+                }
+            } else if (abaSelecionada == 5) {
+                Cartao {
+                    RotuloComDica(R.string.config_hashes, R.string.dica_hashes)
+                    Text(
+                        stringResource(R.string.config_hashes_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    val progressoHashes by remember { Trabalhos.progresso(context, Trabalhos.HASHES) }
+                        .collectAsStateWithLifecycle(initialValue = null)
+                    val andamento = progressoHashes
+
+                    if (andamento != null) {
+                        LinearProgressIndicator(
+                            progress = { andamento.fracao },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                stringResource(
+                                    R.string.progresso_contagem,
+                                    andamento.feitos,
+                                    andamento.total
+                                ),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            OutlinedButton(onClick = {
+                                audio.playClick()
+                                Trabalhos.cancelar(context, Trabalhos.HASHES)
+                            }) { Text(stringResource(R.string.acao_cancelar)) }
+                        }
+                    } else {
+                        Button(
+                            onClick = { audio.playClick(); Trabalhos.enfileirarHashes(context) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text(stringResource(R.string.acao_calcular)) }
+                    }
+                }
+            }
+            EspacoDaNavegacao()
+        }
     }
 }
 
