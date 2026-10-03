@@ -317,6 +317,12 @@
     <string name="jogo_erro_falha_carregar_jogo">Falha ao carregar o jogo.</string>
     <string name="jogo_erro_generico">Erro: %1$s</string>
 
+    <!-- Cabeçalho do menu de pausa -->
+    <string name="jogo_menu_tempo_jogado">Tempo de jogo: --</string>
+
+    <!-- Mensagens de confirmação do menu de pausa -->
+    <string name="jogo_aviso_salvo">Estado salvo!</string>
+
     <!-- Texto para slot vazio -->
     <string name="jogo_slot_vazio_text">vazio</string>
 

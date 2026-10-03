@@ -320,6 +320,12 @@
     <string name="jogo_erro_falha_carregar_jogo">Failed to load game.</string>
     <string name="jogo_erro_generico">Error: %1$s</string>
 
+    <!-- Pause menu header -->
+    <string name="jogo_menu_tempo_jogado">Game time: --</string>
+
+    <!-- Pause menu confirmation messages -->
+    <string name="jogo_aviso_salvo">State saved!</string>
+
     <!-- Slot text for empty state -->
     <string name="jogo_slot_vazio_text">empty</string>
 

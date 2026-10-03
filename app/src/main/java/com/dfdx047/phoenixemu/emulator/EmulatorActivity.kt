@@ -103,6 +103,7 @@ class EmulatorActivity : ComponentActivity() {
     private var fundoDoMenu by mutableStateOf<Bitmap?>(null)
     private var mensagemFeedback by mutableStateOf("")
     private var slotsInfo by mutableStateOf<List<SlotData>>(emptyList())
+    private var nomeDoJogo by mutableStateOf("")
 
     private var srmPath: String? = null
     private var isJogoReal = false
@@ -339,6 +340,7 @@ class EmulatorActivity : ComponentActivity() {
         isJogoReal = resultado.jogoReal
         aspectRatio = resultado.aspectRatio
         precisaAvisoAutoload = resultado.autoloadAplicado
+        nomeDoJogo = if (isJogoReal) (romUriString ?: "") else ""
         if (isJogoReal) {
             autosavePendente = true
         }
@@ -421,49 +423,53 @@ class EmulatorActivity : ComponentActivity() {
                     )
 
                     if (isPaused) {
-                        MenuLateralDoJogo(
+                        MenuDePausa(
                             visivel = isPaused,
-                            abaAtual = abaAtual,
-                            aoTrocarAba = { abaAtual = it },
-                            aoFechar = { isPaused = false; fundoDoMenu = null },
                             fundo = fundoDoMenu,
-                            aspectoDoJogo = aspectRatio,
-                            conteudo = { aba ->
-                                when (aba) {
-                                    AbaDoMenu.JOGO -> ConteudoJogo(
-                                        continuar = { isPaused = false },
-                                        reiniciar = { isPaused = false; nucleo.reiniciar() },
-                                        sair = { finish() }
-                                    )
-                                    AbaDoMenu.ESTADOS -> ConteudoEstados(
-                                        slots = slotsInfo,
-                                        mensagem = mensagemFeedback,
-                                        aoSalvar = { slot ->
-                                            gerenciadorDeEstados?.salvar(slot, capturarAntes = false) { res ->
-                                                val ctx = contextoLocalizado ?: this@EmulatorActivity
-                                                if (res == ResultadoDoEstado.OK) {
-                                                    mensagemFeedback = ctx.getString(R.string.jogo_aviso_estado_salvo, slot)
-                                                    carregarSlotsInfo()
-                                                } else {
-                                                    mensagemFeedback = ctx.getString(R.string.jogo_aviso_falha_salvar)
-                                                }
-                                            }
-                                        },
-                                        aoCarregar = { slot ->
-                                            gerenciadorDeEstados?.carregar(slot) { res ->
-                                                val ctx = contextoLocalizado ?: this@EmulatorActivity
-                                                if (res == ResultadoDoEstado.OK) {
-                                                    mensagemFeedback = ""
-                                                    isPaused = false
-                                                } else {
-                                                    mensagemFeedback = ctx.getString(R.string.jogo_aviso_falha_carregar)
-                                                }
-                                            }
-                                        }
-                                    )
-                                    else -> Box(modifier = Modifier.fillMaxSize()) { Text("Em breve", modifier = Modifier.padding(16.dp)) }
+                            nomeDoJogo = nomeDoJogo,
+                            tempoJogadoMinutos = 0,
+                            slots = slotsInfo,
+                            slotSelecionado = slotAtual,
+                            aoFechar = {
+                                mensagemFeedback = ""
+                                isPaused = false
+                                fundoDoMenu = null
+                            },
+                            aoSalvarEstado = { slot ->
+                                gerenciadorDeEstados?.salvar(slot, capturarAntes = true) { res ->
+                                    val ctx = contextoLocalizado ?: this@EmulatorActivity
+                                    if (res == ResultadoDoEstado.OK) {
+                                        mensagemFeedback = ctx.getString(R.string.jogo_aviso_salvo)
+                                        carregarSlotsInfo()
+                                    } else {
+                                        mensagemFeedback = ctx.getString(R.string.jogo_aviso_falha_salvar)
+                                    }
                                 }
-                            }
+                            },
+                            aoCarregarEstado = { slot ->
+                                gerenciadorDeEstados?.carregar(slot) { res ->
+                                    val ctx = contextoLocalizado ?: this@EmulatorActivity
+                                    if (res == ResultadoDoEstado.OK) {
+                                        mensagemFeedback = ""
+                                        isPaused = false
+                                        fundoDoMenu = null
+                                    } else {
+                                        mensagemFeedback = ctx.getString(R.string.jogo_aviso_falha_carregar)
+                                    }
+                                }
+                            },
+                            aoContinuar = {
+                                mensagemFeedback = ""
+                                isPaused = false
+                                fundoDoMenu = null
+                            },
+                            aoReiniciar = {
+                                val ctx = contextoLocalizado ?: this@EmulatorActivity
+                                nucleo.reiniciar()
+                                mostrarAviso(ctx.getString(R.string.jogo_aviso_reiniciado))
+                            },
+                            aoSair = { finish() },
+                            aoMudarSlot = { slot -> slotAtual = slot },
                         )
                     }
                 }
