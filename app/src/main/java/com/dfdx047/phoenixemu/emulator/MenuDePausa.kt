@@ -1,9 +1,11 @@
 package com.dfdx047.phoenixemu.emulator
 
+import android.util.Log
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -54,6 +56,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
@@ -117,7 +120,7 @@ internal fun MenuDePausa(
             nomeDoJogo = nomeDoJogo,
             tempoJogadoMinutos = tempoJogadoMinutos,
             slots = slots,
-            slotSelecionado = slotSelecionado,
+            slotSelecionadoInicial = slotSelecionado,
             abaAtual = abaAtual,
             aoFechar = aoFechar,
             aoSalvarEstado = aoSalvarEstado,
@@ -137,7 +140,7 @@ private fun MenuDePausaInner(
     nomeDoJogo: String,
     tempoJogadoMinutos: Int,
     slots: List<SlotData>,
-    slotSelecionado: Int,
+    slotSelecionadoInicial: Int,
     abaAtual: AbaDoMenu,
     aoFechar: () -> Unit,
     aoSalvarEstado: (Int) -> Unit,
@@ -151,6 +154,9 @@ private fun MenuDePausaInner(
     val config = LocalConfiguration.current
     val telaLarguraDp = config.screenWidthDp.dp
     val painelLarguraDp = (telaLarguraDp * 0.42f).coerceIn(340.dp, 420.dp)
+
+    // Estado local único e mutável para o slot selecionado
+    var slotSelecionado by remember { mutableIntStateOf(slotSelecionadoInicial.coerceIn(1, 4)) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         // Fundo desfocado
@@ -217,10 +223,18 @@ private fun MenuDePausaInner(
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                 ) {
                     when (abaAtual) {
-                        AbaDoMenu.JOGO -> ConteudoAbaJogo(slots, slotSelecionado, aoSalvarEstado, aoCarregarEstado, aoMudarSlot)
+                        AbaDoMenu.JOGO -> ConteudoAbaJogo(slots, slotSelecionado, aoSalvarEstado, aoCarregarEstado, { novoSlot ->
+                            slotSelecionado = novoSlot
+                            Log.i("PhoenixMenu", "slot=$novoSlot") // TEMPORARIO: remover
+                            aoMudarSlot(novoSlot)
+                        })
                         AbaDoMenu.AJUSTES -> TextoEmBreve()
                         AbaDoMenu.CONTROLES -> TextoEmBreve()
-                        else -> ConteudoAbaJogo(slots, slotSelecionado, aoSalvarEstado, aoCarregarEstado, aoMudarSlot)
+                        else -> ConteudoAbaJogo(slots, slotSelecionado, aoSalvarEstado, aoCarregarEstado, { novoSlot ->
+                            slotSelecionado = novoSlot
+                            Log.i("PhoenixMenu", "slot=$novoSlot") // TEMPORARIO: remover
+                            aoMudarSlot(novoSlot)
+                        })
                     }
                 }
 
@@ -373,6 +387,10 @@ private fun BarraDeAbas(
             abas.forEachIndexed { index, item ->
                 val ativa = index == abaIndex
                 val corTexto = if (ativa) primaria else secundaria
+                val corIndicador by animateColorAsState(
+                    targetValue = if (ativa) primaria else Color.Transparent,
+                    label = "tabIndicatorColor",
+                )
 
                 Box(
                     modifier = Modifier
@@ -384,8 +402,8 @@ private fun BarraDeAbas(
                         .padding(horizontal = 4.dp),
                     contentAlignment = Alignment.Center,
                 ) {
+                    // Fundo suave para aba ativa
                     if (ativa) {
-                        // Fundo suave para aba ativa
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -394,7 +412,20 @@ private fun BarraDeAbas(
                                 .padding(vertical = 4.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            TabConteudo(item, corTexto, ativa, ctx)
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(3.dp),
+                            ) {
+                                TabConteudo(item, corTexto, ativa, ctx)
+                                // Linha indicadora EMBAIXO do rótulo — 3dp de altura, 60% da largura da aba
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.6f)
+                                        .height(3.dp)
+                                        .clip(RoundedCornerShape(1.5.dp))
+                                        .background(corIndicador),
+                                )
+                            }
                         }
                     } else {
                         TabConteudo(item, corTexto, ativa, ctx)
@@ -402,41 +433,6 @@ private fun BarraDeAbas(
                 }
             }
         }
-
-        // Indicador deslizante — linha de 3dp BAIXO dos rótulos, sobre o divisor
-        val larguraAba by androidx.compose.animation.core.animateDpAsState(
-            targetValue = if (abas.size > 0) {
-                with(LocalDensity.current) {
-                    val larguraTotalPx = LocalConfiguration.current.screenWidthDp.dp.toPx()
-                    val paddingPx = 16.dp.toPx()
-                    val gapPx = 8.dp.toPx()
-                    ((larguraTotalPx - paddingPx * 2 - gapPx * 2) / abas.size).toDp()
-                }
-            } else 0.dp,
-            label = "tabIndicatorWidth",
-        )
-        val indiceX by androidx.compose.animation.core.animateDpAsState(
-            targetValue = if (abaIndex < abas.size) {
-                with(LocalDensity.current) {
-                    val larguraTotalPx = LocalConfiguration.current.screenWidthDp.dp.toPx()
-                    val paddingPx = 16.dp.toPx()
-                    val gapPx = 8.dp.toPx()
-                    val disponivel = larguraTotalPx - paddingPx * 2
-                    val larguraAbaCalc = (disponivel - gapPx * 2) / abas.size
-                    (paddingPx + larguraAbaCalc / 2 + abaIndex * (larguraAbaCalc + gapPx)).toDp()
-                }
-            } else 0.dp,
-            animationSpec = spring(stiffness = Spring.StiffnessMedium),
-            label = "tabIndicatorX",
-        )
-        Box(
-            modifier = Modifier
-                .offset(x = indiceX, y = (-3).dp)
-                .width(larguraAba)
-                .height(3.dp)
-                .clip(RoundedCornerShape(1.5.dp))
-                .background(primaria),
-        )
     }
 }
 
@@ -692,39 +688,27 @@ private fun SlotCardMini(
                 }
             }
 
-            // (b) Emblema circular 16dp no canto superior esquerdo
+            // (b) Emblema circular 20dp no canto superior esquerdo, com 4dp de margem
             Box(
                 modifier = Modifier
-                    .size(16.dp)
+                    .size(20.dp)
                     .align(androidx.compose.ui.Alignment.TopStart)
-                    .clip(androidx.compose.foundation.shape.CircleShape),
+                    .padding(4.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .border(
+                        width = 1.5.dp,
+                        color = corPrimaria,
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                    )
+                    .background(Color.Black.copy(alpha = 0.6f)),
                 contentAlignment = Alignment.Center,
             ) {
-                if (selecionado) {
-                    Box(
-                        modifier = Modifier.fillMaxSize().background(corPrimaria),
-                    ) {
-                        Text(
-                            text = numeroSlot.toString(),
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                        )
-                    }
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .border(1.5.dp, corPrimaria, androidx.compose.foundation.shape.CircleShape),
-                    ) {
-                        Text(
-                            text = numeroSlot.toString(),
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = corPrimaria,
-                        )
-                    }
-                }
+                Text(
+                    text = numeroSlot.toString(),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                )
             }
         }
 
@@ -732,11 +716,12 @@ private fun SlotCardMini(
         if (slot.exists && slot.dateText.isNotBlank() && slot.timeText.isNotBlank()) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(1.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
                     text = slot.dateText,
                     fontSize = 10.sp,
+                    lineHeight = 12.sp,
                     color = Color.LightGray.copy(alpha = 0.8f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -744,6 +729,7 @@ private fun SlotCardMini(
                 Text(
                     text = slot.timeText,
                     fontSize = 10.sp,
+                    lineHeight = 12.sp,
                     color = Color.LightGray.copy(alpha = 0.6f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
