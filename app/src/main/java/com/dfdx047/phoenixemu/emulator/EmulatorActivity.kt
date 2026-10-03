@@ -386,8 +386,6 @@ class EmulatorActivity : ComponentActivity() {
         motorDeAtalhos.carregarDoJson(intent.getStringExtra(EXTRA_ATALHOS))
 
         val nucleoName = intent.getStringExtra(EXTRA_NUCLEO) ?: ""
-        val libraryPath = "${applicationInfo.nativeLibraryDir}/$nucleoName"
-        val file = File(libraryPath)
         val romUriString = intent.getStringExtra(EXTRA_ROM)
         val nomeSave = intent.getStringExtra(EXTRA_NOME_SAVE) ?: "save"
 
@@ -401,108 +399,27 @@ class EmulatorActivity : ComponentActivity() {
         val amoled = intent.getBooleanExtra(EXTRA_AMOLED, false)
         val sombras = intent.getBooleanExtra(EXTRA_SOMBRAS, false)
 
-        var infoMessage = ""
-        var loadError: String? = null
+        val carregador = CarregadorDeJogo(this, nucleo)
+        val resultado = carregador.carregar(
+            nomeDoNucleo = nucleoName,
+            romUri = romUriString,
+            nomeSave = nomeSave,
+            autoCarregar = intent.getBooleanExtra(EXTRA_AUTOCARREGAR, false)
+        )
 
-        if (!file.exists()) {
-            loadError = "Núcleo não encontrado: $libraryPath"
-        } else {
-            val systemDir = File(filesDir, "system").apply { mkdirs() }
-            val savesDir = File(filesDir, "saves").apply { mkdirs() }
-            srmPath = File(savesDir, "$nomeSave.srm").absolutePath
-            armazemDeEstados = ArmazemDeEstados(savesDir, nomeSave)
+        var infoMessage = resultado.info
+        var loadError: String? = resultado.erro
 
-            try {
-                nucleo.definirPastas(systemDir.absolutePath, savesDir.absolutePath)
-                if (!nucleo.carregar(libraryPath)) {
-                    loadError = "Falha ao carregar o núcleo."
-                } else {
-                    var romBytes: ByteArray? = null
-                    var romPath: String? = null
-                    
-                    if (romUriString != null) {
-                        val uri = Uri.parse(romUriString)
-                        val resolver = contentResolver
-                        
-                        var romDisplayName = "rom.bin"
-                        resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
-                            if (cursor.moveToFirst()) {
-                                romDisplayName = cursor.getString(0) ?: "rom.bin"
-                            }
-                        }
-                        
-                        var effectiveRomName = romDisplayName
-                        
-                        var inputStream = resolver.openInputStream(uri)
-                        
-                        if (inputStream != null) {
-                            if (romDisplayName.lowercase().endsWith(".zip")) {
-                                val zis = ZipInputStream(inputStream)
-                                var entry = zis.nextEntry
-                                while (entry != null) {
-                                    val name = entry.name.lowercase()
-                                    if (name.endsWith(".nes") || name.endsWith(".sfc") || name.endsWith(".smc")) {
-                                        romBytes = zis.readBytes()
-                                        effectiveRomName = entry.name.substringAfterLast('/')
-                                        break
-                                    }
-                                    entry = zis.nextEntry
-                                }
-                                zis.close()
-                            } else {
-                                romBytes = inputStream.readBytes()
-                                inputStream.close()
-                            }
-                        }
-                        
-                        val needFullpath = nucleo.precisaDeFullPath()
-                        romPath = File(cacheDir, effectiveRomName).absolutePath
-                        
-                        if (needFullpath && romBytes != null) {
-                            File(romPath).writeBytes(romBytes!!)
-                        }
-                        
-                        Log.i("PhoenixLibretro", "Núcleo: $nucleoName, ROM: $effectiveRomName, need_fullpath: $needFullpath, bytes: ${romBytes?.size ?: 0}")
-                    }
-                    
-                    if (romUriString != null && romBytes == null) {
-                        loadError = "Falha ao ler a ROM."
-                    } else if (!nucleo.carregarJogo(romBytes, romPath)) {
-                        loadError = "Falha ao carregar o jogo."
-                    } else {
-                        if (romUriString != null) {
-                            isJogoReal = true
-                            autosavePendente = true
-                        }
-                        infoMessage = nucleo.info()
-                        aspectRatio = nucleo.obterAspectRatio()
-                        
-                        srmPath?.let {
-                            nucleo.carregarSram(it)
-                            nucleo.definirCaminhoSram(it)
-                        }
+        srmPath = resultado.srmPath
+        isJogoReal = resultado.jogoReal
+        aspectRatio = resultado.aspectRatio
+        precisaAvisoAutoload = resultado.autoloadAplicado
+        if (isJogoReal) {
+            autosavePendente = true
+        }
 
-                        if (isJogoReal && intent.getBooleanExtra(EXTRA_AUTOCARREGAR, false)) {
-                            val autoFile = File(savesDir, "$nomeSave.auto")
-                            if (autoFile.exists() && autoFile.length() > 0) {
-                                try {
-                                    val bytes = autoFile.readBytes()
-                                    if (nucleo.carregarEstado(bytes)) {
-                                        precisaAvisoAutoload = true
-                                        Log.i("PhoenixLibretro", "autoload: ok")
-                                    } else {
-                                        Log.w("PhoenixLibretro", "autoload: falhou")
-                                    }
-                                } catch (e: Exception) {
-                                    Log.w("PhoenixLibretro", "autoload: falhou")
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                loadError = "Erro: ${e.message}"
-            }
+        srmPath?.let {
+            armazemDeEstados = ArmazemDeEstados(File(it).parentFile, nomeSave)
         }
 
         setContent {
