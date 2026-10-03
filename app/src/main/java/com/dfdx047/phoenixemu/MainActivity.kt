@@ -102,6 +102,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.drop
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -390,6 +391,14 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx
         }
     }
 
+    // A2 — som ao mudar de capa (ignora a primeira emissao)
+    LaunchedEffect(indiceSelecionado, jogosVisiveis) {
+        snapshotFlow { indiceSelecionado }
+            .distinctUntilChanged()
+            .drop(1)
+            .collect { audio.tocar(AudioEngine.Som.CAPA_PASSA) }
+    }
+
     val progressoCapas by remember { Trabalhos.progresso(context, Trabalhos.CAPAS) }
         .collectAsStateWithLifecycle(initialValue = null)
 
@@ -417,6 +426,7 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx
     LaunchedEffect(jogoParaJogar) {
         val jogo = jogoParaJogar ?: return@LaunchedEffect
         jogoParaJogar = null
+        audio.tocar(AudioEngine.Som.GAME_BOOT)
         // Registrar abertura e salvar sessao pendente ANTES de abrir o emulador.
         lifecycleOwner.lifecycleScope.launch { biblioteca.registrarAbertura(jogo.id) }
         sessaoPrefs.edit()
