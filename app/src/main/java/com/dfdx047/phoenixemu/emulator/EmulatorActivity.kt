@@ -107,9 +107,8 @@ class EmulatorActivity : ComponentActivity() {
     private var avisoTexto by mutableStateOf("")
     private var avisoJob: kotlinx.coroutines.Job? = null
     private var slotAtual = 1
-    private var estadoPendingJob: kotlinx.coroutines.Job? = null
-    
     private var armazemDeEstados: ArmazemDeEstados? = null
+    private var gerenciadorDeEstados: GerenciadorDeEstados? = null
 
     private var ffJob: kotlinx.coroutines.Job? = null
     private var ffSpeed by mutableStateOf(1)
@@ -191,62 +190,20 @@ class EmulatorActivity : ComponentActivity() {
                 mostrarAviso("Slot $slotAtual")
             }
             Acao.SALVAR_ESTADO -> {
-                val savesDir = srmPath?.let { File(it).parentFile }
-                if (savesDir != null) {
-                    capturarMiniatura {
-                        val fileState = armazemDeEstados?.arquivoDoEstado(slotAtual)
-                        if (fileState != null && nucleo.pedirEstado(1, fileState.absolutePath)) {
-                            estadoPendingJob?.cancel()
-                            estadoPendingJob = lifecycleScope.launch {
-                                var result = 0
-                                for (i in 0 until 40) { // 40 * 50ms = 2s
-                                    delay(50)
-                                    result = nucleo.resultadoEstado()
-                                    if (result != 0) break
-                                }
-                                if (result == 1) {
-                                    mostrarAviso("Estado salvo no slot $slotAtual")
-                                    val currentBmp = lastCapturedBitmap
-                                    if (currentBmp != null) {
-                                        withContext(Dispatchers.IO) {
-                                            armazemDeEstados?.gravarMiniatura(slotAtual, currentBmp)
-                                        }
-                                    }
-                                } else {
-                                    mostrarAviso("Falha ao salvar")
-                                }
-                            }
-                        } else {
-                            mostrarAviso("Falha ao salvar")
-                        }
+                gerenciadorDeEstados?.salvar(slotAtual, capturarAntes = true) { res ->
+                    if (res == ResultadoDoEstado.OK) {
+                        mostrarAviso("Estado salvo no slot $slotAtual")
+                    } else {
+                        mostrarAviso("Falha ao salvar")
                     }
                 }
             }
             Acao.CARREGAR_ESTADO -> {
-                val savesDir = srmPath?.let { File(it).parentFile }
-                if (savesDir != null) {
-                    val fileState = armazemDeEstados?.arquivoDoEstado(slotAtual)
-                    if (armazemDeEstados?.temEstado(slotAtual) != true) {
-                        mostrarAviso("Slot $slotAtual vazio")
-                    } else {
-                        if (fileState != null && nucleo.pedirEstado(2, fileState.absolutePath)) {
-                            estadoPendingJob?.cancel()
-                            estadoPendingJob = lifecycleScope.launch {
-                                var result = 0
-                                for (i in 0 until 40) {
-                                    delay(50)
-                                    result = nucleo.resultadoEstado()
-                                    if (result != 0) break
-                                }
-                                if (result == 2) {
-                                    mostrarAviso("Estado carregado do slot $slotAtual")
-                                } else {
-                                    mostrarAviso("Falha ao carregar")
-                                }
-                            }
-                        } else {
-                            mostrarAviso("Falha ao carregar")
-                        }
+                gerenciadorDeEstados?.carregar(slotAtual) { res ->
+                    when (res) {
+                        ResultadoDoEstado.OK -> mostrarAviso("Estado carregado do slot $slotAtual")
+                        ResultadoDoEstado.VAZIO -> mostrarAviso("Slot $slotAtual vazio")
+                        ResultadoDoEstado.FALHA -> mostrarAviso("Falha ao carregar")
                     }
                 }
             }
@@ -254,9 +211,6 @@ class EmulatorActivity : ComponentActivity() {
         }
     }
 
-    private fun carregarSlotsInfo() {
-        slotsInfo = armazemDeEstados?.listarSlots() ?: List(4) { slot -> SlotData(slot + 1, false, "vazio", null) }
-    }
 
     private fun capturarMiniatura(onDone: () -> Unit) {
         val sv = activeSurfaceView
@@ -299,50 +253,9 @@ class EmulatorActivity : ComponentActivity() {
         }
     }
 
-    private fun executarSalvarEstado(slot: Int) {
-        val bytes = nucleo.salvarEstado()
-        if (bytes == null || bytes.isEmpty()) {
-            mensagemFeedback = "Falha ao salvar"
-            return
-        }
 
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                armazemDeEstados?.gravarBytes(slot, bytes)
-                val currentBmp = lastCapturedBitmap
-                if (currentBmp != null) {
-                    armazemDeEstados?.gravarMiniatura(slot, currentBmp)
-                }
-                withContext(Dispatchers.Main) {
-                    mensagemFeedback = "Estado salvo no slot $slot"
-                    carregarSlotsInfo()
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    mensagemFeedback = "Falha ao salvar"
-                }
-            }
-        }
-    }
-
-    private fun executarCarregarEstado(slot: Int) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            val bytes = armazemDeEstados?.lerBytes(slot)
-
-            withContext(Dispatchers.Main) {
-                if (bytes == null || bytes.isEmpty()) {
-                    mensagemFeedback = "Falha ao carregar estado"
-                } else {
-                    val ok = nucleo.carregarEstado(bytes)
-                    if (ok) {
-                        mensagemFeedback = ""
-                        isPaused = false
-                    } else {
-                        mensagemFeedback = "Falha ao carregar estado"
-                    }
-                }
-            }
-        }
+    private fun carregarSlotsInfo() {
+        slotsInfo = armazemDeEstados?.listarSlots() ?: List(4) { slot -> SlotData(slot + 1, false, "vazio", null) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -420,6 +333,14 @@ class EmulatorActivity : ComponentActivity() {
 
         srmPath?.let {
             armazemDeEstados = ArmazemDeEstados(File(it).parentFile, nomeSave)
+            gerenciadorDeEstados = GerenciadorDeEstados(
+                nucleo = nucleo,
+                armazem = armazemDeEstados!!,
+                escopo = lifecycleScope,
+                capturarMiniatura = ::capturarMiniatura,
+                miniaturaAtual = { lastCapturedBitmap },
+                pausado = { isPaused }
+            )
         }
 
         setContent {
@@ -493,8 +414,26 @@ class EmulatorActivity : ComponentActivity() {
                                 nucleo.reiniciar()
                             },
                             sair = { finish() },
-                            salvarSlot = ::executarSalvarEstado,
-                            carregarSlot = ::executarCarregarEstado,
+                            salvarSlot = { slot ->
+                                gerenciadorDeEstados?.salvar(slot, capturarAntes = false) { res ->
+                                    if (res == ResultadoDoEstado.OK) {
+                                        mensagemFeedback = "Estado salvo no slot $slot"
+                                        carregarSlotsInfo()
+                                    } else {
+                                        mensagemFeedback = "Falha ao salvar"
+                                    }
+                                }
+                            },
+                            carregarSlot = { slot ->
+                                gerenciadorDeEstados?.carregar(slot) { res ->
+                                    if (res == ResultadoDoEstado.OK) {
+                                        mensagemFeedback = ""
+                                        isPaused = false
+                                    } else {
+                                        mensagemFeedback = "Falha ao carregar estado"
+                                    }
+                                }
+                            },
                             voltarAoMenu = { menuState = MenuState.MAIN }
                         )
                     }
@@ -530,8 +469,7 @@ class EmulatorActivity : ComponentActivity() {
 
                 LaunchedEffect(isPaused) {
                     motorDeAtalhos.resetar()
-                    estadoPendingJob?.cancel()
-                    estadoPendingJob = null
+                    gerenciadorDeEstados?.cancelarPendentes()
 
                     if (isPaused) {
                         nucleo.parar()
@@ -586,8 +524,7 @@ class EmulatorActivity : ComponentActivity() {
         super.onPause()
         nucleo.parar()
         motorDeAtalhos.resetar()
-        estadoPendingJob?.cancel()
-        estadoPendingJob = null
+        gerenciadorDeEstados?.cancelarPendentes()
         srmPath?.let { nucleo.salvarSram(it) }
         tentarAutosave()
     }
@@ -621,8 +558,7 @@ class EmulatorActivity : ComponentActivity() {
         super.onDestroy()
         nucleo.parar()
         motorDeAtalhos.resetar()
-        estadoPendingJob?.cancel()
-        estadoPendingJob = null
+        gerenciadorDeEstados?.cancelarPendentes()
         srmPath?.let { nucleo.salvarSram(it) }
         tentarAutosave()
         nucleo.descarregar()
