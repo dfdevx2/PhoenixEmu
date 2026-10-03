@@ -16,11 +16,16 @@ val AmoledPrimary = Color(0xFFBB86FC)
 val AmoledOnPrimary = Color(0xFF000000)
 
 // --- TEMA NES (Americano) ---
-val NesUsBackground = Color(0xFFD4D4D4) // Cinza clássico da carcaça do Nintendinho
-val NesUsSurface = Color(0xFF9E9E9E) // Cinza mais escuro da faixa frontal
-val NesUsPrimary = Color(0xFFE4000F) // Vermelho vivo das letras "Nintendo" e botões
+val NesUsBackground = Color(0xFFD9D9D9) // Cinza clássico da carcaça do Nintendinho
+val NesUsSurface = Color(0xFFEDEDED) // Cinza mais escuro da faixa frontal
+val NesUsPrimary = Color(0xFFA81F29) // Vermelho vivo das letras "Nintendo" e botões
 val NesUsOnPrimary = Color(0xFFFFFFFF)
-val NesUsSecondary = Color(0xFF000000) // Preto
+val NesUsSecondary = Color(0xFF3B3B3B) // Preto
+val NesUsOnPrimaryContainer = Color(0xFFF2F2F2)
+val NesUsContainer = Color(0xFFCFCFCF)
+val NesUsOnSurface = Color(0xFF1A1A1A)
+val NesUsOnSurfaceVariant = Color(0xFF3D3D3D)
+val NesUsOutline = Color(0xFF6B6B6B)
 
 // --- TEMA NES (Japonês / Famicom) ---
 val FamicomBackground = Color(0xFFFDE8C4) // Creme amarelado do plástico original
@@ -36,10 +41,14 @@ val SnesUsOnPrimary = Color(0xFFFFFFFF)
 val SnesUsSecondary = Color(0xFFB5A6D8) // Roxo Claro (Lilás) dos botões X e Y
 
 // --- TEMA SNES (Japonês / Super Famicom) ---
-val SnesJpBackground = Color(0xFFDCDCDC) // Plástico cinza claro
-val SnesJpSurface = Color(0xFF9B9B9B) // Fundo dos cartões puxado pro cinza do controle
-val SnesJpPrimary = Color(0xFF004694) // Azul forte do botão X
+val SnesJpBackground = Color(0xFFDEDEE0) // Plástico cinza claro
+val SnesJpSurface = Color(0xFFEEEEF0) // Fundo dos cartões puxado pro cinza do controle
+val SnesJpPrimary = Color(0xFF1F4E8C) // Azul forte do botão X
 val SnesJpOnPrimary = Color(0xFFFFFFFF)
 val SnesJpSecondary = Color(0xFFE4000F) // Vermelho do botão A
 val SnesJpTertiary = Color(0xFFFFB700) // Amarelo do botão B
 val SnesJpVerde = Color(0xFF00892B) // Verde do botão Y (usado para destaques)
+val SnesJpContainer = Color(0xFFD0D3DA)
+val SnesJpOnSurface = Color(0xFF1B1B1F)
+val SnesJpOnSurfaceVariant = Color(0xFF45464F)
+val SnesJpOutline = Color(0xFF74777F)

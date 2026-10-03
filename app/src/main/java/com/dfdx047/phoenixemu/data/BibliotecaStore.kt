@@ -135,6 +135,12 @@ class BibliotecaStore private constructor(context: Context) {
             .map { it.paraModelos() }
             .stateIn(escopo, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /** Todos os jogos, sem filtro de busca/sistema/favoritos. */
+    val jogosTodos: StateFlow<List<Jogo>> = dao
+        .observarTodos()
+        .map { it.paraModelos() }
+        .stateIn(escopo, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     private fun consultar(c: Consulta): Flow<List<JogoEntity>> {
         val sistema = c.sistema?.name
         val favoritos = c.filtro == FiltroBiblioteca.FAVORITOS

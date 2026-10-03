@@ -33,8 +33,14 @@ private val NesUsColorScheme = lightColorScheme(
     primary = NesUsPrimary,
     onPrimary = NesUsOnPrimary,
     primaryContainer = NesUsSecondary,
-    onPrimaryContainer = NesUsPrimary,
-    secondaryContainer = NesUsBackground
+    onPrimaryContainer = NesUsOnPrimaryContainer,
+    secondary = NesUsSecondary,
+    tertiary = NesUsPrimary,
+    secondaryContainer = NesUsContainer,
+    surfaceVariant = NesUsContainer,
+    onSurface = NesUsOnSurface,
+    onSurfaceVariant = NesUsOnSurfaceVariant,
+    outline = NesUsOutline
 )
 
 private val FamicomColorScheme = lightColorScheme(
@@ -62,9 +68,15 @@ private val SnesJpColorScheme = lightColorScheme(
     surface = SnesJpSurface,
     primary = SnesJpPrimary,
     onPrimary = SnesJpOnPrimary,
-    primaryContainer = SnesJpSurface,
-    onPrimaryContainer = SnesJpPrimary,
-    secondaryContainer = SnesJpBackground
+    primaryContainer = SnesJpPrimary,
+    onPrimaryContainer = Color.White,
+    secondary = SnesJpSecondary,
+    tertiary = SnesJpTertiary,
+    secondaryContainer = SnesJpContainer,
+    surfaceVariant = SnesJpContainer,
+    onSurface = SnesJpOnSurface,
+    onSurfaceVariant = SnesJpOnSurfaceVariant,
+    outline = SnesJpOutline
 )
 
 /**
@@ -102,6 +114,8 @@ fun PhoenixEmuTheme(
     amoled: Boolean = false,
     acabamento: Acabamento = Acabamento.VIDRO,
     darkTheme: Boolean = isSystemInDarkTheme(),
+    /** Liga/desliga sombras em todos os componentes do app. */
+    sombras: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val esquemaBase = esquemaDeAmostra(temaAtual, darkTheme)
@@ -146,8 +160,8 @@ fun PhoenixEmuTheme(
     // (e qualquer outro que voce crie) ganham um vidro coerente sem que este
     // arquivo precise saber deles.
     val ehEscuro = colorScheme.background.luminance() < 0.5f
-    val estiloDeVidro = remember(temaAtual, colorScheme, ehEscuro, reduzirEfeitos, acabamento, amoled) {
-        estiloDeVidroPara(temaAtual, colorScheme, ehEscuro, reduzirEfeitos, acabamento, amoled)
+    val estiloDeVidro = remember(temaAtual, colorScheme, ehEscuro, reduzirEfeitos, acabamento, amoled, sombras) {
+        estiloDeVidroPara(temaAtual, colorScheme, ehEscuro, reduzirEfeitos, acabamento, amoled, sombras)
     }
 
     CompositionLocalProvider(LocalVidro provides estiloDeVidro) {

@@ -29,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -59,6 +60,7 @@ import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.widthIn
@@ -104,6 +106,9 @@ fun SuperficieDeVidro(
      * estilo, continua parecendo o mesmo material.
      */
     desfocar: Boolean = true,
+    /** Liga/desliga sombras nesta superficie. Quando desligado (globalmente),
+     * nenhuma sombra e desenhada em lugar nenhum do app. */
+    comSombra: Boolean = true,
     estilo: EstiloDeVidro = LocalVidro.current,
     conteudo: @Composable BoxScope.() -> Unit
 ) {
@@ -118,9 +123,9 @@ fun SuperficieDeVidro(
     // Fornecer a cor aqui conserta a tela inteira de uma vez.
     CompositionLocalProvider(LocalContentColor provides estilo.corDoConteudo) {
         if (desfocar && estilo.desfoqueReal && fundo != null) {
-            VidroComDesfoque(modifier, forma, forte, estilo, fundo, conteudo)
+            VidroComDesfoque(modifier, forma, forte, comSombra, estilo, fundo, conteudo)
         } else {
-            VidroSimples(modifier, forma, forte, estilo, conteudo)
+            VidroSimples(modifier, forma, forte, comSombra, estilo, conteudo)
         }
     }
 }
@@ -130,6 +135,7 @@ private fun VidroComDesfoque(
     modifier: Modifier,
     forma: Shape,
     forte: Boolean,
+    comSombra: Boolean,
     estilo: EstiloDeVidro,
     fundo: EstadoDeFundo,
     conteudo: @Composable BoxScope.() -> Unit
@@ -142,7 +148,7 @@ private fun VidroComDesfoque(
     Box(
         modifier = modifier
             .onGloballyPositioned { minhaPosicao = it.positionInWindow() }
-            .shadow(estilo.sombra, forma)
+            .let { if (comSombra && estilo.sombra > 0.dp) it.shadow(estilo.sombra, forma) else it }
             .clip(forma)
             .drawBehind {
                 if (fundo.gravado) {
@@ -173,13 +179,14 @@ private fun VidroSimples(
     modifier: Modifier,
     forma: Shape,
     forte: Boolean,
+    comSombra: Boolean,
     estilo: EstiloDeVidro,
     conteudo: @Composable BoxScope.() -> Unit
 ) {
     val tinta = if (forte) estilo.tintaForte else estilo.tinta
     Box(
         modifier = modifier
-            .shadow(estilo.sombra, forma)
+            .let { if (comSombra && estilo.sombra > 0.dp) it.shadow(estilo.sombra, forma) else it }
             .clip(forma)
             .drawBehind {
                 drawRect(tinta)
@@ -360,6 +367,52 @@ fun SeletorSegmentado(
                     estilo = estilo,
                     onClick = { onSelecionar(indice) }
                 )
+            }
+        }
+    }
+}
+
+/** Versão NES do seletor segmentado: botões quadrados com pixel-art feel. */
+@Composable
+fun SeletorSegmentadoNES(
+    opcoes: List<String>,
+    indiceSelecionado: Int,
+    onSelecionar: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        color = Color(0xFF1A1A2E).copy(alpha = 0.7f),
+        tonalElevation = 2.dp
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(6.dp)
+        ) {
+            opcoes.forEachIndexed { indice, texto ->
+                val selecionado = indice == indiceSelecionado
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(
+                            color = if (selecionado) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            shape = RoundedCornerShape(6.dp)
+                        )
+                        .clickable { onSelecionar(indice) }
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = texto,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (selecionado) FontWeight.Bold else FontWeight.Medium,
+                        color = if (selecionado) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1
+                    )
+                }
             }
         }
     }

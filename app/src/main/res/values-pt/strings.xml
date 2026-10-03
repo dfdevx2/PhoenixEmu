@@ -111,6 +111,16 @@
     <string name="ra_platinado">Platinado</string>
     <string name="ra_aviso_mock">Esta tela ainda mostra dados de exemplo. O acompanhamento real de conquistas chega com a biblioteca rcheevos, na Fase 5.</string>
 
+    <!-- Conquistas — jogos -->
+    <string name="ra_destaque_conquistas">Conquistas</string>
+    <string name="ra_recentes">Jogados recentemente</string>
+    <string name="ra_todos_jogos">Todos os jogos</string>
+    <string name="ra_sem_jogos">Você ainda não abriu nenhum jogo. Abra um jogo para ver as conquistas dele aqui.</string>
+    <string name="ra_sem_jogos_sistema">Nenhum jogo aberto neste sistema.</string>
+    <string name="ra_pontos">%1$d pontos</string>
+    <string name="ra_ex_titulo">Conquista de exemplo %1$d</string>
+    <string name="ra_ex_desc">Descrição de exemplo. Os dados reais virão com a integração do RetroAchievements.</string>
+
     <!-- Configurações por jogo -->
     <string name="jogo_config_intro">Você está editando regras exclusivas para:</string>
     <string name="sec_overrides">SUBSTITUIÇÕES (OVERRIDES)</string>
@@ -254,4 +264,14 @@
     <string name="titulo_topo_fixo">Barra superior fixa na grade</string>
     <string name="desc_topo_fixo">Mantém busca e filtros fixos no topo.</string>
     <string name="dica_topo_fixo">Ligado, a busca e os filtros ficam fixos e a grade de capas rola numa área própria abaixo deles, sem passar por trás. Desligado, a barra some quando você rola e volta ao subir.</string>
+
+    <!-- Sombras -->
+    <string name="titulo_sombras">Sombras</string>
+    <string name="desc_sombras">Sombra suave sob barras e botões flutuantes.</string>
+    <string name="dica_sombras">Liga uma sombra leve sob a barra de navegação, a busca e os botões flutuantes. Desligado, só a borda do vidro separa os elementos do fundo.</string>
+    <!-- Esconder a navegação ao descer -->
+    <string name="titulo_nav_oculta">Esconder a navegação ao descer</string>
+    <string name="desc_nav_oculta">Na grade, a barra de navegação some ao descer pelos jogos.</string>
+    <string name="dica_nav_oculta">Ao descer pela grade de jogos, a barra de navegação e o botão de adicionar pasta saem da frente e voltam quando você sobe. L1 e R1 também trazem a barra de volta.</string>
+
 </resources>

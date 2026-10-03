@@ -15,6 +15,9 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -251,6 +254,7 @@ class MainActivity : ComponentActivity() {
             val reduzirEfeitos by prefs.reduzirEfeitos.collectAsStateWithLifecycle()
             val amoled by prefs.amoled.collectAsStateWithLifecycle()
             val acabamento by prefs.acabamento.collectAsStateWithLifecycle()
+            val sombras by prefs.sombras.collectAsStateWithLifecycle()
             // A splash ja esperou o DataStore carregar, entao este booleano
             // chega com o valor real -- nao ha um quadro em que a tela de
             // boas-vindas apareca para quem ja passou por ela.
@@ -261,7 +265,8 @@ class MainActivity : ComponentActivity() {
                 temaAtual = tema,
                 reduzirEfeitos = reduzirEfeitos,
                 amoled = amoled,
-                acabamento = acabamento
+                acabamento = acabamento,
+                sombras = sombras
             ) {
                 CompositionLocalProvider(LocalAudio provides audio) {
                     if (boasVindasPendentes) {
@@ -436,6 +441,46 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx
         derivedStateOf { estadoGrade.firstVisibleItemIndex == 0 && estadoGrade.firstVisibleItemScrollOffset < 48 }
     }
 
+    // ---------------------------------------------------------------- ocultar nav ao descer na grade
+    val ocultarNavPref by prefs.ocultarNavAoDescer.collectAsStateWithLifecycle()
+    var navegacaoOculta by remember { mutableStateOf(false) }
+    var posReferencia by remember { mutableIntStateOf(0) }
+    val alturaFileiraPx = with(LocalDensity.current) { 120.dp.toPx() }
+
+    LaunchedEffect(modoVisual, secao, ocultarNavPref) {
+        if (modoVisual != ModoVisual.GRADE || secao != Secao.BIBLIOTECA || !ocultarNavPref) {
+            navegacaoOculta = false
+            return@LaunchedEffect
+        }
+    }
+
+    LaunchedEffect(modoVisual, secao, ocultarNavPref, estadoGrade) {
+        if (modoVisual != ModoVisual.GRADE || secao != Secao.BIBLIOTECA || !ocultarNavPref) return@LaunchedEffect
+
+        snapshotFlow {
+            val idx = estadoGrade.firstVisibleItemIndex
+            val off = estadoGrade.firstVisibleItemScrollOffset
+            val fracao = if (alturaFileiraPx > 0f) off / alturaFileiraPx else 0f
+            (idx + fracao).toInt()
+        }.distinctUntilChanged().collect { posicao ->
+            if (posicao > posReferencia + 2) {
+                navegacaoOculta = true
+            } else if (posicao < posReferencia - 2) {
+                navegacaoOculta = false
+            }
+            posReferencia = posicao
+        }
+    }
+
+    // Trocar de secao tambem reexibe a navegacao.
+    val navRef = navegacaoOculta
+    LaunchedEffect(secaoIndice) {
+        chrome.mostrar()
+        if (navRef) navegacaoOculta = false
+    }
+
+    // Trocar de secao via L1/R1 tambem reexibe a navegacao.
+
     // ------------------------------------------------------- seletor SAF
     val abrirExplorador = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocumentTree()
@@ -526,7 +571,9 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx
                                 chrome = if (secao == Secao.BIBLIOTECA) chrome else null,
                                 topoFixoNaGrade = topoFixoNaGrade
                             )
-                            Secao.CONQUISTAS -> TelaRetroAchievements()
+                            Secao.CONQUISTAS -> TelaRetroAchievements(
+                                jogos = biblioteca.jogosTodos.value
+                            )
                             Secao.CONTROLES -> TelaControles(prefs)
                             Secao.AJUSTES -> TelaConfiguracoes(prefs)
                             Secao.SOBRE -> TelaSobre()
@@ -794,15 +841,17 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx
                         )
                     }
 
-                    PilulaDeNavegacao(
-                        itens = itensDeNavegacao(),
-                        indiceSelecionado = secaoIndice,
-                        onSelecionar = {
-                            audio.playClick()
-                            secaoIndice = it
-                            chrome.mostrar()
-                        }
-                    )
+                    AnimatedVisibility(visible = !navegacaoOculta, enter = fadeIn(), exit = fadeOut()) {
+                        PilulaDeNavegacao(
+                            itens = itensDeNavegacao(),
+                            indiceSelecionado = secaoIndice,
+                            onSelecionar = {
+                                audio.playClick()
+                                secaoIndice = it
+                                chrome.mostrar()
+                            }
+                        )
+                    }
                 }
                 
                 if (secao == Secao.BIBLIOTECA && xmbAtivo) {
@@ -820,22 +869,32 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx
                 }
 
                 if (secao == Secao.BIBLIOTECA) {
-                    BotaoPilula(
-                        icone = Icons.Default.Add,
-                        texto = stringResource(R.string.acao_adicionar_pasta),
-                        expandido = xmbAtivo || (fabExpandido && oculto < 0.5f && modoVisual == ModoVisual.GRADE),
-                        onClick = { audio.playClick(); abrirExplorador.launch(null) },
+                    Box(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
-                            .graphicsLayer {
-                                if (!xmbAtivo) {
-                                    translationY = oculto * alturaDaNavegacaoPx
-                                    alpha = 1f - oculto
-                                }
-                            }
                             .navigationBarsPadding()
                             .padding(end = 16.dp, bottom = if (xmbAtivo) 16.dp else 96.dp)
-                    )
+                    ) {
+                        AnimatedVisibility(
+                            visible = !navegacaoOculta && !xmbAtivo,
+                            enter = slideInVertically { it } + fadeIn(),
+                            exit = slideOutVertically { it } + fadeOut()
+                        ) {
+                            BotaoPilula(
+                                icone = Icons.Default.Add,
+                                texto = stringResource(R.string.acao_adicionar_pasta),
+                                expandido = xmbAtivo || (fabExpandido && oculto < 0.5f && modoVisual == ModoVisual.GRADE),
+                                onClick = { audio.playClick(); abrirExplorador.launch(null) },
+                                modifier = Modifier
+                                    .graphicsLayer {
+                                        if (!xmbAtivo) {
+                                            translationY = oculto * alturaDaNavegacaoPx
+                                            alpha = 1f - oculto
+                                        }
+                                    }
+                            )
+                        }
+                    }
                 }
             }
 

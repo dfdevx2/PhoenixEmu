@@ -21,7 +21,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -29,6 +34,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AccountCircle
@@ -52,6 +59,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -64,11 +72,13 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
@@ -80,7 +90,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
 import com.dfdx047.phoenixemu.Acabamento
 import com.dfdx047.phoenixemu.data.BibliotecaStore
 import com.dfdx047.phoenixemu.data.Idioma
@@ -89,6 +101,7 @@ import com.dfdx047.phoenixemu.ui.theme.esquemaDeAmostra
 import com.dfdx047.phoenixemu.ui.design.CartaoDeVidro
 import com.dfdx047.phoenixemu.ui.design.EspacoDaNavegacao
 import com.dfdx047.phoenixemu.ui.design.SeletorSegmentado
+import com.dfdx047.phoenixemu.ui.design.SeletorSegmentadoNES
 import com.dfdx047.phoenixemu.ui.design.BotaoDeDica
 import com.dfdx047.phoenixemu.data.Trabalhos
 import com.dfdx047.phoenixemu.emulacao.Emulador
@@ -385,6 +398,28 @@ fun TelaConfiguracoes(prefs: Preferencias) {
                         dica = R.string.dica_topo_fixo,
                         marcado = topoFixo,
                         onMudar = { audio.playClick(); prefs.definirTopoFixoNaGrade(it) }
+                    )
+
+                    HorizontalDivider()
+
+                    val sombras by prefs.sombras.collectAsStateWithLifecycle()
+                    LinhaDeInterruptor(
+                        rotulo = R.string.titulo_sombras,
+                        descricao = R.string.desc_sombras,
+                        dica = R.string.dica_sombras,
+                        marcado = sombras,
+                        onMudar = { audio.playClick(); prefs.definirSombras(it) }
+                    )
+
+                    HorizontalDivider()
+
+                    val ocultarNav by prefs.ocultarNavAoDescer.collectAsStateWithLifecycle()
+                    LinhaDeInterruptor(
+                        rotulo = R.string.titulo_nav_oculta,
+                        descricao = R.string.desc_nav_oculta,
+                        dica = R.string.dica_nav_oculta,
+                        marcado = ocultarNav,
+                        onMudar = { audio.playClick(); prefs.definirOcultarNavAoDescer(it) }
                     )
 
                     HorizontalDivider()
@@ -858,19 +893,12 @@ fun TelaConfiguracoesJogo(jogo: Jogo?) {
 }
 
 // =====================================================================
-// TELA: RETROACHIEVEMENTS (ainda com dados de exemplo)
+// TELA: RETROACHIEVEMENTS (com jogos reais da biblioteca)
 // =====================================================================
-val mockStats = listOf(
-    RetroGameStat("Super Mario Bros.", Sistema.NES, 12, 24),
-    RetroGameStat("Castlevania", Sistema.NES, 5, 18),
-    RetroGameStat("Super Mario World", Sistema.SNES, 45, 96),
-    RetroGameStat("Chrono Trigger", Sistema.SNES, 10, 50),
-    RetroGameStat("Donkey Kong Country", Sistema.SNES, 28, 28)
-)
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun TelaRetroAchievements() {
+fun TelaRetroAchievements(jogos: List<Jogo>) {
     val context = LocalContext.current
     val audio = LocalAudio.current
     val prefsRa = remember {
@@ -882,26 +910,50 @@ fun TelaRetroAchievements() {
     var chaveVisivel by remember { mutableStateOf(false) }
     var logado by remember { mutableStateOf(prefsRa.getBoolean("isLogged", false)) }
 
+    // Jogos "abertos" = tempo > 0 ou ultimo jogado
+    val jogosAbertos = remember(jogos) {
+        jogos.filter { it.tempoJogadoMinutos > 0 || it.ultimaVezJogado > 0 }
+            .sortedByDescending { it.ultimaVezJogado }
+    }
+
+    // Estado: jogo selecionado (destaque) — inicia no mais recente
+    var jogoSelecionadoId by remember {
+        mutableStateOf<String?>(jogosAbertos.firstOrNull()?.id)
+    }
+    val jogoDestaque = remember(jogoSelecionadoId, jogosAbertos) {
+        jogosAbertos.find { it.id == jogoSelecionadoId }
+    }
+
+    // Sistema filtrado pelo seletor
+    var sistemaIndice by rememberSaveable { mutableIntStateOf(0) }
+
+    val lazyListState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+
     if (!logado) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CartaoDeVidro(modifier = Modifier.padding(28.dp)) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Icon(
-                        Icons.Default.EmojiEvents,
-                        null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        stringResource(R.string.ra_vincular),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    OutlinedTextField(
+        Box(Modifier.fillMaxSize().padding(top = 88.dp, bottom = 96.dp), contentAlignment = Alignment.Center) {
+            Box(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                contentAlignment = Alignment.Center
+            ) {
+                CartaoDeVidro(modifier = Modifier.padding(28.dp)) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.EmojiEvents,
+                            null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            stringResource(R.string.ra_vincular),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        OutlinedTextField(
                         value = usuario,
                         onValueChange = { usuario = it },
                         label = { Text(stringResource(R.string.ra_usuario)) },
@@ -934,100 +986,363 @@ fun TelaRetroAchievements() {
                     )
                     Button(
                         onClick = {
+                            prefsRa.edit().putString("username", usuario).apply()
+                            prefsRa.edit().putString("api_key", chave).apply()
+                            prefsRa.edit().putBoolean("isLogged", true).apply()
+                            logado = true
                             audio.playClick()
-                            if (usuario.isNotBlank() && chave.isNotBlank()) {
-                                // Fase 5: isto some. As credenciais vao para o
-                                // DataStore protegido pelo Keystore e a
-                                // validacao real acontece via rcheevos.
-                                prefsRa.edit()
-                                    .putString("username", usuario)
-                                    .putBoolean("isLogged", true)
-                                    .apply()
-                                logado = true
-                                chave = ""
-                            }
                         },
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text(stringResource(R.string.ra_entrar)) }
-
-                    Text(
-                        stringResource(R.string.ra_aviso_mock),
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    ) {
+                        Text(stringResource(R.string.ra_entrar))
+                    }
+                    if (prefsRa.getString("username", "") != null) {
+                        Text(
+                            text = usuario,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Button(
+                        onClick = {
+                            prefsRa.edit().clear().apply()
+                            logado = false
+                            audio.playClick()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Text(stringResource(R.string.ra_sair))
+                    }
+                    Spacer(Modifier.height(24.dp))
+                    Icon(
+                        imageVector = Icons.Default.AccountCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(100.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                     )
+                }
                 }
             }
         }
-        return
-    }
-
-    val sistemas = remember { Sistema.entries }
-    var sistemaIndice by rememberSaveable { mutableIntStateOf(0) }
-    val porSistema = remember { mockStats.groupBy { it.sistema } }
-
-    Column(Modifier.fillMaxSize()) {
-        Spacer(Modifier.height(88.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+    } else {
+        LazyColumn(
+            state = lazyListState,
+            contentPadding = PaddingValues(top = 88.dp, start = 16.dp, end = 16.dp, bottom = 96.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.fillMaxSize()
         ) {
-            Icon(
-                Icons.Default.AccountCircle,
-                null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(Modifier.width(16.dp))
-            Column(Modifier.weight(1f)) {
-                Text(usuario, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text(
-                    stringResource(R.string.ra_online),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
+            // a) Cabeçalho da conta
+            item {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.AccountCircle,
+                            null,
+                            modifier = Modifier.size(24.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            usuario,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            "●",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
+                        TextButton(onClick = {
+                            prefsRa.edit().clear().apply()
+                            logado = false
+                            audio.playClick()
+                        }) {
+                            Text(
+                                stringResource(R.string.ra_sair),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
             }
-            IconButton(onClick = {
-                audio.playClick()
-                logado = false
-                prefsRa.edit().putBoolean("isLogged", false).apply()
-            }) {
-                Icon(
-                    Icons.AutoMirrored.Filled.Logout,
-                    stringResource(R.string.ra_sair),
-                    tint = MaterialTheme.colorScheme.error
-                )
-            }
-        }
 
-        Spacer(Modifier.height(12.dp))
-        SeletorSegmentado(
-            opcoes = sistemas.map { it.rotuloCurto },
-            indiceSelecionado = sistemaIndice,
-            onSelecionar = { audio.playSwipe(); sistemaIndice = it },
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
+            if (jogosAbertos.isEmpty()) {
+                // Estado vazio
+                item {
+                    CartaoDeVidro {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.EmojiEvents,
+                                null,
+                                modifier = Modifier.size(56.dp),
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                            )
+                            Text(
+                                stringResource(R.string.ra_sem_jogos),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    }
+                }
+            } else {
+                // b) DESTAQUE — jogo selecionado
+                item {
+                    if (jogoDestaque != null) {
+                        val total = conquistasDeExemplo(jogoDestaque).first
+                        val desbloqueadas = conquistasDeExemplo(jogoDestaque).second
+                        val pontos = 5 * desbloqueadas
+                        val fracao = if (total > 0) desbloqueadas.toFloat() / total else 0f
+                        val percentual = (fracao * 100).toInt()
 
-        run {
-            val stats = porSistema[sistemas[sistemaIndice]].orEmpty()
-            LazyColumn(
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.fillMaxSize()
-            ) {
+                        CartaoDeVidro {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    // Capa
+                                    Box(
+                                        modifier = Modifier
+                                            .height(150.dp)
+                                            .width(117.dp)
+                                            .clip(RoundedCornerShape(14.dp)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (jogoDestaque.capaLocal != null && java.io.File(jogoDestaque.capaLocal).exists()) {
+                                            AsyncImage(
+                                                model = java.io.File(jogoDestaque.capaLocal),
+                                                contentDescription = null,
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                            )
+                                        } else if (!jogoDestaque.capaUrl.isNullOrEmpty()) {
+                                            AsyncImage(
+                                                model = jogoDestaque.capaUrl,
+                                                contentDescription = null,
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                            )
+                                        } else {
+                                            Icon(
+                                                Icons.Default.Image,
+                                                null,
+                                                modifier = Modifier.size(40.dp),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                            )
+                                        }
+                                    }
+
+                                    // Info à direita
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(
+                                            jogoDestaque.nome,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Surface(
+                                            modifier = Modifier.width(60.dp),
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                            contentColor = MaterialTheme.colorScheme.primary
+                                        ) {
+                                            Text(
+                                                text = jogoDestaque.sistema.rotuloCurto,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                            )
+                                        }
+                                        val tempoTexto = if (jogoDestaque.tempoJogadoMinutos > 0) {
+                                            stringResource(
+                                                R.string.cartao_tempo_jogado,
+                                                jogoDestaque.tempoJogadoMinutos
+                                            )
+                                        } else {
+                                            stringResource(R.string.cartao_nunca_jogado)
+                                        }
+                                        Text(tempoTexto, style = MaterialTheme.typography.bodySmall)
+                                        Text(
+                                            stringResource(
+                                                R.string.ra_conquistas,
+                                                desbloqueadas, total
+                                            ),
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                        LinearProgressIndicator(
+                                            progress = { fracao },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(8.dp)
+                                                .clip(RoundedCornerShape(4.dp)),
+                                            color = if (percentual >= 100) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.secondary,
+                                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                                        )
+                                        Text(
+                                            stringResource(R.string.ra_pontos, pontos),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.tertiary
+                                        )
+
+                                        Spacer(Modifier.height(12.dp))
+
+                                        // Título "Conquistas"
+                                        Text(
+                                            stringResource(R.string.ra_destaque_conquistas),
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(Modifier.height(8.dp))
+
+                                        // 4 linhas de exemplo
+                                        val conquistasTotal = kotlin.math.min(4, total)
+                                        for (i in 1..conquistasTotal) {
+                                            Row(
+                                                verticalAlignment = Alignment.Top,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.WorkspacePremium,
+                                                    null,
+                                                    modifier = Modifier.size(20.dp),
+                                                    tint = if (i <= desbloqueadas) MaterialTheme.colorScheme.primary
+                                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                                )
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        stringResource(R.string.ra_ex_titulo, i),
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        color = if (i <= desbloqueadas) MaterialTheme.colorScheme.onSurface
+                                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                    Text(
+                                                        stringResource(R.string.ra_ex_desc),
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = if (i <= desbloqueadas) MaterialTheme.colorScheme.onSurfaceVariant
+                                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                                    )
+                                                }
+                                                Text(
+                                                    stringResource(R.string.ra_pontos, 5 * i),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = if (i <= desbloqueadas) MaterialTheme.colorScheme.primary
+                                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                                )
+                                            }
+                                            if (i < conquistasTotal) Spacer(Modifier.height(4.dp))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // c) Jogos jogados recentemente — LazyRow
                 item {
                     Text(
-                        stringResource(R.string.ra_progresso),
+                        stringResource(R.string.ra_recentes),
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    LazyHorizontalGrid(
+                        rows = GridCells.Fixed(1),
+                        contentPadding = PaddingValues(0.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        val recentes = jogosAbertos.take(10)
+                        item {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                recentes.forEachIndexed { idx, jogo ->
+                                    CartaoRecente(jogo, onClick = {
+                                        audio.playClick()
+                                        jogoSelecionadoId = jogo.id
+                                        scope.launch { lazyListState.animateScrollToItem(0) }
+                                    })
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // d) Todos os jogos — Seletor segmentado
+                item {
+                    Text(
+                        stringResource(R.string.ra_todos_jogos),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    val sistemas = Sistema.entries.map { it.rotuloCurto }
+                    SeletorSegmentadoNES(
+                        opcoes = sistemas,
+                        indiceSelecionado = sistemaIndice,
+                        onSelecionar = { idx ->
+                            audio.playSwipe()
+                            sistemaIndice = idx
+                        }
                     )
                 }
-                items(items = stats, key = { it.nome }) { stat ->
-                    CartaoDeConquista(stat)
+
+                // e) Jogos do sistema escolhido
+                item {
+                    val sistemaAtual = Sistema.entries[sistemaIndice]
+                    val jogosFiltrados = jogosAbertos.filter { it.sistema == sistemaAtual }
+                    if (jogosFiltrados.isEmpty()) {
+                        Text(
+                            stringResource(R.string.ra_sem_jogos_sistema),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 16.dp)
+                        )
+                    } else {
+                        jogosFiltrados.forEach { jogo ->
+                            val stats = conquistasDeExemplo(jogo)
+                            CartaoConquistaJogo(
+                                jogo = jogo,
+                                totalConquistas = stats.first,
+                                desbloqueadas = stats.second,
+                                onClick = {
+                                    audio.playClick()
+                                    jogoSelecionadoId = jogo.id
+                                    scope.launch { lazyListState.animateScrollToItem(0) }
+                                }
+                            )
+                            Spacer(Modifier.height(12.dp))
+                        }
+                    }
                 }
+
+                // f) Aviso mock
                 item {
                     Text(
                         stringResource(R.string.ra_aviso_mock),
@@ -1039,6 +1354,161 @@ fun TelaRetroAchievements() {
         }
     }
 }
+
+// =====================================================================
+// Funções auxiliares e composables da tela
+// =====================================================================
+
+private fun conquistasDeExemplo(jogo: Jogo): Pair<Int, Int> {
+    val total = 12 + kotlin.math.abs(jogo.id.hashCode()) % 40
+    val desbloqueadas = if (jogo.tempoJogadoMinutos > 0 || jogo.ultimaVezJogado > 0) {
+        kotlin.math.abs(jogo.nome.hashCode()) % (total + 1)
+    } else {
+        0
+    }
+    return total to desbloqueadas
+}
+
+@Composable
+private fun CartaoRecente(jogo: Jogo, onClick: () -> Unit) {
+    val stats = conquistasDeExemplo(jogo)
+    val fracao = if (stats.first > 0) stats.second.toFloat() / stats.first else 0f
+
+    Column(
+        modifier = Modifier
+            .width(110.dp)
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .height(110.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            if (jogo.capaLocal != null && java.io.File(jogo.capaLocal).exists()) {
+                AsyncImage(
+                    model = java.io.File(jogo.capaLocal),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                )
+            } else if (!jogo.capaUrl.isNullOrEmpty()) {
+                AsyncImage(
+                    model = jogo.capaUrl,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Image,
+                        null,
+                        modifier = Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = jogo.nome,
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+        )
+        Spacer(Modifier.height(2.dp))
+        LinearProgressIndicator(
+            progress = { fracao },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(3.dp)
+                .clip(RoundedCornerShape(1.5.dp)),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+        )
+    }
+}
+
+@Composable
+private fun CartaoConquistaJogo(
+    jogo: Jogo,
+    totalConquistas: Int,
+    desbloqueadas: Int,
+    onClick: () -> Unit
+) {
+    val fracao = if (totalConquistas > 0) desbloqueadas.toFloat() / totalConquistas else 0f
+    val percentual = (fracao * 100).toInt()
+    val completo = percentual >= 100
+
+    CartaoDeVidro(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    jogo.nome,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                if (completo) {
+                    Icon(
+                        Icons.Default.WorkspacePremium,
+                        stringResource(R.string.ra_platinado),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    stringResource(
+                        R.string.ra_conquistas,
+                        desbloqueadas, totalConquistas
+                    ),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Text(
+                    "$percentual%",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            LinearProgressIndicator(
+                progress = { fracao },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = if (completo) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.secondary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        }
+    }
+}
+
+// =====================================================================
+// Cartão de conquista — usado pela lista de jogos na tela RA
+// =====================================================================
 
 @Composable
 private fun CartaoDeConquista(stat: RetroGameStat) {

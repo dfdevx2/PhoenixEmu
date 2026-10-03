@@ -66,7 +66,20 @@ fun estiloDeVidroPara(
     escuro: Boolean,
     reduzirEfeitos: Boolean,
     acabamento: Acabamento = Acabamento.VIDRO,
-    amoled: Boolean = false
+    amoled: Boolean = false,
+    sombras: Boolean = false
+): EstiloDeVidro {
+    val resultado = estiloDeVidroImpl(tema, esquema, escuro, reduzirEfeitos, acabamento, amoled)
+    return if (sombras) resultado else resultado.copy(sombra = 0.dp)
+}
+
+private fun estiloDeVidroImpl(
+    tema: TemaApp,
+    esquema: ColorScheme,
+    escuro: Boolean,
+    reduzirEfeitos: Boolean,
+    acabamento: Acabamento,
+    amoled: Boolean
 ): EstiloDeVidro {
     // Acabamento solido: mesmas cores, mesmas formas, material diferente.
     // Superficie quase opaca, sem brilho e sem desfoque -- para quem nao gosta

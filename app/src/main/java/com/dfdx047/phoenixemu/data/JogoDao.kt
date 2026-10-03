@@ -86,6 +86,10 @@ interface JogoDao {
     @Query("SELECT COUNT(*) FROM jogos")
     suspend fun contar(): Int
 
+    /** Todos os jogos, sem filtro de sistema/busca/favoritos. */
+    @Query("SELECT * FROM jogos ORDER BY nome_ordenacao ASC")
+    fun observarTodos(): Flow<List<JogoEntity>>
+
     @Query("SELECT * FROM jogos WHERE uri = :uri LIMIT 1")
     suspend fun porUri(uri: String): JogoEntity?
 

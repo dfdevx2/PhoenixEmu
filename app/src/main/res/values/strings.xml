@@ -112,6 +112,16 @@
     <string name="ra_platinado">Mastered</string>
     <string name="ra_aviso_mock">This screen still shows sample data. Real achievement tracking arrives with the rcheevos library in Phase 5.</string>
 
+    <!-- Achievements — games -->
+    <string name="ra_destaque_conquistas">Achievements</string>
+    <string name="ra_recentes">Recently played</string>
+    <string name="ra_todos_jogos">All games</string>
+    <string name="ra_sem_jogos">You haven\'t opened any game yet. Open a game to see its achievements here.</string>
+    <string name="ra_sem_jogos_sistema">No games opened on this system.</string>
+    <string name="ra_pontos">%1$d points</string>
+    <string name="ra_ex_titulo">Sample achievement %1$d</string>
+    <string name="ra_ex_desc">Sample description. Real data will arrive with the RetroAchievements integration.</string>
+
     <!-- Per-game settings -->
     <string name="jogo_config_intro">You are editing rules that apply only to:</string>
     <string name="sec_overrides">OVERRIDES</string>
@@ -256,4 +266,14 @@
     <string name="titulo_topo_fixo">Fixed top bar in grid view</string>
     <string name="desc_topo_fixo">Keeps search and filters pinned at the top.</string>
     <string name="dica_topo_fixo">On, search and filters stay pinned and the cover grid scrolls in its own area below them, never behind. Off, the bar hides while you scroll and returns when you scroll up.</string>
+
+    <!-- Shadows -->
+    <string name="titulo_sombras">Shadows</string>
+    <string name="desc_sombras">Soft shadow under floating bars and buttons.</string>
+    <string name="dica_sombras">Turns on a light shadow under the navigation bar, search and floating buttons. When off, only the glass edge separates elements from the background.</string>
+    <!-- Hide navigation when scrolling down -->
+    <string name="titulo_nav_oculta">Hide navigation when scrolling down</string>
+    <string name="desc_nav_oculta">In grid view, the navigation bar hides while you move down the games.</string>
+    <string name="dica_nav_oculta">While you move down the game grid, the navigation bar and the add-folder button get out of the way and return when you move up. L1 and R1 also bring the bar back.</string>
+
 </resources>

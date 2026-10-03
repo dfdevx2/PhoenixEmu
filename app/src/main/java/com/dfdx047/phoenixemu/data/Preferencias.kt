@@ -64,6 +64,7 @@ private val K_AUTO_SALVAR = booleanPreferencesKey("auto_salvar")
 private val K_AUTO_CARREGAR = booleanPreferencesKey("auto_carregar")
 private val K_OMBROS_TROCAM_SECAO = booleanPreferencesKey("ombros_trocam_secao")
 private val K_TOPO_FIXO_GRADE = booleanPreferencesKey("topo_fixo_grade")
+private val K_SOMBRAS = booleanPreferencesKey("sombras")
 
 /**
  * Chaves trazidas do SharedPreferences antigo, uma a uma.
@@ -381,11 +382,25 @@ class Preferencias private constructor(context: Context) {
 
     fun definirOmbrosTrocamSecao(valor: Boolean) = editar { it[K_OMBROS_TROCAM_SECAO] = valor }
 
+    // ----------------------------------------------------- ocultar nav ao descer
+
+    private val K_OCULTAR_NAV_DESCER = booleanPreferencesKey("ocultar_nav_descer")
+
+    val ocultarNavAoDescer: StateFlow<Boolean> = derivar(true) { it[K_OCULTAR_NAV_DESCER] ?: true }
+
+    fun definirOcultarNavAoDescer(valor: Boolean) = editar { it[K_OCULTAR_NAV_DESCER] = valor }
+
     // ------------------------------------------------------- grade topo fixo
 
     val topoFixoNaGrade: StateFlow<Boolean> = derivar(true) { it[K_TOPO_FIXO_GRADE] ?: true }
 
     fun definirTopoFixoNaGrade(valor: Boolean) = editar { it[K_TOPO_FIXO_GRADE] = valor }
+
+    // ------------------------------------------------------------- sombras
+
+    val sombras: StateFlow<Boolean> = derivar(false) { it[K_SOMBRAS] ?: false }
+
+    fun definirSombras(valor: Boolean) = editar { it[K_SOMBRAS] = valor }
 
     // ------------------------------------------- cache antigo da biblioteca
 
