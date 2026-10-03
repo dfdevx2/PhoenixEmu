@@ -58,6 +58,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
+import com.dfdx047.phoenixemu.Acabamento
+import com.dfdx047.phoenixemu.TemaApp
+import com.dfdx047.phoenixemu.ui.theme.PhoenixEmuTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -590,6 +593,16 @@ class EmulatorActivity : ComponentActivity() {
         val romUriString = intent.getStringExtra(EXTRA_ROM)
         val nomeSave = intent.getStringExtra(EXTRA_NOME_SAVE) ?: "save"
 
+        val temaNome = intent.getStringExtra(EXTRA_TEMA)
+        val tema = TemaApp.entries.firstOrNull { it.name == temaNome } ?: TemaApp.DINAMICO
+
+        val acabamentoNome = intent.getStringExtra(EXTRA_ACABAMENTO)
+        val acabamento = Acabamento.entries.firstOrNull { it.name == acabamentoNome } ?: Acabamento.VIDRO
+
+        val reduzirEfeitos = intent.getBooleanExtra(EXTRA_REDUZIR_EFEITOS, false)
+        val amoled = intent.getBooleanExtra(EXTRA_AMOLED, false)
+        val sombras = intent.getBooleanExtra(EXTRA_SOMBRAS, false)
+
         var infoMessage = ""
         var loadError: String? = null
 
@@ -696,9 +709,16 @@ class EmulatorActivity : ComponentActivity() {
         setContent {
             val focusRequester = remember { FocusRequester() }
 
-            Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
-                if (loadError != null) {
-                    BasicText(
+            PhoenixEmuTheme(
+                temaAtual = tema,
+                reduzirEfeitos = reduzirEfeitos,
+                amoled = amoled,
+                acabamento = acabamento,
+                sombras = sombras
+            ) {
+                Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
+                    if (loadError != null) {
+                        BasicText(
                         text = loadError!!,
                         style = TextStyle(color = Color.White, fontSize = 18.sp),
                         modifier = Modifier.padding(16.dp)
@@ -943,6 +963,7 @@ class EmulatorActivity : ComponentActivity() {
             }
         }
     }
+}
 
     private fun tentarAutosave() {
         if (!isJogoReal || !autosavePendente) return
@@ -1141,6 +1162,12 @@ class EmulatorActivity : ComponentActivity() {
         const val EXTRA_ATALHOS = "phoenix.atalhos"
         const val EXTRA_AUTOSALVAR = "phoenix.autosalvar"
         const val EXTRA_AUTOCARREGAR = "phoenix.autocarregar"
+        
+        const val EXTRA_TEMA = "phoenix.tema"
+        const val EXTRA_ACABAMENTO = "phoenix.acabamento"
+        const val EXTRA_REDUZIR_EFEITOS = "phoenix.reduzir_efeitos"
+        const val EXTRA_AMOLED = "phoenix.amoled"
+        const val EXTRA_SOMBRAS = "phoenix.sombras"
 
         val ORDEM_DO_MAPEAMENTO = listOf(
             "CIMA", "BAIXO", "ESQUERDA", "DIREITA",

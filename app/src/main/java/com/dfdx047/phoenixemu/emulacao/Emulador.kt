@@ -82,6 +82,11 @@ object Emulador {
             .putExtra(EmulatorActivity.EXTRA_ATALHOS, atalhosJson.toString())
             .putExtra(EmulatorActivity.EXTRA_AUTOSALVAR, prefs.autoSalvar.value)
             .putExtra(EmulatorActivity.EXTRA_AUTOCARREGAR, prefs.autoCarregar.value)
+            .putExtra(EmulatorActivity.EXTRA_TEMA, prefs.tema.value.name)
+            .putExtra(EmulatorActivity.EXTRA_ACABAMENTO, prefs.acabamento.value.name)
+            .putExtra(EmulatorActivity.EXTRA_REDUZIR_EFEITOS, prefs.reduzirEfeitos.value)
+            .putExtra(EmulatorActivity.EXTRA_AMOLED, prefs.amoled.value)
+            .putExtra(EmulatorActivity.EXTRA_SOMBRAS, prefs.sombras.value)
         if (rom != null) intent.putExtra(EmulatorActivity.EXTRA_ROM, rom)
         context.startActivity(intent)
     }
