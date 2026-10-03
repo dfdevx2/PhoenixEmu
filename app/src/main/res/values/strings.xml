@@ -320,6 +320,13 @@
     <string name="jogo_erro_falha_carregar_jogo">Failed to load game.</string>
     <string name="jogo_erro_generico">Error: %1$s</string>
 
+    <!-- Pause menu tabs -->
+    <string name="pause_aba_jogo">Game</string>
+    <string name="pause_aba_ajustes">Settings</string>
+    <string name="pause_aba_controles">Controls</string>
+    <string name="em_breve">Coming soon</string>
+    <string name="jogo_menu_fechar">Close</string>
+
     <!-- Pause menu header -->
     <string name="jogo_menu_tempo_jogado">Game time: --</string>
 

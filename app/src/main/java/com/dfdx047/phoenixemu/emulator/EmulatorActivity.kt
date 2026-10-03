@@ -430,6 +430,7 @@ class EmulatorActivity : ComponentActivity() {
                             tempoJogadoMinutos = 0,
                             slots = slotsInfo,
                             slotSelecionado = slotAtual,
+                            abaAtual = abaAtual,
                             aoFechar = {
                                 mensagemFeedback = ""
                                 isPaused = false
@@ -470,6 +471,7 @@ class EmulatorActivity : ComponentActivity() {
                             },
                             aoSair = { finish() },
                             aoMudarSlot = { slot -> slotAtual = slot },
+                            aoMudarAba = { aba -> abaAtual = aba },
                         )
                     }
                 }

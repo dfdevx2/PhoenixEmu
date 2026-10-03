@@ -317,6 +317,13 @@
     <string name="jogo_erro_falha_carregar_jogo">Falha ao carregar o jogo.</string>
     <string name="jogo_erro_generico">Erro: %1$s</string>
 
+    <!-- Abas do menu de pausa -->
+    <string name="pause_aba_jogo">Jogo</string>
+    <string name="pause_aba_ajustes">Ajustes</string>
+    <string name="pause_aba_controles">Controles</string>
+    <string name="em_breve">Em breve</string>
+    <string name="jogo_menu_fechar">Fechar</string>
+
     <!-- Cabeçalho do menu de pausa -->
     <string name="jogo_menu_tempo_jogado">Tempo de jogo: --</string>
 
