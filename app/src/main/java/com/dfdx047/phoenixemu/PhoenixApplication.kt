@@ -3,6 +3,7 @@ package com.dfdx047.phoenixemu
 import android.app.Application
 import android.os.Build
 import android.os.StrictMode
+import android.util.Log
 import androidx.lifecycle.ProcessLifecycleOwner
 import coil.ImageLoader
 import coil.ImageLoaderFactory
@@ -12,6 +13,7 @@ import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import com.dfdx047.phoenixemu.data.BibliotecaStore
 import com.dfdx047.phoenixemu.data.Preferencias
+import java.io.File
 
 /**
  * Antes nao existia classe Application, e isso custava caro:
@@ -29,6 +31,14 @@ class PhoenixApplication : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
+
+        val nome = obterNomeDoProcesso()
+        if (ehProcessoDoEmulador()) {
+            Log.i("PhoenixProc", "processo=$nome emu=true (sem singletons)")
+            return
+        } else {
+            Log.i("PhoenixProc", "processo=$nome emu=false")
+        }
 
         if (BuildConfig.DEBUG) ligarStrictMode()
 
@@ -62,6 +72,22 @@ class PhoenixApplication : Application(), ImageLoaderFactory {
             .crossfade(true)
             .respectCacheHeaders(false) // o servidor do Libretro nao manda cache headers uteis
             .build()
+
+    private fun obterNomeDoProcesso(): String {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            Application.getProcessName()
+        } else {
+            try {
+                File("/proc/self/cmdline").readText().trim('\u0000')
+            } catch (e: Exception) {
+                ""
+            }
+        }
+    }
+
+    private fun ehProcessoDoEmulador(): Boolean {
+        return obterNomeDoProcesso().endsWith(":emu")
+    }
 
     /**
      * Em debug, o app RECLAMA em vez de deixar passar: I/O na main thread,
