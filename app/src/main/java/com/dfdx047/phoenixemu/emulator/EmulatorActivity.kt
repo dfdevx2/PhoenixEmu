@@ -268,7 +268,7 @@ class EmulatorActivity : ComponentActivity() {
 
     private fun carregarSlotsInfo() {
         val ctx = contextoLocalizado ?: this
-        slotsInfo = armazemDeEstados?.listarSlots() ?: List(4) { slot -> SlotData(slot + 1, false, ctx.getString(R.string.jogo_slot_vazio_text), null) }
+        slotsInfo = armazemDeEstados?.listarSlots() ?: List(4) { slot -> SlotData(slot + 1, false, ctx.getString(R.string.jogo_slot_vazio_text), "", null) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

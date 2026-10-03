@@ -5,6 +5,9 @@ import android.net.Uri
 import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -16,6 +19,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,19 +29,25 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Gamepad
+import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -45,9 +55,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -179,31 +192,40 @@ private fun MenuDePausaInner(
             shape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp),
             color = Color.Black.copy(alpha = 0.45f),
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                // Cabecalho
+            Column(modifier = Modifier.fillMaxSize()) {
+
+                // — Cabeçalho fixo —
                 CabecalhoPausa(nomeDoJogo, tempoJogadoMinutos, aoFechar)
 
-                // Barra de abas em pílula
+                // — Barra de abas fixa —
                 BarraDeAbas(abaAtual, aoMudarAba)
 
-                // Conteudo da aba selecionada
-                when (abaAtual) {
-                    AbaDoMenu.JOGO -> ConteudoAbaJogo(slots, slotSelecionado, aoSalvarEstado, aoCarregarEstado, aoMudarSlot, aoReiniciar, aoSair)
-                    AbaDoMenu.AJUSTES -> TextoEmBreve()
-                    AbaDoMenu.CONTROLES -> TextoEmBreve()
-                    else -> ConteudoAbaJogo(slots, slotSelecionado, aoSalvarEstado, aoCarregarEstado, aoMudarSlot, aoReiniciar, aoSair)
+                // Divisor sob a barra de abas
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(Color.White.copy(alpha = 0.08f))
+                )
+
+                // — Área rolável com peso —
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                ) {
+                    when (abaAtual) {
+                        AbaDoMenu.JOGO -> ConteudoAbaJogo(slots, slotSelecionado, aoSalvarEstado, aoCarregarEstado, aoMudarSlot)
+                        AbaDoMenu.AJUSTES -> TextoEmBreve()
+                        AbaDoMenu.CONTROLES -> TextoEmBreve()
+                        else -> ConteudoAbaJogo(slots, slotSelecionado, aoSalvarEstado, aoCarregarEstado, aoMudarSlot)
+                    }
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
-
-                // Botoes Inferiores
-                LinhaBotoesInferiores(aoContinuar, aoReiniciar, aoSair)
+                // — Rodapé fixo —
+                RodapeFixo(aoContinuar, aoReiniciar, aoSair)
             }
         }
     }
@@ -223,20 +245,27 @@ private fun CabecalhoPausa(
     val nomeAmigavel = rememberNomeAmigavel(nomeDoJogo)
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Capa placeholder 48x64dp
+        // Capa placeholder — ícone vetorial de controle sobre fundo translúcido
         Box(
             modifier = Modifier
                 .width(48.dp)
                 .height(64.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFF2A2A3E), RoundedCornerShape(8.dp)),
+                .background(Color(0xFF2A2A3E).copy(alpha = 0.6f)),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = "\uD83D\uDCF8", fontSize = 24.sp)
+            Image(
+                painter = rememberVectorPainter(image = Icons.Outlined.Gamepad),
+                contentDescription = null,
+                modifier = Modifier.size(28.dp),
+                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White.copy(alpha = 0.7f)),
+            )
         }
 
         // Nome + tempo
@@ -286,7 +315,7 @@ private fun CabecalhoPausa(
 
 private fun rememberNomeAmigavel(raw: String): String {
     val uri = try { Uri.parse(raw) } catch (e: Exception) { null }
-    return if (uri != null) {
+    val nome = if (uri != null) {
         val decoded = Uri.decode(uri.lastPathSegment ?: raw)
         decoded
             .split("/", ":")
@@ -298,51 +327,142 @@ private fun rememberNomeAmigavel(raw: String): String {
             .substringBeforeLast('.')
             .trim()
     }
+    // Remove extensões comuns de ROM/ZIP sem diferenciar maiúsculas/minúsculas
+    val extensao = nome.substringAfterLast('.', "").lowercase()
+    if (extensao in setOf("zip", "7z", "sfc", "smc", "nes", "fig", "swc")) {
+        return nome.substringBeforeLast('.').trim()
+    }
+    return nome
 }
 
 // =====================================================================
-// Barra de abas em pílula
+// Barra de abas — estilo flat com linha deslizante
 // =====================================================================
 
-private val AbaInfo = listOf(
-    AbaDoMenu.JOGO to R.string.pause_aba_jogo,
-    AbaDoMenu.AJUSTES to R.string.pause_aba_ajustes,
-    AbaDoMenu.CONTROLES to R.string.pause_aba_controles,
+private data class TabItem(
+    val aba: AbaDoMenu,
+    val labelRes: Int,
+    val iconVector: androidx.compose.ui.graphics.vector.ImageVector,
 )
 
 @Composable
 private fun BarraDeAbas(
-    abaSelecionada: AbaDoMenu,
+    abaAtual: AbaDoMenu,
     aoMudarAba: (AbaDoMenu) -> Unit,
 ) {
-    val primária = MaterialTheme.colorScheme.primary
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(Color.Black.copy(alpha = 0.3f)),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AbaInfo.forEach { (aba, labelRes) ->
-            val ativa = aba == abaSelecionada
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(if (ativa) primária else Color.Transparent)
-                    .clickable(onClick = { aoMudarAba(aba) })
-                    .padding(vertical = 8.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = stringResource(labelRes),
-                    fontSize = 13.sp,
-                    fontWeight = if (ativa) FontWeight.Bold else FontWeight.Normal,
-                    color = if (ativa) Color.White else Color.LightGray.copy(alpha = 0.8f),
-                )
+    val ctx = LocalContext.current
+    val abas = listOf(
+        TabItem(AbaDoMenu.JOGO, R.string.pause_aba_jogo, Icons.Outlined.PlayArrow),
+        TabItem(AbaDoMenu.AJUSTES, R.string.pause_aba_ajustes, Icons.Outlined.Settings),
+        TabItem(AbaDoMenu.CONTROLES, R.string.pause_aba_controles, Icons.Outlined.Gamepad),
+    )
+    val primaria = MaterialTheme.colorScheme.primary
+    val secundaria = MaterialTheme.colorScheme.secondary
+
+    var abaIndex by remember { mutableIntStateOf(abas.indexOfFirst { it.aba == abaAtual }.takeIf { it >= 0 } ?: 0) }
+
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(44.dp)
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            abas.forEachIndexed { index, item ->
+                val ativa = index == abaIndex
+                val corTexto = if (ativa) primaria else secundaria
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable(onClick = {
+                            abaIndex = index
+                            aoMudarAba(item.aba)
+                        })
+                        .padding(horizontal = 4.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (ativa) {
+                        // Fundo suave para aba ativa
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight()
+                                .background(primaria.copy(alpha = 0.14f), RoundedCornerShape(12.dp))
+                                .padding(vertical = 4.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            TabConteudo(item, corTexto, ativa, ctx)
+                        }
+                    } else {
+                        TabConteudo(item, corTexto, ativa, ctx)
+                    }
+                }
             }
         }
+
+        // Indicador deslizante — linha de 3dp BAIXO dos rótulos, sobre o divisor
+        val larguraAba by androidx.compose.animation.core.animateDpAsState(
+            targetValue = if (abas.size > 0) {
+                with(LocalDensity.current) {
+                    val larguraTotalPx = LocalConfiguration.current.screenWidthDp.dp.toPx()
+                    val paddingPx = 16.dp.toPx()
+                    val gapPx = 8.dp.toPx()
+                    ((larguraTotalPx - paddingPx * 2 - gapPx * 2) / abas.size).toDp()
+                }
+            } else 0.dp,
+            label = "tabIndicatorWidth",
+        )
+        val indiceX by androidx.compose.animation.core.animateDpAsState(
+            targetValue = if (abaIndex < abas.size) {
+                with(LocalDensity.current) {
+                    val larguraTotalPx = LocalConfiguration.current.screenWidthDp.dp.toPx()
+                    val paddingPx = 16.dp.toPx()
+                    val gapPx = 8.dp.toPx()
+                    val disponivel = larguraTotalPx - paddingPx * 2
+                    val larguraAbaCalc = (disponivel - gapPx * 2) / abas.size
+                    (paddingPx + larguraAbaCalc / 2 + abaIndex * (larguraAbaCalc + gapPx)).toDp()
+                }
+            } else 0.dp,
+            animationSpec = spring(stiffness = Spring.StiffnessMedium),
+            label = "tabIndicatorX",
+        )
+        Box(
+            modifier = Modifier
+                .offset(x = indiceX, y = (-3).dp)
+                .width(larguraAba)
+                .height(3.dp)
+                .clip(RoundedCornerShape(1.5.dp))
+                .background(primaria),
+        )
+    }
+}
+
+@Composable
+private fun TabConteudo(
+    item: TabItem,
+    corTexto: Color,
+    ativa: Boolean,
+    ctx: android.content.Context,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Image(
+            painter = rememberVectorPainter(image = item.iconVector),
+            contentDescription = null,
+            modifier = Modifier.size(14.dp),
+            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(corTexto),
+        )
+        Text(
+            text = ctx.getString(item.labelRes),
+            fontSize = 12.sp,
+            fontWeight = if (ativa) FontWeight.SemiBold else FontWeight.Normal,
+            color = corTexto,
+        )
     }
 }
 
@@ -357,8 +477,6 @@ private fun ConteudoAbaJogo(
     aoSalvarEstado: (Int) -> Unit,
     aoCarregarEstado: (Int) -> Unit,
     aoMudarSlot: (Int) -> Unit,
-    aoReiniciar: () -> Unit,
-    aoSair: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
@@ -371,6 +489,7 @@ private fun ConteudoAbaJogo(
                 }
             },
             slotVazio = slots.getOrNull(slotSelecionado - 1)?.exists != true,
+            numeroSlot = slotSelecionado,
         )
 
         // 2 — Rótulo SLOTS
@@ -378,12 +497,6 @@ private fun ConteudoAbaJogo(
 
         // 3 — Linha dos 4 slots
         LinhaSlots(slots, slotSelecionado, aoSelecionar = { aoMudarSlot(it) })
-
-        // 4 — Botões Reiniciar / Sair
-        LinhaReiniciarSairVidro(
-            aoReiniciar = aoReiniciar,
-            aoSair = aoSair,
-        )
     }
 }
 
@@ -394,29 +507,37 @@ private fun BotaoVidro(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    emoji: String,
+    iconRes: Int,
     labelRes: Int,
     ctx: android.content.Context = androidx.compose.ui.platform.LocalContext.current,
 ) {
-    val corPrimaria = MaterialTheme.colorScheme.primary
+    val primária = MaterialTheme.colorScheme.primary
     val alphaEnabled = if (enabled) 1f else 0.4f
     Box(
         modifier = modifier
             .border(
                 width = 1.dp,
-                color = corPrimaria.copy(alpha = 0.5f),
+                color = primária.copy(alpha = 0.5f),
                 shape = RoundedCornerShape(12.dp),
             )
             .background(Color.Black.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 4.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center,
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.alpha(alphaEnabled),
         ) {
-            Text(text = emoji, fontSize = 16.sp)
+            Image(
+                painter = androidx.compose.ui.res.painterResource(iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
+                    if (enabled) Color.White else Color.LightGray.copy(alpha = 0.5f),
+                ),
+            )
             Text(
                 text = ctx.getString(labelRes),
                 fontSize = 13.sp,
@@ -443,7 +564,9 @@ private fun LinhaSalvarCarregarVidro(
     aoSalvar: () -> Unit,
     aoCarregar: () -> Unit,
     slotVazio: Boolean,
+    numeroSlot: Int,
 ) {
+    val ctx = LocalContext.current
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -452,41 +575,17 @@ private fun LinhaSalvarCarregarVidro(
             onClick = aoSalvar,
             modifier = Modifier.weight(1f).height(48.dp),
             enabled = true,
-            emoji = "\uD83D\uDCBE",
+            iconRes = R.drawable.ic_menu_salvar,
             labelRes = R.string.jogo_menu_salvar_estado,
+            ctx = ctx,
         )
         BotaoVidro(
             onClick = aoCarregar,
             modifier = Modifier.weight(1f).height(48.dp),
             enabled = !slotVazio,
-            emoji = "\uD83D\uDCE5",
+            iconRes = R.drawable.ic_menu_carregar,
             labelRes = R.string.jogo_menu_carregar_estado,
-        )
-    }
-}
-
-@Composable
-private fun LinhaReiniciarSairVidro(
-    aoReiniciar: () -> Unit,
-    aoSair: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        BotaoVidro(
-            onClick = aoReiniciar,
-            modifier = Modifier.weight(1f).height(44.dp),
-            enabled = true,
-            emoji = "\uD83D\uDD04",
-            labelRes = R.string.jogo_menu_reiniciar,
-        )
-        BotaoVidro(
-            onClick = aoSair,
-            modifier = Modifier.weight(1f).height(44.dp),
-            enabled = true,
-            emoji = "\uD83D\uDEAA",
-            labelRes = R.string.jogo_menu_sair,
+            ctx = ctx,
         )
     }
 }
@@ -507,57 +606,34 @@ private fun TextoEmBreve() {
 }
 
 @Composable
-private fun LinhaSalvarCarregar(
-    aoSalvar: () -> Unit,
-    aoCarregar: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Button(
-            onClick = aoSalvar,
-            modifier = Modifier.weight(1f).height(56.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.jogo_menu_salvar_estado),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-            )
-        }
-        Button(
-            onClick = aoCarregar,
-            modifier = Modifier.weight(1f).height(56.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.jogo_menu_carregar_estado),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-            )
-        }
-    }
-}
-
-@Composable
 private fun LinhaSlots(
     slots: List<SlotData>,
     slotSelecionado: Int,
     aoSelecionar: (Int) -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.Top,
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(110.dp),
     ) {
-        for ((index, slot) in slots.withIndex()) {
-            val numeroSlot = index + 1
-            val isSelected = numeroSlot == slotSelecionado
-            SlotCardMini(
-                slot = slot,
-                numeroSlot = numeroSlot,
-                selecionado = isSelected,
-                onClick = { aoSelecionar(numeroSlot) },
-            )
+        val cardW = ((maxWidth - 8.dp * 3) / 4).coerceAtLeast(60.dp)
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            for ((index, slot) in slots.withIndex()) {
+                val numeroSlot = index + 1
+                val isSelected = numeroSlot == slotSelecionado
+                SlotCardMini(
+                    slot = slot,
+                    numeroSlot = numeroSlot,
+                    selecionado = isSelected,
+                    onClick = { aoSelecionar(numeroSlot) },
+                    cardWidth = cardW,
+                )
+            }
         }
     }
 }
@@ -568,25 +644,34 @@ private fun SlotCardMini(
     numeroSlot: Int,
     selecionado: Boolean,
     onClick: () -> Unit,
+    cardWidth: androidx.compose.ui.unit.Dp,
 ) {
     val ctx = LocalContext.current
-    val borderColor = if (selecionado) MaterialTheme.colorScheme.primary else Color.Transparent
-    val borderWidth = if (selecionado) 2.dp else 0.dp
+    val corPrimaria = MaterialTheme.colorScheme.primary
 
     Column(
-        modifier = Modifier.fillMaxWidth().aspectRatio(4f / 3f).clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier.width(cardWidth),
     ) {
+        // (a) Miniatura numa Box com emblema sobreposto
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(4f / 3f)
+                .width(cardWidth)
+                .height(cardWidth * 3f / 4f)
                 .clip(RoundedCornerShape(8.dp))
-                .border(borderWidth, borderColor, RoundedCornerShape(8.dp))
-                .background(if (slot.exists && slot.bitmap != null) Color.Transparent else Color.DarkGray.copy(alpha = 0.5f)),
-            contentAlignment = Alignment.Center,
+                .border(
+                    width = if (selecionado) 2.dp else 1.dp,
+                    color = if (selecionado) corPrimaria else Color.White.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(8.dp),
+                )
+                .background(
+                    if (slot.exists && slot.bitmap != null) Color.Transparent else Color.DarkGray.copy(alpha = 0.5f),
+                    RoundedCornerShape(8.dp),
+                )
+                .clickable(onClick = onClick),
         ) {
+            // Conteúdo da miniatura
             if (slot.exists && slot.bitmap != null) {
                 Image(
                     bitmap = slot.bitmap!!.asImageBitmap(),
@@ -595,71 +680,162 @@ private fun SlotCardMini(
                     contentScale = ContentScale.Crop,
                 )
             } else {
-                Text(
-                    text = ctx.getString(R.string.jogo_menu_vazio),
-                    fontSize = 10.sp,
-                    color = Color.LightGray.copy(alpha = 0.5f),
-                )
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = ctx.getString(R.string.jogo_slot_vazio_text),
+                        fontSize = 10.sp,
+                        color = Color.LightGray.copy(alpha = 0.5f),
+                    )
+                }
+            }
+
+            // (b) Emblema circular 16dp no canto superior esquerdo
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .align(androidx.compose.ui.Alignment.TopStart)
+                    .clip(androidx.compose.foundation.shape.CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (selecionado) {
+                    Box(
+                        modifier = Modifier.fillMaxSize().background(corPrimaria),
+                    ) {
+                        Text(
+                            text = numeroSlot.toString(),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                        )
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .border(1.5.dp, corPrimaria, androidx.compose.foundation.shape.CircleShape),
+                    ) {
+                        Text(
+                            text = numeroSlot.toString(),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = corPrimaria,
+                        )
+                    }
+                }
             }
         }
 
-        Text(
-            text = if (slot.exists) {
-                "${ctx.getString(R.string.jogo_menu_slot, numeroSlot)} – ${slot.dateText}"
-            } else {
-                ctx.getString(R.string.jogo_menu_vazio)
-            },
-            fontSize = 9.sp,
-            color = if (selecionado) MaterialTheme.colorScheme.primary else Color.LightGray.copy(alpha = 0.7f),
-            fontWeight = if (selecionado) FontWeight.Bold else FontWeight.Normal,
-        )
+        // (c) Duas linhas pequenas abaixo — data e hora
+        if (slot.exists && slot.dateText.isNotBlank() && slot.timeText.isNotBlank()) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(1.dp),
+            ) {
+                Text(
+                    text = slot.dateText,
+                    fontSize = 10.sp,
+                    color = Color.LightGray.copy(alpha = 0.8f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = slot.timeText,
+                    fontSize = 10.sp,
+                    color = Color.LightGray.copy(alpha = 0.6f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
     }
 }
 
 // =====================================================================
-// Botoes Inferiores
+// Rodapé fixo — 3 botões com estilo vidro
 // =====================================================================
 
 @Composable
-private fun LinhaBotoesInferiores(
+private fun RodapeFixo(
     aoContinuar: () -> Unit,
     aoReiniciar: () -> Unit,
     aoSair: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    val ctx = LocalContext.current
+    val primária = MaterialTheme.colorScheme.primary
+
+    Column {
+        // Divisor de 1dp no topo (alpha 0.12)
+        Spacer(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(primária.copy(alpha = 0.12f)),
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            RodapeBotao(
+                modifier = Modifier.weight(1f),
+                onClick = aoContinuar,
+                labelRes = R.string.jogo_menu_continuar,
+                cor = primária,
+                alphaFundo = 0.24f,
+                ctx = ctx,
+            )
+            RodapeBotao(
+                modifier = Modifier.weight(1f),
+                onClick = aoReiniciar,
+                labelRes = R.string.jogo_menu_reiniciar,
+                cor = primária,
+                alphaFundo = 0.12f,
+                ctx = ctx,
+            )
+            RodapeBotao(
+                modifier = Modifier.weight(1f),
+                onClick = aoSair,
+                labelRes = R.string.jogo_menu_sair,
+                cor = primária,
+                alphaFundo = 0.12f,
+                ctx = ctx,
+            )
+        }
+    }
+}
+
+@Composable
+private fun RodapeBotao(
+    modifier: Modifier,
+    onClick: () -> Unit,
+    labelRes: Int,
+    cor: Color,
+    alphaFundo: Float,
+    ctx: android.content.Context,
+) {
+    Box(
+        modifier = modifier
+            .height(48.dp)
+            .border(
+                width = 1.dp,
+                color = cor.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(12.dp),
+            )
+            .background(cor.copy(alpha = alphaFundo), RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
-        Button(
-            onClick = aoContinuar,
-            modifier = Modifier.weight(1f).height(52.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.jogo_menu_continuar),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-            )
-        }
-        Button(
-            onClick = aoReiniciar,
-            modifier = Modifier.weight(1f).height(52.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.jogo_menu_reiniciar),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-            )
-        }
-        Button(
-            onClick = aoSair,
-            modifier = Modifier.weight(1f).height(52.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.jogo_menu_sair),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-            )
-        }
+        Text(
+            text = ctx.getString(labelRes),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+        )
     }
 }

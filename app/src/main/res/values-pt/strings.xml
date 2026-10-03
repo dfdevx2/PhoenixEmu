@@ -293,6 +293,8 @@
     <string name="jogo_menu_continuar">Continuar</string>
     <string name="jogo_menu_salvar_estado">Salvar estado</string>
     <string name="jogo_menu_carregar_estado">Carregar estado</string>
+    <string name="jogo_menu_salvar_no_slot">Salvar no slot %1$d</string>
+    <string name="jogo_menu_carregar_do_slot">Carregar do slot %1$d</string>
     <string name="jogo_menu_reiniciar">Reiniciar</string>
     <string name="jogo_menu_sair">Sair</string>
     <string name="jogo_menu_sem_img">Sem img</string>

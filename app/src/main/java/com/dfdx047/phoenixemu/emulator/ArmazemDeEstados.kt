@@ -26,7 +26,9 @@ internal class ArmazemDeEstados(
 
     fun listarSlots(): List<SlotData> {
         val list = mutableListOf<SlotData>()
-        val dateFormat = SimpleDateFormat("dd/MM HH:mm", Locale.getDefault())
+        val dateFormatFull = SimpleDateFormat("dd/MM HH:mm", Locale.getDefault())
+        val dateFormatOnly = SimpleDateFormat("dd/MM", Locale.getDefault())
+        val timeFormatOnly = SimpleDateFormat("HH:mm", Locale.getDefault())
 
         for (slot in 1..4) {
             if (savesDir != null) {
@@ -34,7 +36,9 @@ internal class ArmazemDeEstados(
                 val pngFile = File(savesDir, "$nomeSave.state$slot.png")
 
                 if (stateFile.exists() && stateFile.length() > 0) {
-                    val dateStr = dateFormat.format(Date(stateFile.lastModified()))
+                    val dateFullStr = dateFormatFull.format(Date(stateFile.lastModified()))
+                    val dateOnlyStr = dateFormatOnly.format(Date(stateFile.lastModified()))
+                    val timeOnlyStr = timeFormatOnly.format(Date(stateFile.lastModified()))
                     val bmp = if (pngFile.exists()) {
                         try {
                             BitmapFactory.decodeFile(pngFile.absolutePath)
@@ -42,12 +46,12 @@ internal class ArmazemDeEstados(
                             null
                         }
                     } else null
-                    list.add(SlotData(slot, true, dateStr, bmp))
+                    list.add(SlotData(slot, true, dateOnlyStr, timeOnlyStr, bmp))
                 } else {
-                    list.add(SlotData(slot, false, textoVazio, null))
+                    list.add(SlotData(slot, false, textoVazio, "", null))
                 }
             } else {
-                list.add(SlotData(slot, false, textoVazio, null))
+                list.add(SlotData(slot, false, textoVazio, "", null))
             }
         }
         return list

@@ -296,6 +296,8 @@
     <string name="jogo_menu_continuar">Continue</string>
     <string name="jogo_menu_salvar_estado">Save state</string>
     <string name="jogo_menu_carregar_estado">Load state</string>
+    <string name="jogo_menu_salvar_no_slot">Save to slot %1$d</string>
+    <string name="jogo_menu_carregar_do_slot">Load from slot %1$d</string>
     <string name="jogo_menu_reiniciar">Restart</string>
     <string name="jogo_menu_sair">Quit</string>
     <string name="jogo_menu_sem_img">No img</string>

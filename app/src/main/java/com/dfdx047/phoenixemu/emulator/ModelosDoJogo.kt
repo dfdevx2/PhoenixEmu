@@ -10,5 +10,6 @@ internal data class SlotData(
     val slotNumber: Int,
     val exists: Boolean,
     val dateText: String,
-    val bitmap: Bitmap?
+    val timeText: String,
+    val bitmap: Bitmap?,
 )
