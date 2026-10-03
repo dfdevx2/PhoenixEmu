@@ -1,7 +1,6 @@
 package com.dfdx047.phoenixemu.emulator
 
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -67,27 +66,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 import java.util.zip.ZipInputStream
-
-private enum class MenuState {
-    MAIN,
-    SAVE_SLOTS,
-    LOAD_SLOTS
-}
-
-private enum class Acao {
-    SALVAR_ESTADO, CARREGAR_ESTADO, SLOT_ANTERIOR, SLOT_PROXIMO, AVANCAR, VOLTAR, MENU, REINICIAR
-}
-
-private data class SlotData(
-    val slotNumber: Int,
-    val exists: Boolean,
-    val dateText: String,
-    val bitmap: Bitmap?
-)
 
 /**
  * Host da emulacao.
@@ -142,6 +122,8 @@ class EmulatorActivity : ComponentActivity() {
     private var avisoJob: kotlinx.coroutines.Job? = null
     private var slotAtual = 1
     private var estadoPendingJob: kotlinx.coroutines.Job? = null
+    
+    private var armazemDeEstados: ArmazemDeEstados? = null
 
     private var ffJob: kotlinx.coroutines.Job? = null
     private var ffSpeed by mutableStateOf(1)
@@ -285,12 +267,11 @@ class EmulatorActivity : ComponentActivity() {
                 mostrarAviso("Slot $slotAtual")
             }
             Acao.SALVAR_ESTADO -> {
-                val nomeSave = intent.getStringExtra(EXTRA_NOME_SAVE) ?: "save"
                 val savesDir = srmPath?.let { File(it).parentFile }
                 if (savesDir != null) {
                     capturarMiniatura {
-                        val fileState = File(savesDir, "$nomeSave.state$slotAtual")
-                        if (nucleo.pedirEstado(1, fileState.absolutePath)) {
+                        val fileState = armazemDeEstados?.arquivoDoEstado(slotAtual)
+                        if (fileState != null && nucleo.pedirEstado(1, fileState.absolutePath)) {
                             estadoPendingJob?.cancel()
                             estadoPendingJob = lifecycleScope.launch {
                                 var result = 0
@@ -304,17 +285,7 @@ class EmulatorActivity : ComponentActivity() {
                                     val currentBmp = lastCapturedBitmap
                                     if (currentBmp != null) {
                                         withContext(Dispatchers.IO) {
-                                            try {
-                                                val pngFile = File(savesDir, "$nomeSave.state$slotAtual.png")
-                                                val tmpPngFile = File(savesDir, "$nomeSave.state$slotAtual.png.tmp")
-                                                FileOutputStream(tmpPngFile).use { out ->
-                                                    currentBmp.compress(Bitmap.CompressFormat.PNG, 100, out)
-                                                }
-                                                if (!tmpPngFile.renameTo(pngFile)) {
-                                                    tmpPngFile.copyTo(pngFile, overwrite = true)
-                                                    tmpPngFile.delete()
-                                                }
-                                            } catch (e: Exception) {}
+                                            armazemDeEstados?.gravarMiniatura(slotAtual, currentBmp)
                                         }
                                     }
                                 } else {
@@ -328,14 +299,13 @@ class EmulatorActivity : ComponentActivity() {
                 }
             }
             Acao.CARREGAR_ESTADO -> {
-                val nomeSave = intent.getStringExtra(EXTRA_NOME_SAVE) ?: "save"
                 val savesDir = srmPath?.let { File(it).parentFile }
                 if (savesDir != null) {
-                    val fileState = File(savesDir, "$nomeSave.state$slotAtual")
-                    if (!fileState.exists() || fileState.length() == 0L) {
+                    val fileState = armazemDeEstados?.arquivoDoEstado(slotAtual)
+                    if (armazemDeEstados?.temEstado(slotAtual) != true) {
                         mostrarAviso("Slot $slotAtual vazio")
                     } else {
-                        if (nucleo.pedirEstado(2, fileState.absolutePath)) {
+                        if (fileState != null && nucleo.pedirEstado(2, fileState.absolutePath)) {
                             estadoPendingJob?.cancel()
                             estadoPendingJob = lifecycleScope.launch {
                                 var result = 0
@@ -384,34 +354,7 @@ class EmulatorActivity : ComponentActivity() {
     }
 
     private fun carregarSlotsInfo() {
-        val savesDir = srmPath?.let { File(it).parentFile }
-        val list = mutableListOf<SlotData>()
-        val dateFormat = SimpleDateFormat("dd/MM HH:mm", Locale.getDefault())
-        val nomeSave = intent.getStringExtra(EXTRA_NOME_SAVE) ?: "save"
-
-        for (slot in 1..4) {
-            if (savesDir != null) {
-                val stateFile = File(savesDir, "$nomeSave.state$slot")
-                val pngFile = File(savesDir, "$nomeSave.state$slot.png")
-
-                if (stateFile.exists() && stateFile.length() > 0) {
-                    val dateStr = dateFormat.format(Date(stateFile.lastModified()))
-                    val bmp = if (pngFile.exists()) {
-                        try {
-                            BitmapFactory.decodeFile(pngFile.absolutePath)
-                        } catch (e: Exception) {
-                            null
-                        }
-                    } else null
-                    list.add(SlotData(slot, true, dateStr, bmp))
-                } else {
-                    list.add(SlotData(slot, false, "vazio", null))
-                }
-            } else {
-                list.add(SlotData(slot, false, "vazio", null))
-            }
-        }
-        slotsInfo = list
+        slotsInfo = armazemDeEstados?.listarSlots() ?: List(4) { slot -> SlotData(slot + 1, false, "vazio", null) }
     }
 
     private fun capturarMiniatura(onDone: () -> Unit) {
@@ -461,32 +404,14 @@ class EmulatorActivity : ComponentActivity() {
             mensagemFeedback = "Falha ao salvar"
             return
         }
-        val nomeSave = intent.getStringExtra(EXTRA_NOME_SAVE) ?: "save"
-        val savesDir = srmPath?.let { File(it).parentFile } ?: return
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val stateFile = File(savesDir, "$nomeSave.state$slot")
-                val tmpStateFile = File(savesDir, "$nomeSave.state$slot.tmp")
-                tmpStateFile.writeBytes(bytes)
-                if (!tmpStateFile.renameTo(stateFile)) {
-                    tmpStateFile.copyTo(stateFile, overwrite = true)
-                    tmpStateFile.delete()
-                }
-
+                armazemDeEstados?.gravarBytes(slot, bytes)
                 val currentBmp = lastCapturedBitmap
                 if (currentBmp != null) {
-                    val pngFile = File(savesDir, "$nomeSave.state$slot.png")
-                    val tmpPngFile = File(savesDir, "$nomeSave.state$slot.png.tmp")
-                    FileOutputStream(tmpPngFile).use { out ->
-                        currentBmp.compress(Bitmap.CompressFormat.PNG, 100, out)
-                    }
-                    if (!tmpPngFile.renameTo(pngFile)) {
-                        tmpPngFile.copyTo(pngFile, overwrite = true)
-                        tmpPngFile.delete()
-                    }
+                    armazemDeEstados?.gravarMiniatura(slot, currentBmp)
                 }
-
                 withContext(Dispatchers.Main) {
                     mensagemFeedback = "Estado salvo no slot $slot"
                     carregarSlotsInfo()
@@ -500,14 +425,8 @@ class EmulatorActivity : ComponentActivity() {
     }
 
     private fun executarCarregarEstado(slot: Int) {
-        val nomeSave = intent.getStringExtra(EXTRA_NOME_SAVE) ?: "save"
-        val savesDir = srmPath?.let { File(it).parentFile } ?: return
-        val stateFile = File(savesDir, "$nomeSave.state$slot")
-
         lifecycleScope.launch(Dispatchers.IO) {
-            val bytes = if (stateFile.exists()) {
-                try { stateFile.readBytes() } catch (e: Exception) { null }
-            } else null
+            val bytes = armazemDeEstados?.lerBytes(slot)
 
             withContext(Dispatchers.Main) {
                 if (bytes == null || bytes.isEmpty()) {
@@ -612,6 +531,7 @@ class EmulatorActivity : ComponentActivity() {
             val systemDir = File(filesDir, "system").apply { mkdirs() }
             val savesDir = File(filesDir, "saves").apply { mkdirs() }
             srmPath = File(savesDir, "$nomeSave.srm").absolutePath
+            armazemDeEstados = ArmazemDeEstados(savesDir, nomeSave)
 
             try {
                 nucleo.definirPastas(systemDir.absolutePath, savesDir.absolutePath)
