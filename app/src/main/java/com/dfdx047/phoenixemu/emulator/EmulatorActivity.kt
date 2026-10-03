@@ -546,168 +546,40 @@ class EmulatorActivity : ComponentActivity() {
                         modifier = Modifier.aspectRatio(aspectRatio)
                     )
 
-                    if (rewindActive) {
-                        BasicText(
-                            text = "◀◀ ${rewindSecs.roundToInt()}s",
-                            style = TextStyle(color = Color.White.copy(alpha = 0.85f), fontSize = 14.sp, fontWeight = FontWeight.Bold),
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .windowInsetsPadding(WindowInsets.systemBars)
-                                .padding(top = 16.dp)
-                        )
-                    } else if (ffSpeed > 1) {
-                        BasicText(
-                            text = "▶▶ ${ffSpeed}x",
-                            style = TextStyle(color = Color.White.copy(alpha = 0.85f), fontSize = 14.sp, fontWeight = FontWeight.Bold),
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .windowInsetsPadding(WindowInsets.systemBars)
-                                .padding(top = 16.dp)
-                        )
-                    }
-
-                    if (statsText.isNotEmpty() && !isPaused && (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
-                        BasicText(
-                            text = statsText,
-                            style = TextStyle(color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp),
-                            modifier = Modifier
-                                .align(Alignment.TopStart)
-                                .windowInsetsPadding(WindowInsets.systemBars)
-                                .padding(16.dp)
-                        )
-                    }
-
-                    if (avisoTexto.isNotEmpty()) {
-                        BasicText(
-                            text = avisoTexto,
-                            style = TextStyle(color = Color.White.copy(alpha = 0.85f), fontSize = 14.sp),
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .windowInsetsPadding(WindowInsets.systemBars)
-                                .padding(top = 48.dp)
-                        )
-                    }
+                    HudDoJogo(
+                        rewindAtivo = rewindActive,
+                        rewindSegundos = rewindSecs,
+                        velocidadeAvanco = ffSpeed,
+                        statsTexto = statsText,
+                        mostrarStats = !isPaused && (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0,
+                        avisoTexto = avisoTexto
+                    )
 
                     if (isPaused) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.7f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(12.dp),
-                                modifier = Modifier.padding(16.dp)
-                            ) {
-                                if (infoMessage.isNotEmpty()) {
-                                    BasicText(
-                                        text = infoMessage,
-                                        style = TextStyle(color = Color.White, fontSize = 12.sp)
-                                    )
-                                }
-
-                                if (mensagemFeedback.isNotEmpty()) {
-                                    BasicText(
-                                        text = mensagemFeedback,
-                                        style = TextStyle(color = Color(0xFFFFD700), fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                                    )
-                                }
-
-                                when (menuState) {
-                                    MenuState.MAIN -> {
-                                        Button(
-                                            onClick = { isPaused = false },
-                                            modifier = Modifier.focusRequester(focusRequester)
-                                        ) { Text("Continuar") }
-
-                                        Button(onClick = {
-                                            carregarSlotsInfo()
-                                            menuState = MenuState.SAVE_SLOTS
-                                        }) { Text("Salvar estado") }
-
-                                        Button(onClick = {
-                                            carregarSlotsInfo()
-                                            menuState = MenuState.LOAD_SLOTS
-                                        }) { Text("Carregar estado") }
-
-                                        Button(onClick = { 
-                                            isPaused = false
-                                            nucleo.reiniciar()
-                                        }) { Text("Reiniciar") }
-
-                                        Button(onClick = { finish() }) { Text("Sair") }
-                                    }
-
-                                    MenuState.SAVE_SLOTS, MenuState.LOAD_SLOTS -> {
-                                        val isSaving = (menuState == MenuState.SAVE_SLOTS)
-                                        Text(
-                                            text = if (isSaving) "Salvar estado" else "Carregar estado",
-                                            style = TextStyle(color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                                        )
-
-                                        slotsInfo.forEachIndexed { index, slot ->
-                                            val isFirst = (index == 0)
-                                            Button(
-                                                onClick = {
-                                                    if (isSaving) {
-                                                        executarSalvarEstado(slot.slotNumber)
-                                                    } else {
-                                                        executarCarregarEstado(slot.slotNumber)
-                                                    }
-                                                },
-                                                enabled = if (isSaving) true else slot.exists,
-                                                modifier = if (isFirst) Modifier.focusRequester(focusRequester) else Modifier
-                                            ) {
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                                    modifier = Modifier.fillMaxWidth(0.6f)
-                                                ) {
-                                                    if (slot.bitmap != null) {
-                                                        Image(
-                                                            bitmap = slot.bitmap.asImageBitmap(),
-                                                            contentDescription = null,
-                                                            modifier = Modifier.size(width = 80.dp, height = 60.dp)
-                                                        )
-                                                    } else {
-                                                        Box(
-                                                            modifier = Modifier
-                                                                .size(width = 80.dp, height = 60.dp)
-                                                                .background(Color.DarkGray),
-                                                            contentAlignment = Alignment.Center
-                                                        ) {
-                                                            Text(
-                                                                text = if (slot.exists) "Sem img" else "Vazio",
-                                                                style = TextStyle(color = Color.LightGray, fontSize = 12.sp)
-                                                            )
-                                                        }
-                                                    }
-                                                    Column {
-                                                        Text(
-                                                            text = "Slot ${slot.slotNumber}",
-                                                            style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                                                        )
-                                                        Text(
-                                                            text = slot.dateText,
-                                                            style = TextStyle(fontSize = 12.sp, color = Color.LightGray)
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        Button(onClick = { menuState = MenuState.MAIN }) {
-                                            Text("Voltar")
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        LaunchedEffect(menuState) {
-                            try { focusRequester.requestFocus() } catch (e: Exception) {}
-                        }
+                        MenuDePausa(
+                            infoMessage = infoMessage,
+                            mensagemFeedback = mensagemFeedback,
+                            menuState = menuState,
+                            slots = slotsInfo,
+                            focusRequester = focusRequester,
+                            continuar = { isPaused = false },
+                            abrirSalvar = {
+                                carregarSlotsInfo()
+                                menuState = MenuState.SAVE_SLOTS
+                            },
+                            abrirCarregar = {
+                                carregarSlotsInfo()
+                                menuState = MenuState.LOAD_SLOTS
+                            },
+                            reiniciar = {
+                                isPaused = false
+                                nucleo.reiniciar()
+                            },
+                            sair = { finish() },
+                            salvarSlot = ::executarSalvarEstado,
+                            carregarSlot = ::executarCarregarEstado,
+                            voltarAoMenu = { menuState = MenuState.MAIN }
+                        )
                     }
                 }
             }
