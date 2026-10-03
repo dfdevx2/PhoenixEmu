@@ -6,6 +6,7 @@ import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.SoundPool
+import android.os.SystemClock
 import android.util.Log
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.lifecycle.DefaultLifecycleObserver
@@ -60,6 +61,15 @@ class AudioEngine private constructor(context: Context) : DefaultLifecycleObserv
     private var idSwipe = 0
     private val carregados = HashSet<Int>()
 
+    // ---- SFX novos (TAREFA A1) ----
+    private var idCapaPassa = 0
+    private var idTrocaAba = 0
+    private var idBoot = 0
+    private var idGameBoot = 0
+
+    /** Instante da última execução de CAPA_PASSA (throttle 60 ms). */
+    private var ultimoCapaPassa = 0L
+
     // Cache dos ajustes: lidos dos Flows, nunca das prefs em tempo de clique.
     @Volatile private var sfxAtivo = true
     @Volatile private var sfxVolume = 1f
@@ -104,6 +114,11 @@ class AudioEngine private constructor(context: Context) : DefaultLifecycleObserv
         try {
             idClique = soundPool.load(app, R.raw.sfx_click, 1)
             idSwipe = soundPool.load(app, R.raw.sfx_swipe, 1)
+            // ajuste de ouvido — volumes relativos ao sfxVolume geral
+            idCapaPassa = soundPool.load(app, R.raw.sfx_capa_passa, 1)
+            idTrocaAba  = soundPool.load(app, R.raw.sfx_troca_aba, 1)
+            idBoot      = soundPool.load(app, R.raw.sfx_boot, 1)
+            idGameBoot  = soundPool.load(app, R.raw.sfx_game_boot, 1)
             bgmPlayer = MediaPlayer.create(app, R.raw.bgm_menu)?.apply { isLooping = true }
         } catch (e: Exception) {
             Log.e(TAG, "Falha ao carregar os audios de res/raw", e)
@@ -135,6 +150,70 @@ class AudioEngine private constructor(context: Context) : DefaultLifecycleObserv
         val bgmAtivo: Boolean,
         val bgmVolume: Float
     )
+
+    // ========================================================= SFX novos (TAREFA A1)
+    // ajuste de ouvido — volumes relativos ao sfxVolume geral do motor
+    private val VOLUME_RELATIVO = mapOf(
+        Som.CAPA_PASSA to 0.20f,
+        Som.TROCA_ABA  to 0.30f,
+        Som.BOOT       to 0.35f,
+        Som.GAME_BOOT  to 0.40f
+    )
+
+    /** Tipo seguro para os novos efeitos sonoros. */
+    sealed class Som {
+        object CAPA_PASSA : Som()
+        object TROCA_ABA  : Som()
+        object BOOT       : Som()
+        object GAME_BOOT  : Som()
+        val cooldownMs: Long
+            get() = when (this) {
+                CAPA_PASSA -> 60L
+                else       -> 0L
+            }
+    }
+
+    /** Mapa SoundPoolId → Som, preenchido apos carregamento dos recursos. */
+    private val somPorId = mutableMapOf<Int, Som>()
+
+    /** Mapeia um Som para seu id do SoundPool (apos carregamento). */
+    private fun AudioEngine.idDoSom(som: Som): Int = when (som) {
+        Som.CAPA_PASSA -> idCapaPassa
+        Som.TROCA_ABA  -> idTrocaAba
+        Som.BOOT       -> idBoot
+        Som.GAME_BOOT  -> idGameBoot
+    }
+
+    /** Mapeia um Som para a preferencia individual correspondente (valor atual). */
+    private fun AudioEngine.ehAtivoIndividual(som: Som): Boolean = when (som) {
+        Som.CAPA_PASSA  -> prefs.somCapaPassa.value
+        Som.TROCA_ABA   -> prefs.somTrocaAba.value
+        Som.BOOT        -> prefs.somBoot.value
+        Som.GAME_BOOT   -> prefs.somEntrarJogo.value
+    }
+
+    /** Preenche o mapa inverso (id → Som) apos os loads terminarem. */
+    private fun reconstruirMapaSom() {
+        somPorId.clear()
+        for (s in arrayOf(Som.CAPA_PASSA, Som.TROCA_ABA, Som.BOOT, Som.GAME_BOOT)) {
+            val id = idDoSom(s)
+            if (id != 0) somPorId[id] = s
+        }
+    }
+
+    /** Toca um efeito novo, respeitando as mesmas condições de silêncio que sfx_click/swipe. */
+    fun tocar(som: Som) {
+        val id = idDoSom(som)
+        if (!sfxAtivo || !ehAtivoIndividual(som) || id == 0 || id !in carregados) return
+        // Throttle para CAPA_PASSA
+        if (som.cooldownMs > 0L) {
+            val agora = SystemClock.uptimeMillis()
+            if (agora - ultimoCapaPassa < som.cooldownMs) return
+            ultimoCapaPassa = agora
+        }
+        val volumeRelativo = VOLUME_RELATIVO[som] ?: 1f
+        soundPool.play(id, sfxVolume * volumeRelativo, sfxVolume * volumeRelativo, 1, 0, 1f)
+    }
 
     // ------------------------------------------------------ ciclo de vida
 

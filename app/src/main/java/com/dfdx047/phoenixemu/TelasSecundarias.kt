@@ -190,6 +190,51 @@ private fun LinhaDeInterruptor(
     }
 }
 
+
+/** Versão de LinhaDeInterruptor com suporte a desabilitado por uma chave-mae. */
+@Composable
+private fun LinhaDeInterruptorIndividuial(
+    @StringRes rotulo: Int,
+    @StringRes descricao: Int? = null,
+    @StringRes dica: Int? = null,
+    marcado: Boolean,
+    desabilitadoPor: Boolean,
+    onMudar: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                stringResource(rotulo),
+                fontWeight = FontWeight.Bold,
+                color = if (desabilitadoPor) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    else MaterialTheme.colorScheme.onSurface
+            )
+            if (descricao != null) {
+                Text(
+                    stringResource(descricao),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (desabilitadoPor) 0.5f else 1f)
+                )
+            }
+        }
+        if (dica != null) {
+            Spacer(Modifier.width(8.dp))
+            BotaoDeDica(stringResource(dica))
+        }
+        Spacer(Modifier.width(12.dp))
+        Switch(
+            checked = marcado,
+            enabled = !desabilitadoPor,
+            onCheckedChange = onMudar
+        )
+    }
+}
 @Composable
 private fun RotuloComDica(@StringRes rotulo: Int, @StringRes dica: Int) {
     Row(
@@ -218,6 +263,10 @@ fun TelaConfiguracoes(prefs: Preferencias) {
     val sfxAtivo by prefs.sfxAtivo.collectAsStateWithLifecycle()
     val bgmVolume by prefs.bgmVolume.collectAsStateWithLifecycle()
     val sfxVolume by prefs.sfxVolume.collectAsStateWithLifecycle()
+    val somCapaPassa by prefs.somCapaPassa.collectAsStateWithLifecycle()
+    val somTrocaAba by prefs.somTrocaAba.collectAsStateWithLifecycle()
+    val somBoot by prefs.somBoot.collectAsStateWithLifecycle()
+    val somEntrarJogo by prefs.somEntrarJogo.collectAsStateWithLifecycle()
     val reduzirEfeitos by prefs.reduzirEfeitos.collectAsStateWithLifecycle()
     val amoled by prefs.amoled.collectAsStateWithLifecycle()
     val acabamento by prefs.acabamento.collectAsStateWithLifecycle()
@@ -484,6 +533,46 @@ fun TelaConfiguracoes(prefs: Preferencias) {
                                 audio.playClick()
                             },
                             valueRange = 0f..1f
+                        )
+                    }
+
+                    HorizontalDivider()
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        LinhaDeInterruptorIndividuial(
+                            rotulo = R.string.ajuste_som_capa_passa,
+                            descricao = R.string.ajuste_som_capa_passa_desc,
+                            dica = R.string.dica_ajuste_som_capa_passa,
+                            marcado = somCapaPassa,
+                            desabilitadoPor = !sfxAtivo,
+                            onMudar = { prefs.definirSomCapaPassa(it) }
+                        )
+                        LinhaDeInterruptorIndividuial(
+                            rotulo = R.string.ajuste_som_troca_aba,
+                            descricao = R.string.ajuste_som_troca_aba_desc,
+                            dica = R.string.dica_ajuste_som_troca_aba,
+                            marcado = somTrocaAba,
+                            desabilitadoPor = !sfxAtivo,
+                            onMudar = { prefs.definirSomTrocaAba(it) }
+                        )
+                        LinhaDeInterruptorIndividuial(
+                            rotulo = R.string.ajuste_som_boot,
+                            descricao = R.string.ajuste_som_boot_desc,
+                            dica = R.string.dica_ajuste_som_boot,
+                            marcado = somBoot,
+                            desabilitadoPor = !sfxAtivo,
+                            onMudar = { prefs.definirSomBoot(it) }
+                        )
+                        LinhaDeInterruptorIndividuial(
+                            rotulo = R.string.ajuste_som_entar_jogo,
+                            descricao = R.string.ajuste_som_entar_jogo_desc,
+                            dica = R.string.dica_ajuste_som_entar_jogo,
+                            marcado = somEntrarJogo,
+                            desabilitadoPor = !sfxAtivo,
+                            onMudar = { prefs.definirSomEntrarJogo(it) }
                         )
                     }
                 }

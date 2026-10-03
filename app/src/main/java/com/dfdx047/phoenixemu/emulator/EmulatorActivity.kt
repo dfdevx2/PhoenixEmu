@@ -68,6 +68,11 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.Locale
 import java.util.zip.ZipInputStream
+import android.content.Context
+import android.content.res.Configuration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.runtime.CompositionLocalProvider
 
 /**
  * Host da emulacao.
@@ -103,6 +108,7 @@ class EmulatorActivity : ComponentActivity() {
     private var autosavePendente = false
     
     private lateinit var motorDeAtalhos: MotorDeAtalhos
+    private var contextoLocalizado: Context? = null
 
     private var avisoTexto by mutableStateOf("")
     private var avisoJob: kotlinx.coroutines.Job? = null
@@ -343,16 +349,31 @@ class EmulatorActivity : ComponentActivity() {
             )
         }
 
+        // --- Aplicar idioma escolhido nos Ajustes (se houver) ---
+        val idiomaTag = intent.getStringExtra(EXTRA_IDIOMA) ?: ""
+        val config = if (idiomaTag.isNotBlank()) {
+            val locale = Locale.forLanguageTag(idiomaTag)
+            Locale.setDefault(locale)
+            Configuration(resources.configuration).apply { setLocale(locale) }
+        } else {
+            Configuration(resources.configuration)
+        }
+        contextoLocalizado = createConfigurationContext(config)
+
         setContent {
             val focusRequester = remember { FocusRequester() }
 
-            PhoenixEmuTheme(
-                temaAtual = tema,
-                reduzirEfeitos = reduzirEfeitos,
-                amoled = amoled,
-                acabamento = acabamento,
-                sombras = sombras
+            CompositionLocalProvider(
+                LocalContext provides (contextoLocalizado ?: this@EmulatorActivity),
+                LocalConfiguration provides config
             ) {
+                PhoenixEmuTheme(
+                    temaAtual = tema,
+                    reduzirEfeitos = reduzirEfeitos,
+                    amoled = amoled,
+                    acabamento = acabamento,
+                    sombras = sombras
+                ) {
                 Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
                     if (loadError != null) {
                         BasicText(
@@ -491,6 +512,7 @@ class EmulatorActivity : ComponentActivity() {
             }
         }
     }
+}
 }
 
     private fun tentarAutosave() {
@@ -666,6 +688,9 @@ class EmulatorActivity : ComponentActivity() {
      * com eles, e a ordem de ORDEM_DO_MAPEAMENTO e conferida la por nome.
      */
     companion object {
+        /** Chave do Intent extra para o código de idioma (ex: "pt-BR"). */
+        const val EXTRA_IDIOMA = "phoenix.idioma"
+
         /** Nome do arquivo .so dentro de nativeLibraryDir. Ex.: "libmesen.so". */
         const val EXTRA_NUCLEO = "phoenix.nucleo"
 

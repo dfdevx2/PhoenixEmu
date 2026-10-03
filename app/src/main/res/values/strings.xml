@@ -255,6 +255,23 @@
     <string name="dica_idioma">App language. System follows the Android language. The screen restarts when you change it.</string>
     <string name="dica_bgm">Background music in the app menus. Does not affect game audio.</string>
     <string name="dica_sfx">Click and navigation sounds in the menus. Does not affect game audio.</string>
+    <!-- Individual sound effects -->
+    <string name="ajuste_som_capa_passa">Cover scroll sound</string>
+    <string name="ajuste_som_capa_passa_desc">Plays a soft tick each time you move from one cover to the next.</string>
+    <string name="dica_ajuste_som_capa_passa">Plays a soft tick each time you move from one cover to the next.</string>
+
+    <string name="ajuste_som_troca_aba">Section switch sound</string>
+    <string name="ajuste_som_troca_aba_desc">Plays a sound when you switch section (Library, Achievements…).</string>
+    <string name="dica_ajuste_som_troca_aba">Plays a sound when you switch section (Library, Achievements…).</string>
+
+    <string name="ajuste_som_boot">Startup sound</string>
+    <string name="ajuste_som_boot_desc">Plays the intro sound when the app starts.</string>
+    <string name="dica_ajuste_som_boot">Plays the intro sound when the app starts.</string>
+
+    <string name="ajuste_som_entar_jogo">Game launch sound</string>
+    <string name="ajuste_som_entar_jogo_desc">Plays a sound when you open a game.</string>
+    <string name="dica_ajuste_som_entar_jogo">Plays a sound when you open a game.</string>
+
     <string name="dica_proporcao">How the game image fills the screen: 4:3 keeps the original shape, 16:9 fills more, Stretch fills everything.</string>
     <string name="dica_filtro_video">Smooths or stylizes the game image. None keeps pixels sharp.</string>
     <string name="dica_autosalvar">Saves the game state by itself when you leave. Does not use the 4 manual slots.</string>
@@ -275,5 +292,15 @@
     <string name="titulo_nav_oculta">Hide navigation when scrolling down</string>
     <string name="desc_nav_oculta">In grid view, the navigation bar hides while you move down the games.</string>
     <string name="dica_nav_oculta">While you move down the game grid, the navigation bar and the add-folder button get out of the way and return when you move up. L1 and R1 also bring the bar back.</string>
+
+    <string name="jogo_menu_continuar">Continue</string>
+    <string name="jogo_menu_salvar_estado">Save state</string>
+    <string name="jogo_menu_carregar_estado">Load state</string>
+    <string name="jogo_menu_reiniciar">Restart</string>
+    <string name="jogo_menu_sair">Quit</string>
+    <string name="jogo_menu_sem_img">No img</string>
+    <string name="jogo_menu_vazio">Empty</string>
+    <string name="jogo_menu_slot">Slot %1$d</string>
+    <string name="jogo_menu_voltar">Back</string>
 
 </resources>

@@ -8,6 +8,7 @@ import com.dfdx047.phoenixemu.Sistema
 import com.dfdx047.phoenixemu.data.AcaoAtalho
 import com.dfdx047.phoenixemu.data.BotaoVirtual
 import com.dfdx047.phoenixemu.data.Preferencias
+import com.dfdx047.phoenixemu.data.Idioma
 import com.dfdx047.phoenixemu.data.combo
 import com.dfdx047.phoenixemu.emulator.EmulatorActivity
 import org.json.JSONArray
@@ -87,6 +88,7 @@ object Emulador {
             .putExtra(EmulatorActivity.EXTRA_REDUZIR_EFEITOS, prefs.reduzirEfeitos.value)
             .putExtra(EmulatorActivity.EXTRA_AMOLED, prefs.amoled.value)
             .putExtra(EmulatorActivity.EXTRA_SOMBRAS, prefs.sombras.value)
+            .putExtra(EmulatorActivity.EXTRA_IDIOMA, Idioma.atual(context))
         if (rom != null) intent.putExtra(EmulatorActivity.EXTRA_ROM, rom)
         context.startActivity(intent)
     }

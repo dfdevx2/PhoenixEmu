@@ -25,6 +25,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.dfdx047.phoenixemu.R
 
 @Composable internal fun MenuDePausa(
     infoMessage: String,
@@ -71,21 +73,21 @@ import androidx.compose.ui.unit.sp
                     Button(
                         onClick = continuar,
                         modifier = Modifier.focusRequester(focusRequester)
-                    ) { Text("Continuar") }
+                    ) { Text(stringResource(R.string.jogo_menu_continuar)) }
 
-                    Button(onClick = abrirSalvar) { Text("Salvar estado") }
+                    Button(onClick = abrirSalvar) { Text(stringResource(R.string.jogo_menu_salvar_estado)) }
 
-                    Button(onClick = abrirCarregar) { Text("Carregar estado") }
+                    Button(onClick = abrirCarregar) { Text(stringResource(R.string.jogo_menu_carregar_estado)) }
 
-                    Button(onClick = reiniciar) { Text("Reiniciar") }
+                    Button(onClick = reiniciar) { Text(stringResource(R.string.jogo_menu_reiniciar)) }
 
-                    Button(onClick = sair) { Text("Sair") }
+                    Button(onClick = sair) { Text(stringResource(R.string.jogo_menu_sair)) }
                 }
 
                 MenuState.SAVE_SLOTS, MenuState.LOAD_SLOTS -> {
                     val isSaving = (menuState == MenuState.SAVE_SLOTS)
                     Text(
-                        text = if (isSaving) "Salvar estado" else "Carregar estado",
+                        text = if (isSaving) stringResource(R.string.jogo_menu_salvar_estado) else stringResource(R.string.jogo_menu_carregar_estado),
                         style = TextStyle(color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     )
 
@@ -121,14 +123,14 @@ import androidx.compose.ui.unit.sp
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
-                                            text = if (slot.exists) "Sem img" else "Vazio",
+                                            text = if (slot.exists) stringResource(R.string.jogo_menu_sem_img) else stringResource(R.string.jogo_menu_vazio),
                                             style = TextStyle(color = Color.LightGray, fontSize = 12.sp)
                                         )
                                     }
                                 }
                                 Column {
                                     Text(
-                                        text = "Slot ${slot.slotNumber}",
+                                        text = stringResource(R.string.jogo_menu_slot, slot.slotNumber),
                                         style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold)
                                     )
                                     Text(
@@ -141,7 +143,7 @@ import androidx.compose.ui.unit.sp
                     }
 
                     Button(onClick = voltarAoMenu) {
-                        Text("Voltar")
+                        Text(stringResource(R.string.jogo_menu_voltar))
                     }
                 }
             }

@@ -253,6 +253,22 @@
     <string name="dica_idioma">Idioma do app. Em Sistema, ele acompanha o idioma do Android. A tela reinicia ao trocar.</string>
     <string name="dica_bgm">Música de fundo dos menus do app. Não afeta o som dos jogos.</string>
     <string name="dica_sfx">Sons de clique e navegação nos menus. Não afeta o som dos jogos.</string>
+    <string name="ajuste_som_capa_passa">Som ao passar capas</string>
+    <string name="ajuste_som_capa_passa_desc">Toca um tique suave toda vez que você passa de uma capa para outra.</string>
+    <string name="dica_ajuste_som_capa_passa">Toca um tique suave toda vez que você passa de uma capa para outra.</string>
+
+    <string name="ajuste_som_troca_aba">Som ao trocar de aba</string>
+    <string name="ajuste_som_troca_aba_desc">Toca um som ao trocar de seção (Biblioteca, Conquistas…).</string>
+    <string name="dica_ajuste_som_troca_aba">Toca um som ao trocar de seção (Biblioteca, Conquistas…).</string>
+
+    <string name="ajuste_som_boot">Som de abertura</string>
+    <string name="ajuste_som_boot_desc">Toca o som de abertura quando o app inicia.</string>
+    <string name="dica_ajuste_som_boot">Toca o som de abertura quando o app inicia.</string>
+
+    <string name="ajuste_som_entar_jogo">Som ao entrar no jogo</string>
+    <string name="ajuste_som_entar_jogo_desc">Toca um som ao abrir um jogo.</string>
+    <string name="dica_ajuste_som_entar_jogo">Toca um som ao abrir um jogo.</string>
+
     <string name="dica_proporcao">Como a imagem do jogo ocupa a tela: 4:3 mantém o formato original, 16:9 preenche mais, Esticar ocupa tudo.</string>
     <string name="dica_filtro_video">Suaviza ou estiliza a imagem do jogo. Nenhum mantém os pixels nítidos.</string>
     <string name="dica_autosalvar">Guarda o estado do jogo sozinho quando você sai. Não usa os 4 manual slots.</string>
@@ -273,5 +289,15 @@
     <string name="titulo_nav_oculta">Esconder a navegação ao descer</string>
     <string name="desc_nav_oculta">Na grade, a barra de navegação some ao descer pelos jogos.</string>
     <string name="dica_nav_oculta">Ao descer pela grade de jogos, a barra de navegação e o botão de adicionar pasta saem da frente e voltam quando você sobe. L1 e R1 também trazem a barra de volta.</string>
+
+    <string name="jogo_menu_continuar">Continuar</string>
+    <string name="jogo_menu_salvar_estado">Salvar estado</string>
+    <string name="jogo_menu_carregar_estado">Carregar estado</string>
+    <string name="jogo_menu_reiniciar">Reiniciar</string>
+    <string name="jogo_menu_sair">Sair</string>
+    <string name="jogo_menu_sem_img">Sem img</string>
+    <string name="jogo_menu_vazio">Vazio</string>
+    <string name="jogo_menu_slot">Slot %1$d</string>
+    <string name="jogo_menu_voltar">Voltar</string>
 
 </resources>

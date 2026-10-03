@@ -65,6 +65,10 @@ private val K_AUTO_CARREGAR = booleanPreferencesKey("auto_carregar")
 private val K_OMBROS_TROCAM_SECAO = booleanPreferencesKey("ombros_trocam_secao")
 private val K_TOPO_FIXO_GRADE = booleanPreferencesKey("topo_fixo_grade")
 private val K_SOMBRAS = booleanPreferencesKey("sombras")
+private val K_SOM_CAPA_PASSA = booleanPreferencesKey("sfx_capa_passa")
+private val K_SOM_TROCA_ABA = booleanPreferencesKey("sfx_troca_aba")
+private val K_SOM_BOOT = booleanPreferencesKey("sfx_boot")
+private val K_SOM_ENTRAR_JOGO = booleanPreferencesKey("sfx_game_boot")
 
 /**
  * Chaves trazidas do SharedPreferences antigo, uma a uma.
@@ -401,6 +405,20 @@ class Preferencias private constructor(context: Context) {
     val sombras: StateFlow<Boolean> = derivar(false) { it[K_SOMBRAS] ?: false }
 
     fun definirSombras(valor: Boolean) = editar { it[K_SOMBRAS] = valor }
+
+    // --------------------------------------------------------- efeitos individuais
+
+    val somCapaPassa: StateFlow<Boolean> = derivar(true) { it[K_SOM_CAPA_PASSA] ?: true }
+    fun definirSomCapaPassa(valor: Boolean) = editar { it[K_SOM_CAPA_PASSA] = valor }
+
+    val somTrocaAba: StateFlow<Boolean> = derivar(true) { it[K_SOM_TROCA_ABA] ?: true }
+    fun definirSomTrocaAba(valor: Boolean) = editar { it[K_SOM_TROCA_ABA] = valor }
+
+    val somBoot: StateFlow<Boolean> = derivar(true) { it[K_SOM_BOOT] ?: true }
+    fun definirSomBoot(valor: Boolean) = editar { it[K_SOM_BOOT] = valor }
+
+    val somEntrarJogo: StateFlow<Boolean> = derivar(true) { it[K_SOM_ENTRAR_JOGO] ?: true }
+    fun definirSomEntrarJogo(valor: Boolean) = editar { it[K_SOM_ENTRAR_JOGO] = valor }
 
     // ------------------------------------------- cache antigo da biblioteca
 
