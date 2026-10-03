@@ -139,6 +139,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import coil.compose.AsyncImage
@@ -174,12 +176,15 @@ import com.dfdx047.phoenixemu.ui.design.lembrarEstadoDeFundo
 import com.dfdx047.phoenixemu.ui.telas.BoasVindas
 import com.dfdx047.phoenixemu.ui.telas.TelaControles
 import com.dfdx047.phoenixemu.ui.theme.PhoenixEmuTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.Dispatchers
 import java.io.File
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -234,6 +239,28 @@ class MainActivity : ComponentActivity() {
         // estivessem pendentes. Resultado: travado na splash para sempre.
         // Comecando pelo escopo da Activity, nenhuma tela pode bloquear isto.
         lifecycleScope.launch { biblioteca.carregar() }
+
+        // Sessao de jogo: registra abertura ao abrir e soma tempo ao voltar.
+        val sessaoPrefs = getSharedPreferences("sessao_jogo", Context.MODE_PRIVATE)
+        val escopoSessao = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+        lifecycle.addObserver(object : DefaultLifecycleObserver {
+            override fun onResume(owner: LifecycleOwner) {
+                super.onResume(owner)
+                val idSessao = sessaoPrefs.getString("jogo_id", null) ?: return
+                val inicioMs = sessaoPrefs.getLong("inicio_ms", 0L)
+                if (inicioMs == 0L) {
+                    sessaoPrefs.edit().remove("jogo_id").remove("inicio_ms").apply()
+                    return
+                }
+                // Apagar a sessao ANTES de calcular: se o app crashar, nao resoma.
+                sessaoPrefs.edit().remove("jogo_id").remove("inicio_ms").apply()
+                val decorrido = System.currentTimeMillis() - inicioMs
+                if (decorrido >= 15_000L) {
+                    val minutos = kotlin.math.ceil(decorrido / 60_000.0).toInt().coerceAtMost(360)
+                    escopoSessao.launch { biblioteca.somarTempo(idSessao, minutos) }
+                }
+            }
+        })
 
         // A leitura do DataStore e assincrona: sem esperar por ela, o app
         // apareceria por alguns quadros no tema padrao antes de trocar para o
@@ -291,7 +318,7 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     } else {
-                        PhoenixApp(prefs = prefs, biblioteca = biblioteca, trocas = trocasDeSecao)
+                        PhoenixApp(prefs = prefs, biblioteca = biblioteca, trocas = trocasDeSecao, sessaoPrefs = sessaoPrefs)
                     }
                 }
             }
@@ -318,7 +345,7 @@ private fun itensDeNavegacao(): List<ItemDeNavegacao> = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx.coroutines.flow.SharedFlow<Int>) {
+fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx.coroutines.flow.SharedFlow<Int>, sessaoPrefs: android.content.SharedPreferences) {
     val context = LocalContext.current
     val audio = LocalAudio.current
     val estilo = LocalVidro.current
@@ -326,6 +353,7 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx
     // ------------------------------------------------------------ estado
     // Filtro, busca e ordenacao acontecem no SQL agora. A tela so consome.
     val jogosVisiveis by biblioteca.jogosVisiveis.collectAsStateWithLifecycle()
+    val jogosTodos by biblioteca.jogosTodos.collectAsStateWithLifecycle()
     val estadoScan by biblioteca.estadoScan.collectAsStateWithLifecycle()
     val modoVisual by prefs.modoVisual.collectAsStateWithLifecycle()
     val filtro by prefs.filtro.collectAsStateWithLifecycle()
@@ -385,9 +413,16 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx
     // Ainda nao ha nucleo de emulacao. Em vez de o botao A nao fazer nada --
     // que parece defeito -- ele diz o que esta faltando.
     val aindaSemNucleo = stringResource(R.string.aviso_sem_nucleo)
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     LaunchedEffect(jogoParaJogar) {
         val jogo = jogoParaJogar ?: return@LaunchedEffect
         jogoParaJogar = null
+        // Registrar abertura e salvar sessao pendente ANTES de abrir o emulador.
+        lifecycleOwner.lifecycleScope.launch { biblioteca.registrarAbertura(jogo.id) }
+        sessaoPrefs.edit()
+            .putString("jogo_id", jogo.id)
+            .putLong("inicio_ms", System.currentTimeMillis())
+            .apply()
         Emulador.abrirJogo(context, prefs, jogo)
     }
 
@@ -572,7 +607,7 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx
                                 topoFixoNaGrade = topoFixoNaGrade
                             )
                             Secao.CONQUISTAS -> TelaRetroAchievements(
-                                jogos = biblioteca.jogosTodos.value
+                                jogos = jogosTodos
                             )
                             Secao.CONTROLES -> TelaControles(prefs)
                             Secao.AJUSTES -> TelaConfiguracoes(prefs)

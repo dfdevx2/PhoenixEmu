@@ -211,4 +211,24 @@ interface JogoDao {
 
     @Query("UPDATE jogos SET crc32 = :crc32, hash_ra = :hashRa WHERE uri = :uri")
     suspend fun definirIdentidade(uri: String, crc32: String, hashRa: String)
+
+    /** Registra que o jogo acabou de ser aberto: atualiza o timestamp de última vez jogado. */
+    @Query(
+        """
+        UPDATE jogos
+        SET ultima_vez_jogado = :quando
+        WHERE uri = :uri
+        """
+    )
+    suspend fun registrarAbertura(uri: String, quando: Long)
+
+    /** Soma tempo de sessão ao total já acumulado. */
+    @Query(
+        """
+        UPDATE jogos
+        SET tempo_jogado = tempo_jogado + :minutos
+        WHERE uri = :uri
+        """
+    )
+    suspend fun somarTempo(uri: String, minutos: Int)
 }

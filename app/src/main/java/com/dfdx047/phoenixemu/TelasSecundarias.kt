@@ -25,8 +25,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -1261,7 +1259,7 @@ fun TelaRetroAchievements(jogos: List<Jogo>) {
                     }
                 }
 
-                // c) Jogos jogados recentemente — LazyRow
+                // c) Jogos jogados recentemente — Row horizontal
                 item {
                     Text(
                         stringResource(R.string.ra_recentes),
@@ -1269,26 +1267,19 @@ fun TelaRetroAchievements(jogos: List<Jogo>) {
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    LazyHorizontalGrid(
-                        rows = GridCells.Fixed(1),
-                        contentPadding = PaddingValues(0.dp),
+                    val recentes = jogosAbertos.take(10)
+                    Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
                     ) {
-                        val recentes = jogosAbertos.take(10)
-                        item {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                recentes.forEachIndexed { idx, jogo ->
-                                    CartaoRecente(jogo, onClick = {
-                                        audio.playClick()
-                                        jogoSelecionadoId = jogo.id
-                                        scope.launch { lazyListState.animateScrollToItem(0) }
-                                    })
-                                }
-                            }
+                        recentes.forEachIndexed { idx, jogo ->
+                            CartaoRecente(jogo, onClick = {
+                                audio.playClick()
+                                jogoSelecionadoId = jogo.id
+                                scope.launch { lazyListState.animateScrollToItem(0) }
+                            })
                         }
                     }
                 }
