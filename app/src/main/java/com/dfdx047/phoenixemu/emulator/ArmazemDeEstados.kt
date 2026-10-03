@@ -8,7 +8,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-internal class ArmazemDeEstados(private val savesDir: File?, private val nomeSave: String) {
+internal class ArmazemDeEstados(
+    private val savesDir: File?,
+    private val nomeSave: String,
+    private val textoVazio: String = "vazio"
+) {
 
     fun arquivoDoEstado(slot: Int): File? {
         if (savesDir == null) return null
@@ -40,10 +44,10 @@ internal class ArmazemDeEstados(private val savesDir: File?, private val nomeSav
                     } else null
                     list.add(SlotData(slot, true, dateStr, bmp))
                 } else {
-                    list.add(SlotData(slot, false, "vazio", null))
+                    list.add(SlotData(slot, false, textoVazio, null))
                 }
             } else {
-                list.add(SlotData(slot, false, "vazio", null))
+                list.add(SlotData(slot, false, textoVazio, null))
             }
         }
         return list

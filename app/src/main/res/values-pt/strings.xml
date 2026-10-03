@@ -300,4 +300,24 @@
     <string name="jogo_menu_slot">Slot %1$d</string>
     <string name="jogo_menu_voltar">Voltar</string>
 
+    <!-- Avisos do jogo (mostrados na tela) -->
+    <string name="jogo_aviso_reiniciado">Reiniciado</string>
+    <string name="jogo_aviso_slot">Slot %1$d</string>
+    <string name="jogo_aviso_estado_salvo">Estado salvo no slot %1$d</string>
+    <string name="jogo_aviso_falha_salvar">Falha ao salvar</string>
+    <string name="jogo_aviso_estado_carregado">Estado carregado do slot %1$d</string>
+    <string name="jogo_aviso_slot_vazio">Slot %1$d vazio</string>
+    <string name="jogo_aviso_falha_carregar">Falha ao carregar</string>
+    <string name="jogo_aviso_jogo_retomado">Jogo retomado</string>
+
+    <!-- Mensagens de erro do jogo -->
+    <string name="jogo_erro_nucleo_nao_encontrado">Núcleo não encontrado: %1$s</string>
+    <string name="jogo_erro_falha_carregar_nucleo">Falha ao carregar o núcleo.</string>
+    <string name="jogo_erro_falha_ler_rom">Falha ao ler a ROM.</string>
+    <string name="jogo_erro_falha_carregar_jogo">Falha ao carregar o jogo.</string>
+    <string name="jogo_erro_generico">Erro: %1$s</string>
+
+    <!-- Texto para slot vazio -->
+    <string name="jogo_slot_vazio_text">vazio</string>
+
 </resources>

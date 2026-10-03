@@ -10,6 +10,9 @@ extern "C" {
     size_t phoenix_audio_espaco_livre();
     size_t phoenix_audio_ocupacao();
     bool phoenix_audio_ativo();
+    void phoenix_audio_pausar();
+    void phoenix_audio_retomar();
+    void phoenix_audio_flush_ring_buffer();
     size_t phoenix_audio_tamanho_minimo();
     void phoenix_audio_relatar();
 }

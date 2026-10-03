@@ -5,6 +5,7 @@
 #include <cstring>
 #include <algorithm>
 #include <mutex>
+#include <chrono>
 #include "verificador_audio.h"
 
 namespace {
@@ -200,6 +201,73 @@ size_t phoenix_audio_tamanho_minimo() {
 
 void phoenix_audio_relatar() {
     audio_saude_relatar();
+}
+
+void phoenix_audio_pausar() {
+    std::lock_guard<std::mutex> lock(g_stream_mutex);
+    if (g_stream && g_stream->getState() == oboe::StreamState::Started) {
+        g_stream->requestPause();
+    }
+}
+
+void phoenix_audio_flush_ring_buffer() {
+    size_t old_head = g_head.load(std::memory_order_relaxed);
+    size_t old_tail = g_tail.load(std::memory_order_acquire);
+    g_head.store(old_tail, std::memory_order_release);
+}
+
+void phoenix_audio_retomar() {
+    std::lock_guard<std::mutex> lock(g_stream_mutex);
+
+    // A) g_stream nulo: retorna sem fazer nada.
+    if (!g_stream) {
+        return;
+    }
+
+    auto estadoAntes = g_stream->getState();
+
+    // B) estado Started: retorna sem fazer nada.
+    if (estadoAntes == oboe::StreamState::Started) {
+        return;
+    }
+
+    // C) estado Pausing: espera até 200 ms por Paused.
+    if (estadoAntes == oboe::StreamState::Pausing) {
+        oboe::AudioStream *raw = g_stream.get();
+        oboe::StreamState prev = oboe::StreamState::Pausing;
+        auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(200);
+        while (std::chrono::steady_clock::now() < deadline) {
+            oboe::StreamState next = oboe::StreamState::Paused;
+            oboe::Result res = raw->waitForStateChange(prev, &next, 50);
+            if (res == oboe::Result::OK || next == oboe::StreamState::Paused) {
+                break;
+            }
+            prev = next;
+        }
+    }
+
+    // Releitura do estado após espera.
+    estadoAntes = g_stream->getState();
+
+    // SÓ reabra se Disconnected/Closed/Uninitialized.
+    if (estadoAntes == oboe::StreamState::Disconnected ||
+        estadoAntes == oboe::StreamState::Closed ||
+        estadoAntes == oboe::StreamState::Uninitialized) {
+        __android_log_print(ANDROID_LOG_INFO, "PhoenixPausa", "audio retomar: resultado=-1 estadoAntes=%d estadoDepois=-1 (reabrindo)", static_cast<int>(estadoAntes)); // TEMPORARIO: remover
+        phoenix_audio_reabrir();
+        return;
+    }
+
+    // Estado Paused ou Stopped: chama requestStart().
+    oboe::Result r = g_stream->requestStart();
+    int estadoDepois = static_cast<int>(g_stream->getState());
+    __android_log_print(ANDROID_LOG_INFO, "PhoenixPausa", "audio retomar: resultado=%d estadoAntes=%d estadoDepois=%d", static_cast<int>(r), static_cast<int>(estadoAntes), estadoDepois); // TEMPORARIO: remover
+
+    // Se requestStart() retornar erro, reabra o stream.
+    if (r != oboe::Result::OK) {
+        __android_log_print(ANDROID_LOG_INFO, "PhoenixPausa", "audio retomar: requestStart falhou (%d), reabrindo", static_cast<int>(r)); // TEMPORARIO: remover
+        phoenix_audio_reabrir();
+    }
 }
 
 } // extern "C"

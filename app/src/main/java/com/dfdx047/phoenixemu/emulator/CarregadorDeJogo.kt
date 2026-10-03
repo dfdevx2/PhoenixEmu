@@ -35,7 +35,7 @@ internal class CarregadorDeJogo(
         var autoloadAplicado = false
 
         if (!file.exists()) {
-            loadError = "Núcleo não encontrado: $libraryPath"
+            loadError = context.getString(com.dfdx047.phoenixemu.R.string.jogo_erro_nucleo_nao_encontrado, libraryPath)
         } else {
             val systemDir = File(context.filesDir, "system").apply { mkdirs() }
             val savesDir = File(context.filesDir, "saves").apply { mkdirs() }
@@ -44,7 +44,7 @@ internal class CarregadorDeJogo(
             try {
                 nucleo.definirPastas(systemDir.absolutePath, savesDir.absolutePath)
                 if (!nucleo.carregar(libraryPath)) {
-                    loadError = "Falha ao carregar o núcleo."
+                    loadError = context.getString(com.dfdx047.phoenixemu.R.string.jogo_erro_falha_carregar_nucleo)
                 } else {
                     var romBytes: ByteArray? = null
                     var romPath: String? = null
@@ -95,9 +95,9 @@ internal class CarregadorDeJogo(
                     }
                     
                     if (romUri != null && romBytes == null) {
-                        loadError = "Falha ao ler a ROM."
+                        loadError = context.getString(com.dfdx047.phoenixemu.R.string.jogo_erro_falha_ler_rom)
                     } else if (!nucleo.carregarJogo(romBytes, romPath)) {
-                        loadError = "Falha ao carregar o jogo."
+                        loadError = context.getString(com.dfdx047.phoenixemu.R.string.jogo_erro_falha_carregar_jogo)
                     } else {
                         if (romUri != null) {
                             isJogoReal = true
@@ -129,7 +129,7 @@ internal class CarregadorDeJogo(
                     }
                 }
             } catch (e: Exception) {
-                loadError = "Erro: ${e.message}"
+                loadError = context.getString(com.dfdx047.phoenixemu.R.string.jogo_erro_generico, e.message)
             }
         }
 

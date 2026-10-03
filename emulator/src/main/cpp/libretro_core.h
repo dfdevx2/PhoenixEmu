@@ -40,6 +40,7 @@ public:
     void salvarSram(const std::string &caminho);
 
     void reiniciar();
+    void definirPausa(bool pausado);
 
     /** Tamanho do estado de save-state (0 se indisponivel). */
     size_t tamanhoEstado() const;

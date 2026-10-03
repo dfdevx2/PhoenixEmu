@@ -303,4 +303,24 @@
     <string name="jogo_menu_slot">Slot %1$d</string>
     <string name="jogo_menu_voltar">Back</string>
 
+    <!-- Game alerts (show on screen) -->
+    <string name="jogo_aviso_reiniciado">Restarted</string>
+    <string name="jogo_aviso_slot">Slot %1$d</string>
+    <string name="jogo_aviso_estado_salvo">State saved in slot %1$d</string>
+    <string name="jogo_aviso_falha_salvar">Save failed</string>
+    <string name="jogo_aviso_estado_carregado">State loaded from slot %1$d</string>
+    <string name="jogo_aviso_slot_vazio">Slot %1$d empty</string>
+    <string name="jogo_aviso_falha_carregar">Load failed</string>
+    <string name="jogo_aviso_jogo_retomado">Game resumed</string>
+
+    <!-- Game error messages -->
+    <string name="jogo_erro_nucleo_nao_encontrado">Core not found: %1$s</string>
+    <string name="jogo_erro_falha_carregar_nucleo">Failed to load core.</string>
+    <string name="jogo_erro_falha_ler_rom">Failed to read ROM.</string>
+    <string name="jogo_erro_falha_carregar_jogo">Failed to load game.</string>
+    <string name="jogo_erro_generico">Error: %1$s</string>
+
+    <!-- Slot text for empty state -->
+    <string name="jogo_slot_vazio_text">empty</string>
+
 </resources>

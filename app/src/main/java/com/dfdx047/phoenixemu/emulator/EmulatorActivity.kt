@@ -58,6 +58,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.dfdx047.phoenixemu.Acabamento
+import com.dfdx047.phoenixemu.R
 import com.dfdx047.phoenixemu.TemaApp
 import com.dfdx047.phoenixemu.ui.theme.PhoenixEmuTheme
 import kotlinx.coroutines.Dispatchers
@@ -98,7 +99,8 @@ class EmulatorActivity : ComponentActivity() {
     private var lastCapturedBitmap: Bitmap? = null
 
     private var isPaused by mutableStateOf(false)
-    private var menuState by mutableStateOf(MenuState.MAIN)
+    private var abaAtual by mutableStateOf(AbaDoMenu.JOGO)
+    private var fundoDoMenu by mutableStateOf<Bitmap?>(null)
     private var mensagemFeedback by mutableStateOf("")
     private var slotsInfo by mutableStateOf<List<SlotData>>(emptyList())
 
@@ -181,35 +183,36 @@ class EmulatorActivity : ComponentActivity() {
     }
 
     private fun executarAcao(acao: Acao) {
+        val ctx = contextoLocalizado ?: this
         when (acao) {
             Acao.MENU -> alternarMenu()
             Acao.REINICIAR -> {
                 nucleo.reiniciar()
-                mostrarAviso("Reiniciado")
+                mostrarAviso(ctx.getString(R.string.jogo_aviso_reiniciado))
             }
             Acao.SLOT_ANTERIOR -> {
                 slotAtual = if (slotAtual > 1) slotAtual - 1 else 4
-                mostrarAviso("Slot $slotAtual")
+                mostrarAviso(ctx.getString(R.string.jogo_aviso_slot, slotAtual))
             }
             Acao.SLOT_PROXIMO -> {
                 slotAtual = if (slotAtual < 4) slotAtual + 1 else 1
-                mostrarAviso("Slot $slotAtual")
+                mostrarAviso(ctx.getString(R.string.jogo_aviso_slot, slotAtual))
             }
             Acao.SALVAR_ESTADO -> {
                 gerenciadorDeEstados?.salvar(slotAtual, capturarAntes = true) { res ->
                     if (res == ResultadoDoEstado.OK) {
-                        mostrarAviso("Estado salvo no slot $slotAtual")
+                        mostrarAviso(ctx.getString(R.string.jogo_aviso_estado_salvo, slotAtual))
                     } else {
-                        mostrarAviso("Falha ao salvar")
+                        mostrarAviso(ctx.getString(R.string.jogo_aviso_falha_salvar))
                     }
                 }
             }
             Acao.CARREGAR_ESTADO -> {
                 gerenciadorDeEstados?.carregar(slotAtual) { res ->
                     when (res) {
-                        ResultadoDoEstado.OK -> mostrarAviso("Estado carregado do slot $slotAtual")
-                        ResultadoDoEstado.VAZIO -> mostrarAviso("Slot $slotAtual vazio")
-                        ResultadoDoEstado.FALHA -> mostrarAviso("Falha ao carregar")
+                        ResultadoDoEstado.OK -> mostrarAviso(ctx.getString(R.string.jogo_aviso_estado_carregado, slotAtual))
+                        ResultadoDoEstado.VAZIO -> mostrarAviso(ctx.getString(R.string.jogo_aviso_slot_vazio, slotAtual))
+                        ResultadoDoEstado.FALHA -> mostrarAviso(ctx.getString(R.string.jogo_aviso_falha_carregar))
                     }
                 }
             }
@@ -241,7 +244,8 @@ class EmulatorActivity : ComponentActivity() {
 
     private fun pausarJogo() {
         capturarMiniatura {
-            menuState = MenuState.MAIN
+            abaAtual = AbaDoMenu.JOGO
+            fundoDoMenu = lastCapturedBitmap
             mensagemFeedback = ""
             isPaused = true
         }
@@ -249,10 +253,11 @@ class EmulatorActivity : ComponentActivity() {
 
     private fun alternarMenu() {
         if (isPaused) {
-            if (menuState != MenuState.MAIN) {
-                menuState = MenuState.MAIN
+            if (abaAtual != AbaDoMenu.JOGO) {
+                abaAtual = AbaDoMenu.JOGO
             } else {
                 isPaused = false
+                fundoDoMenu = null
             }
         } else {
             pausarJogo()
@@ -261,7 +266,8 @@ class EmulatorActivity : ComponentActivity() {
 
 
     private fun carregarSlotsInfo() {
-        slotsInfo = armazemDeEstados?.listarSlots() ?: List(4) { slot -> SlotData(slot + 1, false, "vazio", null) }
+        val ctx = contextoLocalizado ?: this
+        slotsInfo = armazemDeEstados?.listarSlots() ?: List(4) { slot -> SlotData(slot + 1, false, ctx.getString(R.string.jogo_slot_vazio_text), null) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -338,14 +344,14 @@ class EmulatorActivity : ComponentActivity() {
         }
 
         srmPath?.let {
-            armazemDeEstados = ArmazemDeEstados(File(it).parentFile, nomeSave)
+            val ctx = this@EmulatorActivity
+            armazemDeEstados = ArmazemDeEstados(File(it).parentFile, nomeSave, ctx.getString(R.string.jogo_slot_vazio_text))
             gerenciadorDeEstados = GerenciadorDeEstados(
                 nucleo = nucleo,
                 armazem = armazemDeEstados!!,
                 escopo = lifecycleScope,
                 capturarMiniatura = ::capturarMiniatura,
                 miniaturaAtual = { lastCapturedBitmap },
-                pausado = { isPaused }
             )
         }
 
@@ -415,47 +421,49 @@ class EmulatorActivity : ComponentActivity() {
                     )
 
                     if (isPaused) {
-                        MenuDePausa(
-                            infoMessage = infoMessage,
-                            mensagemFeedback = mensagemFeedback,
-                            menuState = menuState,
-                            slots = slotsInfo,
-                            focusRequester = focusRequester,
-                            continuar = { isPaused = false },
-                            abrirSalvar = {
-                                carregarSlotsInfo()
-                                menuState = MenuState.SAVE_SLOTS
-                            },
-                            abrirCarregar = {
-                                carregarSlotsInfo()
-                                menuState = MenuState.LOAD_SLOTS
-                            },
-                            reiniciar = {
-                                isPaused = false
-                                nucleo.reiniciar()
-                            },
-                            sair = { finish() },
-                            salvarSlot = { slot ->
-                                gerenciadorDeEstados?.salvar(slot, capturarAntes = false) { res ->
-                                    if (res == ResultadoDoEstado.OK) {
-                                        mensagemFeedback = "Estado salvo no slot $slot"
-                                        carregarSlotsInfo()
-                                    } else {
-                                        mensagemFeedback = "Falha ao salvar"
-                                    }
+                        MenuLateralDoJogo(
+                            visivel = isPaused,
+                            abaAtual = abaAtual,
+                            aoTrocarAba = { abaAtual = it },
+                            aoFechar = { isPaused = false; fundoDoMenu = null },
+                            fundo = fundoDoMenu,
+                            aspectoDoJogo = aspectRatio,
+                            conteudo = { aba ->
+                                when (aba) {
+                                    AbaDoMenu.JOGO -> ConteudoJogo(
+                                        continuar = { isPaused = false },
+                                        reiniciar = { isPaused = false; nucleo.reiniciar() },
+                                        sair = { finish() }
+                                    )
+                                    AbaDoMenu.ESTADOS -> ConteudoEstados(
+                                        slots = slotsInfo,
+                                        mensagem = mensagemFeedback,
+                                        aoSalvar = { slot ->
+                                            gerenciadorDeEstados?.salvar(slot, capturarAntes = false) { res ->
+                                                val ctx = contextoLocalizado ?: this@EmulatorActivity
+                                                if (res == ResultadoDoEstado.OK) {
+                                                    mensagemFeedback = ctx.getString(R.string.jogo_aviso_estado_salvo, slot)
+                                                    carregarSlotsInfo()
+                                                } else {
+                                                    mensagemFeedback = ctx.getString(R.string.jogo_aviso_falha_salvar)
+                                                }
+                                            }
+                                        },
+                                        aoCarregar = { slot ->
+                                            gerenciadorDeEstados?.carregar(slot) { res ->
+                                                val ctx = contextoLocalizado ?: this@EmulatorActivity
+                                                if (res == ResultadoDoEstado.OK) {
+                                                    mensagemFeedback = ""
+                                                    isPaused = false
+                                                } else {
+                                                    mensagemFeedback = ctx.getString(R.string.jogo_aviso_falha_carregar)
+                                                }
+                                            }
+                                        }
+                                    )
+                                    else -> Box(modifier = Modifier.fillMaxSize()) { Text("Em breve", modifier = Modifier.padding(16.dp)) }
                                 }
-                            },
-                            carregarSlot = { slot ->
-                                gerenciadorDeEstados?.carregar(slot) { res ->
-                                    if (res == ResultadoDoEstado.OK) {
-                                        mensagemFeedback = ""
-                                        isPaused = false
-                                    } else {
-                                        mensagemFeedback = "Falha ao carregar estado"
-                                    }
-                                }
-                            },
-                            voltarAoMenu = { menuState = MenuState.MAIN }
+                            }
                         )
                     }
                 }
@@ -464,7 +472,8 @@ class EmulatorActivity : ComponentActivity() {
             if (loadError == null) {
                 if (precisaAvisoAutoload) {
                     LaunchedEffect(Unit) {
-                        mostrarAviso("Jogo retomado")
+                        val ctx = contextoLocalizado ?: this@EmulatorActivity
+                        mostrarAviso(ctx.getString(R.string.jogo_aviso_jogo_retomado))
                         precisaAvisoAutoload = false
                     }
                 }
@@ -493,13 +502,11 @@ class EmulatorActivity : ComponentActivity() {
                     gerenciadorDeEstados?.cancelarPendentes()
 
                     if (isPaused) {
-                        nucleo.parar()
+                        nucleo.definirPausa(true)
                         srmPath?.let { nucleo.salvarSram(it) }
                         carregarSlotsInfo()
                     } else {
-                        activeSurfaceHolder?.surface?.let {
-                            if (it.isValid) nucleo.iniciar(it)
-                        }
+                        nucleo.definirPausa(false)
                     }
                 }
                 

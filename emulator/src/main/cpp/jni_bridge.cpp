@@ -49,6 +49,8 @@ namespace {
 phoenix::LibretroCore g_nucleo;
 std::thread g_thread_emulador;
 std::atomic<bool> g_rodando{false};
+std::atomic<bool> g_pausado{false};
+std::atomic<bool> g_reiniciar_pacing{false};
 ANativeWindow* g_janela = nullptr;
 
 std::string paraStdString(JNIEnv *env, jstring texto) {
@@ -83,6 +85,7 @@ void lacoEmulador() {
 
     int quadro_rewind_captura = 0;
     bool rewind_anterior = false;
+    auto ultimo_quadro_forcado = clock::now();
 
     auto processar_quadro_normal = [&]() {
         auto t0 = clock::now();
@@ -177,109 +180,144 @@ void lacoEmulador() {
             g_rewind_count.store(0, std::memory_order_relaxed);
         }
 
-        if (g_pedido_salvar_sram.exchange(false, std::memory_order_relaxed)) {
-            if (!g_sram_path.empty()) {
-                g_nucleo.salvarSram(g_sram_path);
-            }
-        }
+        bool pausado = g_pausado.load(std::memory_order_acquire);
+        if (pausado) {
+            // Pausa REAL: nao roda retro_run, nao avanca relógio de pacing.
+            // Pedidos de estado ja foram atendidos acima.
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-        int vel = g_ff_velocidade.load(std::memory_order_relaxed);
-        if (vel != ff_anterior) {
-            if (ff_anterior > 1 && vel == 1) {
-                __android_log_print(ANDROID_LOG_INFO, "PhoenixLibretro", "ff: terminou");
-            }
-            ff_anterior = vel;
-            proximo_quadro = clock::now();
-        }
+            auto agora = clock::now();
+            if (agora >= proximo_relato) {
+                g_stats_fps.store(static_cast<float>(quadros_contados), std::memory_order_relaxed);
+                g_stats_ms_medio.store(quadros_contados > 0 ? tempo_acumulado_ms / quadros_contados : 0.0f, std::memory_order_relaxed);
+                g_stats_ms_max.store(tempo_max_ms, std::memory_order_relaxed);
 
-        bool rewind_atual = g_rewind.load(std::memory_order_relaxed);
-        if (rewind_anterior && !rewind_atual) {
-            __android_log_print(ANDROID_LOG_INFO, "PhoenixLibretro", "rewind: terminou");
-            proximo_quadro = clock::now();
-        }
-        rewind_anterior = rewind_atual;
+                quadros_contados = 0;
+                tempo_acumulado_ms = 0.0f;
+                tempo_max_ms = 0.0f;
 
-        if (rewind_atual) {
-            auto agora_inicio = clock::now();
-            if (agora_inicio >= proximo_quadro) {
-                size_t count = g_rewind_count.load(std::memory_order_relaxed);
-                if (count > 0 && !g_rewind_buffer.empty()) {
-                    g_rewind_head = (g_rewind_head == 0) ? (g_rewind_buffer.size() - 1) : (g_rewind_head - 1);
-                    g_nucleo.carregarEstado(g_rewind_buffer[g_rewind_head].data(), g_rewind_slot_size);
-
-                    auto t0 = clock::now();
-                    g_nucleo.rodarQuadro();
-                    auto t1 = clock::now();
-
-                    float ms = std::chrono::duration<float, std::milli>(t1 - t0).count();
-                    tempo_acumulado_ms += ms;
-                    if (ms > tempo_max_ms) tempo_max_ms = ms;
-                    quadros_contados++;
-
-                    count--;
-                    g_rewind_count.store(count, std::memory_order_relaxed);
-                    quadro_rewind_captura = 0;
-                }
-                proximo_quadro += intervalo;
-            } else {
-                std::this_thread::sleep_until(proximo_quadro);
-            }
-        } else if (vel > 1) {
-            auto agora_inicio_ff = clock::now();
-            if (agora_inicio_ff >= proximo_quadro) {
-                for (int i = 0; i < vel; ++i) {
-                    g_pular_video.store(i != vel - 1, std::memory_order_relaxed);
-                    auto t0 = clock::now();
-                    g_nucleo.rodarQuadro();
-                    auto t1 = clock::now();
-
-                    float ms = std::chrono::duration<float, std::milli>(t1 - t0).count();
-                    tempo_acumulado_ms += ms;
-                    if (ms > tempo_max_ms) tempo_max_ms = ms;
-                    quadros_contados++;
-                }
-                g_pular_video.store(false, std::memory_order_relaxed);
-                proximo_quadro += intervalo;
-            } else {
-                std::this_thread::sleep_until(proximo_quadro);
+                proximo_relato = agora + std::chrono::seconds(1);
             }
         } else {
-            if (phoenix_audio_ativo()) {
-                if (!stream_iniciado) {
-                    if (phoenix_audio_ocupacao() >= ALVO_QUADROS * quadros_minimos) {
-                        phoenix_audio_iniciar_stream();
-                        stream_iniciado = true;
-                    }
-                }
+            // Reinício do pacing: se g_reiniciar_pacing for true, reseta proximo_quadro e ultimo_quadro_forcado.
+            if (g_reiniciar_pacing.exchange(false, std::memory_order_acquire)) {
+                proximo_quadro = clock::now();
+                ultimo_quadro_forcado = clock::now();
+            }
 
-                if (phoenix_audio_ocupacao() < ALVO_QUADROS * quadros_minimos) {
-                    processar_quadro_normal();
-                    proximo_quadro = clock::now();
+            if (g_pedido_salvar_sram.exchange(false, std::memory_order_relaxed)) {
+                if (!g_sram_path.empty()) {
+                    g_nucleo.salvarSram(g_sram_path);
+                }
+            }
+
+            int vel = g_ff_velocidade.load(std::memory_order_relaxed);
+            if (vel != ff_anterior) {
+                if (ff_anterior > 1 && vel == 1) {
+                    __android_log_print(ANDROID_LOG_INFO, "PhoenixLibretro", "ff: terminou");
+                }
+                ff_anterior = vel;
+                proximo_quadro = clock::now();
+            }
+
+            bool rewind_atual = g_rewind.load(std::memory_order_relaxed);
+            if (rewind_anterior && !rewind_atual) {
+                __android_log_print(ANDROID_LOG_INFO, "PhoenixLibretro", "rewind: terminou");
+                proximo_quadro = clock::now();
+            }
+            rewind_anterior = rewind_atual;
+
+            if (rewind_atual) {
+                auto agora_inicio = clock::now();
+                if (agora_inicio >= proximo_quadro) {
+                    size_t count = g_rewind_count.load(std::memory_order_relaxed);
+                    if (count > 0 && !g_rewind_buffer.empty()) {
+                        g_rewind_head = (g_rewind_head == 0) ? (g_rewind_buffer.size() - 1) : (g_rewind_head - 1);
+                        g_nucleo.carregarEstado(g_rewind_buffer[g_rewind_head].data(), g_rewind_slot_size);
+
+                        auto t0 = clock::now();
+                        g_nucleo.rodarQuadro();
+                        auto t1 = clock::now();
+
+                        float ms = std::chrono::duration<float, std::milli>(t1 - t0).count();
+                        tempo_acumulado_ms += ms;
+                        if (ms > tempo_max_ms) tempo_max_ms = ms;
+                        quadros_contados++;
+
+                        count--;
+                        g_rewind_count.store(count, std::memory_order_relaxed);
+                        quadro_rewind_captura = 0;
+                    }
+                    proximo_quadro += intervalo;
                 } else {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                    std::this_thread::sleep_until(proximo_quadro);
+                }
+            } else if (vel > 1) {
+                auto agora_inicio_ff = clock::now();
+                if (agora_inicio_ff >= proximo_quadro) {
+                    for (int i = 0; i < vel; ++i) {
+                        g_pular_video.store(i != vel - 1, std::memory_order_relaxed);
+                        auto t0 = clock::now();
+                        g_nucleo.rodarQuadro();
+                        auto t1 = clock::now();
+
+                        float ms = std::chrono::duration<float, std::milli>(t1 - t0).count();
+                        tempo_acumulado_ms += ms;
+                        if (ms > tempo_max_ms) tempo_max_ms = ms;
+                        quadros_contados++;
+                    }
+                    g_pular_video.store(false, std::memory_order_relaxed);
+                    proximo_quadro += intervalo;
+                } else {
+                    std::this_thread::sleep_until(proximo_quadro);
                 }
             } else {
-                processar_quadro_normal();
-                proximo_quadro += intervalo;
-                std::this_thread::sleep_until(proximo_quadro);
+                if (phoenix_audio_ativo()) {
+                    if (!stream_iniciado) {
+                        if (phoenix_audio_ocupacao() >= ALVO_QUADROS * quadros_minimos) {
+                            phoenix_audio_iniciar_stream();
+                            stream_iniciado = true;
+                        }
+                    }
+
+                    if (phoenix_audio_ocupacao() < ALVO_QUADROS * quadros_minimos) {
+                        processar_quadro_normal();
+                        proximo_quadro = clock::now();
+                        ultimo_quadro_forcado = clock::now();
+                    } else {
+                        // Buffer cheio: se durar mais de 100ms, forçar quadro
+                        if (clock::now() - ultimo_quadro_forcado > std::chrono::milliseconds(100)) {
+                            __android_log_print(ANDROID_LOG_INFO, "PhoenixPausa", "audio buffer cheio >100ms, forçando quadro"); // TEMPORARIO: remover
+                            processar_quadro_normal();
+                            proximo_quadro = clock::now();
+                            ultimo_quadro_forcado = clock::now();
+                        } else {
+                            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                        }
+                    }
+                } else {
+                    processar_quadro_normal();
+                    proximo_quadro += intervalo;
+                    std::this_thread::sleep_until(proximo_quadro);
+                }
             }
-        }
 
-        auto agora = clock::now();
-        if (agora >= proximo_relato) {
-            if (stream_iniciado && phoenix_audio_ativo()) {
-                phoenix_audio_relatar();
+            auto agora = clock::now();
+            if (agora >= proximo_relato) {
+                if (stream_iniciado && phoenix_audio_ativo()) {
+                    phoenix_audio_relatar();
+                }
+
+                g_stats_fps.store(static_cast<float>(quadros_contados), std::memory_order_relaxed);
+                g_stats_ms_medio.store(quadros_contados > 0 ? tempo_acumulado_ms / quadros_contados : 0.0f, std::memory_order_relaxed);
+                g_stats_ms_max.store(tempo_max_ms, std::memory_order_relaxed);
+
+                quadros_contados = 0;
+                tempo_acumulado_ms = 0.0f;
+                tempo_max_ms = 0.0f;
+
+                proximo_relato = agora + std::chrono::seconds(1);
             }
-
-            g_stats_fps.store(static_cast<float>(quadros_contados), std::memory_order_relaxed);
-            g_stats_ms_medio.store(quadros_contados > 0 ? tempo_acumulado_ms / quadros_contados : 0.0f, std::memory_order_relaxed);
-            g_stats_ms_max.store(tempo_max_ms, std::memory_order_relaxed);
-
-            quadros_contados = 0;
-            tempo_acumulado_ms = 0.0f;
-            tempo_max_ms = 0.0f;
-
-            proximo_relato = agora + std::chrono::seconds(1);
         }
     }
 
@@ -385,6 +423,7 @@ Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeIniciarLaco(
     }
 
     g_rodando.store(true, std::memory_order_release);
+    g_pausado.store(false, std::memory_order_release);
     g_thread_emulador = std::thread(lacoEmulador);
 }
 
@@ -406,6 +445,28 @@ Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativePararLaco(
 
     g_rewind_head = 0;
     g_rewind_count.store(0, std::memory_order_relaxed);
+    g_pausado.store(false, std::memory_order_release);
+}
+
+JNIEXPORT void JNICALL
+Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeDefinirPausa(
+    JNIEnv * /*env*/, jobject /*thiz*/, jboolean pausado) {
+    bool p = (pausado == JNI_TRUE);
+    bool antes = g_pausado.exchange(p, std::memory_order_release);
+    // Se antes == p, retorne sem fazer nada.
+    if (antes == p) return;
+
+    if (p) {
+        // transição false→true: pausar
+        phoenix_audio_pausar();
+        __android_log_print(ANDROID_LOG_INFO, "PhoenixPausa", "pausa=true"); // TEMPORARIO: remover
+    } else {
+        // transição true→false: retomar/flush
+        phoenix_audio_flush_ring_buffer();
+        phoenix_audio_retomar();
+        g_reiniciar_pacing.store(true, std::memory_order_release);
+        __android_log_print(ANDROID_LOG_INFO, "PhoenixPausa", "pausa=false"); // TEMPORARIO: remover
+    }
 }
 
 JNIEXPORT void JNICALL

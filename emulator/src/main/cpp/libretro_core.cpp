@@ -231,6 +231,12 @@ void LibretroCore::reiniciar() {
     if (reset_) reset_();
 }
 
+void LibretroCore::definirPausa(bool /*pausado*/) {
+    // A pausa real e controlada pelo laço em jni_bridge.cpp via g_pausado.
+    // Esta funcao existe como ponto de extensao se o nucleo precisar
+    // de callbacks (ex.: retro_pause / retro_unpause).
+}
+
 size_t LibretroCore::tamanhoEstado() const {
     if (!serialize_size_) return 0;
     size_t sz = serialize_size_();
