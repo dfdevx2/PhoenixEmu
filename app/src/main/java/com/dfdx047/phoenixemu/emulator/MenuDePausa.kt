@@ -102,6 +102,9 @@ internal fun MenuDePausa(
     aoSair: () -> Unit,
     aoMudarSlot: (Int) -> Unit,
     aoMudarAba: (AbaDoMenu) -> Unit,
+    capaLocalPath: String?,
+    tempoJogadoMs: Long,
+    plataforma: String,
 ) {
     AnimatedVisibility(
         visible = visivel,
@@ -130,6 +133,9 @@ internal fun MenuDePausa(
             aoSair = aoSair,
             aoMudarSlot = aoMudarSlot,
             aoMudarAba = aoMudarAba,
+            capaLocalPath = capaLocalPath,
+            tempoJogadoMs = tempoJogadoMs,
+            plataforma = plataforma,
         )
     }
 }
@@ -150,6 +156,9 @@ private fun MenuDePausaInner(
     aoSair: () -> Unit,
     aoMudarSlot: (Int) -> Unit,
     aoMudarAba: (AbaDoMenu) -> Unit,
+    capaLocalPath: String?,
+    tempoJogadoMs: Long,
+    plataforma: String,
 ) {
     val config = LocalConfiguration.current
     val telaLarguraDp = config.screenWidthDp.dp
@@ -201,7 +210,7 @@ private fun MenuDePausaInner(
             Column(modifier = Modifier.fillMaxSize()) {
 
                 // — Cabeçalho fixo —
-                CabecalhoPausa(nomeDoJogo, tempoJogadoMinutos, aoFechar)
+                CabecalhoPausa(nomeDoJogo, tempoJogadoMinutos, aoFechar, capaLocalPath, tempoJogadoMs, plataforma)
 
                 // — Barra de abas fixa —
                 BarraDeAbas(abaAtual, aoMudarAba)
@@ -254,9 +263,56 @@ private fun CabecalhoPausa(
     nomeDoJogo: String,
     tempoJogadoMinutos: Int,
     aoFechar: () -> Unit,
+    capaLocalPath: String?,
+    tempoJogadoMs: Long,
+    plataforma: String,
 ) {
     val ctx = LocalContext.current
     val nomeAmigavel = rememberNomeAmigavel(nomeDoJogo)
+
+    // Carregar capa com BitmapFactory (segundo plano, inSampleSize)
+    val bitmapCapa = remember(capaLocalPath) {
+        var bmp: android.graphics.Bitmap? = null
+        if (!capaLocalPath.isNullOrBlank()) {
+            try {
+                val file = java.io.File(capaLocalPath)
+                if (file.exists()) {
+                    val opts = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    android.graphics.BitmapFactory.decodeFile(capaLocalPath, opts)
+                    val largura = opts.outWidth
+                    val amostra = if (largura > 200) largura / 200 else 1
+                    var realAmostra = 1
+                    while (realAmostra * 2 <= amostra) realAmostra *= 2
+                    opts.inSampleSize = realAmostra
+                    opts.inJustDecodeBounds = false
+                    opts.inPreferredConfig = android.graphics.Bitmap.Config.ARGB_8888
+                    bmp = android.graphics.BitmapFactory.decodeFile(capaLocalPath, opts)
+                }
+            } catch (_: Exception) {
+                bmp = null
+            }
+        }
+        bmp
+    }
+
+    // Tempo total = tempo acumulado antes da sessao
+    val tempoTotalMsFinal = tempoJogadoMs
+    val tempoTexto = remember(tempoTotalMsFinal) {
+        val totalMin = (tempoTotalMsFinal / 1000 / 60).toInt()
+        when {
+            totalMin < 1 -> ctx.getString(R.string.jogo_menu_tempo_sem_tempo)
+            totalMin < 60 -> "${totalMin} min"
+            else -> {
+                val h = totalMin / 60
+                val m = totalMin % 60
+                if (m > 0) "${h} h ${m} min" else "${h} h"
+            }
+        }
+    }
+    val textoPlataformaTempo = remember(plataforma, tempoTexto) {
+        if (tempoTexto == "—") plataforma
+        else "$plataforma · $tempoTexto"
+    }
 
     Row(
         modifier = Modifier
@@ -265,24 +321,36 @@ private fun CabecalhoPausa(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Capa placeholder — ícone vetorial de controle sobre fundo translúcido
-        Box(
-            modifier = Modifier
-                .width(48.dp)
-                .height(64.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFF2A2A3E).copy(alpha = 0.6f)),
-            contentAlignment = Alignment.Center,
-        ) {
+        // Capa ou placeholder
+        if (bitmapCapa != null) {
             Image(
-                painter = rememberVectorPainter(image = Icons.Outlined.Gamepad),
+                bitmap = bitmapCapa.asImageBitmap(),
                 contentDescription = null,
-                modifier = Modifier.size(28.dp),
-                colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White.copy(alpha = 0.7f)),
+                modifier = Modifier
+                    .width(48.dp)
+                    .height(64.dp)
+                    .clip(RoundedCornerShape(10.dp)),
+                contentScale = ContentScale.Crop,
             )
+        } else {
+            Box(
+                modifier = Modifier
+                    .width(48.dp)
+                    .height(64.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color(0xFF2A2A3E).copy(alpha = 0.6f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    painter = rememberVectorPainter(image = Icons.Outlined.Gamepad),
+                    contentDescription = null,
+                    modifier = Modifier.size(28.dp),
+                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White.copy(alpha = 0.7f)),
+                )
+            }
         }
 
-        // Nome + tempo
+        // Nome + plataforma/tempo
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -293,16 +361,8 @@ private fun CabecalhoPausa(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            val tempoTexto = when {
-                tempoJogadoMinutos <= 0 -> ctx.getString(R.string.jogo_menu_tempo_jogado)
-                else -> {
-                    val h = tempoJogadoMinutos / 60
-                    val m = tempoJogadoMinutos % 60
-                    if (h > 0) "${h}h ${m}min" else "${m} min"
-                }
-            }
             Text(
-                text = tempoTexto,
+                text = textoPlataformaTempo,
                 style = TextStyle(fontSize = 12.sp, color = Color.LightGray.copy(alpha = 0.7f)),
             )
         }

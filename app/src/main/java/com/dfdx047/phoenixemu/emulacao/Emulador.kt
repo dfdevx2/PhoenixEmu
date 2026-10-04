@@ -50,7 +50,14 @@ object Emulador {
             context, prefs,
             nucleo = nucleoPara(jogo.sistema),
             rom = jogo.uriString,
-            nomeSave = nomeDeSave(jogo)
+            nomeSave = nomeDeSave(jogo),
+            titulo = jogo.nome,
+            capa = jogo.capaLocal,
+            tempoJogadoMs = jogo.tempoJogadoMinutos.toLong() * 60 * 1000,
+            plataforma = when (jogo.sistema) {
+                Sistema.NES -> "NES"
+                Sistema.SNES -> "SNES"
+            }
         )
 
     private fun abrir(
@@ -58,7 +65,11 @@ object Emulador {
         prefs: Preferencias,
         nucleo: String,
         rom: String?,
-        nomeSave: String
+        nomeSave: String,
+        titulo: String = "",
+        capa: String? = null,
+        tempoJogadoMs: Long = 0,
+        plataforma: String = "",
     ) {
         val atalhos = prefs.atalhos.value
         val atalhosJson = JSONObject()
@@ -89,7 +100,11 @@ object Emulador {
             .putExtra(EmulatorActivity.EXTRA_AMOLED, prefs.amoled.value)
             .putExtra(EmulatorActivity.EXTRA_SOMBRAS, prefs.sombras.value)
             .putExtra(EmulatorActivity.EXTRA_IDIOMA, Idioma.atual(context))
+            .putExtra(EmulatorActivity.EXTRA_TITULO, titulo)
+            .putExtra(EmulatorActivity.EXTRA_PLATAFORMA, plataforma)
         if (rom != null) intent.putExtra(EmulatorActivity.EXTRA_ROM, rom)
+        if (!capa.isNullOrBlank()) intent.putExtra(EmulatorActivity.EXTRA_CAPA, capa)
+        intent.putExtra(EmulatorActivity.EXTRA_TEMPO_JOGADO_MS, tempoJogadoMs)
         context.startActivity(intent)
     }
 

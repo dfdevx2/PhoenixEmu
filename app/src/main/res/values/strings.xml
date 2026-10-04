@@ -331,6 +331,8 @@
 
     <!-- Pause menu header -->
     <string name="jogo_menu_tempo_jogado">Game time: --</string>
+    <string name="jogo_menu_tempo_sem_tempo">—</string>
+    <string name="jogo_menu_tempo_formatado">%1$s · %2$s</string>
 
     <!-- Pause menu confirmation messages -->
     <string name="jogo_aviso_salvo">State saved!</string>

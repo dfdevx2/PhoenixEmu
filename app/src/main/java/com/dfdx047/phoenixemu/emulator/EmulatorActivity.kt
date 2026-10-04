@@ -340,7 +340,15 @@ class EmulatorActivity : ComponentActivity() {
         isJogoReal = resultado.jogoReal
         aspectRatio = resultado.aspectRatio
         precisaAvisoAutoload = resultado.autoloadAplicado
-        nomeDoJogo = if (isJogoReal) (romUriString ?: "") else ""
+        nomeDoJogo = if (isJogoReal) {
+            val tituloExtra = intent.getStringExtra(EXTRA_TITULO)
+            if (!tituloExtra.isNullOrBlank()) tituloExtra else (romUriString ?: "")
+        } else ""
+
+        // Novos extras para o cabeçalho do menu de pausa
+        val capaLocal = intent.getStringExtra(EXTRA_CAPA)
+        val tempoJogadoMs = intent.getLongExtra(EXTRA_TEMPO_JOGADO_MS, 0L)
+        val plataforma = intent.getStringExtra(EXTRA_PLATAFORMA) ?: ""
         if (isJogoReal) {
             autosavePendente = true
         }
@@ -431,6 +439,9 @@ class EmulatorActivity : ComponentActivity() {
                             slots = slotsInfo,
                             slotSelecionado = slotAtual,
                             abaAtual = abaAtual,
+                            capaLocalPath = capaLocal,
+                            tempoJogadoMs = tempoJogadoMs,
+                            plataforma = plataforma,
                             aoFechar = {
                                 mensagemFeedback = ""
                                 isPaused = false
@@ -735,6 +746,18 @@ class EmulatorActivity : ComponentActivity() {
         const val EXTRA_REDUZIR_EFEITOS = "phoenix.reduzir_efeitos"
         const val EXTRA_AMOLED = "phoenix.amoled"
         const val EXTRA_SOMBRAS = "phoenix.sombras"
+
+        /** Nome legível do jogo (do banco). Se vazio, a Activity decodifica do ROM URI. */
+        const val EXTRA_TITULO = "phoenix.titulo"
+
+        /** Caminho de arquivo LOCAL da capa. Vazio se só existir URL remota. */
+        const val EXTRA_CAPA = "phoenix.capa"
+
+        /** Tempo acumulado ANTES desta sessão, em milissegundos (Long). */
+        const val EXTRA_TEMPO_JOGADO_MS = "phoenix.tempo_jogado_ms"
+
+        /** Plataforma: "NES" ou "SNES". */
+        const val EXTRA_PLATAFORMA = "phoenix.plataforma"
 
         val ORDEM_DO_MAPEAMENTO = listOf(
             "CIMA", "BAIXO", "ESQUERDA", "DIREITA",

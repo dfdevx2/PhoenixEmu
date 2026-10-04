@@ -328,6 +328,8 @@
 
     <!-- Cabeçalho do menu de pausa -->
     <string name="jogo_menu_tempo_jogado">Tempo de jogo: --</string>
+    <string name="jogo_menu_tempo_sem_tempo">—</string>
+    <string name="jogo_menu_tempo_formatado">%1$s · %2$s</string>
 
     <!-- Mensagens de confirmação do menu de pausa -->
     <string name="jogo_aviso_salvo">Estado salvo!</string>
