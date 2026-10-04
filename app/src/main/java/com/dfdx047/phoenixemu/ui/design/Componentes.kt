@@ -45,6 +45,11 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -584,7 +589,8 @@ fun BarraDeBusca(
     modifier: Modifier = Modifier,
     iconeInicial: ImageVector? = null,
     acaoFinal: @Composable (() -> Unit)? = null,
-    estilo: EstiloDeVidro = LocalVidro.current
+    estilo: EstiloDeVidro = LocalVidro.current,
+    aoDescer: (() -> Unit)? = null
 ) {
     var focado by remember { mutableStateOf(false) }
 
@@ -629,6 +635,11 @@ fun BarraDeBusca(
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                         modifier = Modifier
                             .fillMaxWidth()
+                            .onPreviewKeyEvent { ev ->
+                                if (aoDescer != null && ev.type == KeyEventType.KeyDown && ev.key == Key.DirectionDown) {
+                                    aoDescer(); true
+                                } else false
+                            }
                             .onFocusChanged { focado = it.isFocused }
                     )
                 }

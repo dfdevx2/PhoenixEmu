@@ -379,6 +379,7 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx
     val hostDeSnackbar = remember { SnackbarHostState() }
     val estadoGrade = rememberLazyGridState()
     val estadoCarrossel = rememberLazyListState()
+    val focoDaLista = remember { FocusRequester() }
 
     // A selecao e do app, nao do sistema de foco: e ela que o D-pad move e
     // que o toque atualiza, e e ela que desenha o halo.
@@ -614,7 +615,8 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx
                                 onAbrir = { jogoParaJogar = it },
                                 onOpcoes = { jogoDoMenu = it },
                                 chrome = if (secao == Secao.BIBLIOTECA) chrome else null,
-                                topoFixoNaGrade = topoFixoNaGrade
+                                topoFixoNaGrade = topoFixoNaGrade,
+                                focoDaLista = focoDaLista
                             )
                             Secao.CONQUISTAS -> TelaRetroAchievements(
                                 jogos = jogosTodos
@@ -671,7 +673,8 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx
                                         onTexto = { busca = it },
                                         dica = stringResource(R.string.busca_dica),
                                         iconeInicial = Icons.Default.Search,
-                                        modifier = Modifier.weight(1f)
+                                        modifier = Modifier.weight(1f),
+                                        aoDescer = { runCatching { focoDaLista.requestFocus() } }
                                     )
                                     var mostrandoFiltros by remember { mutableStateOf(false) }
                                     BotaoRedondoDeVidro(Icons.AutoMirrored.Filled.Sort, stringResource(R.string.acao_filtrar)) {
@@ -707,6 +710,7 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx
                                 dica = stringResource(R.string.busca_dica),
                                 iconeInicial = Icons.Default.Search,
                                 modifier = Modifier.fillMaxWidth(),
+                                aoDescer = { runCatching { focoDaLista.requestFocus() } },
                                 acaoFinal = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         IconButton(onClick = {
@@ -1045,6 +1049,7 @@ fun TelaJogos(
     onOpcoes: (Jogo) -> Unit,
     chrome: EstadoDoChrome? = null,
     topoFixoNaGrade: Boolean = false,
+    focoDaLista: FocusRequester,
 ) {
     val recuo = PaddingValues(
         start = 16.dp,
@@ -1079,7 +1084,6 @@ fun TelaJogos(
     }
 
     val gerenciadorDeFoco = LocalFocusManager.current
-    val focoDaLista = remember { FocusRequester() }
     val emGrade = modoVisual == ModoVisual.GRADE
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
