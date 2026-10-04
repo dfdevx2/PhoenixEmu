@@ -48,6 +48,16 @@ namespace {
                 void *audioData,
                 int32_t numFrames) override {
 
+            // Conta toda invocação do callback, independente de haver dados.
+            // Necessário para detecção de recuperação do áudio morto.
+            g_frames_consumidos.fetch_add(static_cast<uint64_t>(numFrames), std::memory_order_relaxed);
+
+            // Quando áudio morto, descarta amostras do core para o ring buffer não encher.
+            if (g_audio_morto.load(std::memory_order_acquire)) {
+                std::memset(audioData, 0, static_cast<size_t>(numFrames) * 2 * sizeof(int16_t));
+                return oboe::DataCallbackResult::Continue;
+            }
+
             auto* dst = static_cast<int16_t*>(audioData);
             size_t head = g_head.load(std::memory_order_acquire);
             size_t tail = g_tail.load(std::memory_order_relaxed);
@@ -66,7 +76,6 @@ namespace {
                 }
                 g_tail.store((tail + to_read) % g_capacity, std::memory_order_release);
                 audio_saude_consumiu(numFrames, to_read);
-                g_frames_consumidos.fetch_add(static_cast<uint64_t>(numFrames), std::memory_order_relaxed);
             } else {
                 audio_saude_consumiu(numFrames, 0);
             }
@@ -272,6 +281,31 @@ void phoenix_audio_reiniciar_saude() {
     g_ultimo_underron_time = std::chrono::steady_clock::now();
 }
 
+bool phoenix_audio_tentar_reabrir_se_morto() {
+    if (!g_audio_morto.load(std::memory_order_acquire)) return false;
+
+    auto agora = std::chrono::steady_clock::now();
+    auto diff = std::chrono::duration_cast<std::chrono::seconds>(agora - g_ultimo_reconectar).count();
+
+    bool stream_nulo = false;
+    bool stream_nao_started = false;
+    {
+        std::lock_guard<std::mutex> lock(g_stream_mutex);
+        if (!g_stream) {
+            stream_nulo = true;
+        } else {
+            stream_nao_started = (g_stream->getState() != oboe::StreamState::Started);
+        }
+    }
+
+    if ((stream_nulo || stream_nao_started) && diff >= 10) {
+        __android_log_print(ANDROID_LOG_INFO, "PhoenixAudio", "tentando reabrir áudio morto");
+        phoenix_audio_reabrir();
+        return true;
+    }
+    return false;
+}
+
 bool phoenix_audio_verificar_recuperacao() {
     if (!g_audio_morto.load(std::memory_order_acquire)) return false;
 
@@ -298,6 +332,9 @@ bool phoenix_audio_verificar_recuperacao() {
             g_audio_morto.store(true, std::memory_order_release);
             __android_log_print(ANDROID_LOG_ERROR, "PhoenixAudio", "audio ainda morto após 3 s, falha na recuperação");
             g_falhas_consecutivas.store(0, std::memory_order_release);
+            // Atualiza tracking para não repetir o log todo segundo
+            g_stream_ativo_ultimo = agora;
+            g_frames_ultimo_check = frames_atual;
             // Reseta tracking para próxima tentativa de reabrir
             g_ultimo_underron_time = std::chrono::steady_clock::time_point{};
             g_ultimo_underron_count = 0;

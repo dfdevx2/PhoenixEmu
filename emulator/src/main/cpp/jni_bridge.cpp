@@ -273,12 +273,17 @@ void lacoEmulador() {
                 }
             } else {
                 // Áudio morto: não espera buffer, usa só relógio de vídeo
+                static bool audio_morto_log_feito = false;
                 if (phoenix_audio_audio_morto()) {
-                    __android_log_print(ANDROID_LOG_INFO, "PhoenixPausa", "audio morto, pacing por relógio");
+                    if (!audio_morto_log_feito) {
+                        __android_log_print(ANDROID_LOG_INFO, "PhoenixPausa", "audio morto, pacing por relógio");
+                        audio_morto_log_feito = true;
+                    }
                     processar_quadro_normal();
                     proximo_quadro += intervalo;
                     std::this_thread::sleep_until(proximo_quadro);
                 } else {
+                    audio_morto_log_feito = false;
                     // Áudio saudável: comportamento normal
                     if (phoenix_audio_ativo()) {
                         if (!stream_iniciado) {
@@ -313,6 +318,9 @@ void lacoEmulador() {
 
             auto agora = clock::now();
             if (agora >= proximo_relato) {
+                if (phoenix_audio_tentar_reabrir_se_morto()) {
+                    g_reiniciar_pacing.store(true, std::memory_order_release);
+                }
                 if (phoenix_audio_verificar_recuperacao()) {
                     g_reiniciar_pacing.store(true, std::memory_order_release);
                 }
