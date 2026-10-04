@@ -377,7 +377,8 @@
     <string name="controles_botoes_control">Game Controls</string>
     <string name="controles_indisponivel">Not set</string>
     <string name="controles_dica_mudar">To change buttons, go to Settings &gt; Controls</string>
-    <string name="controles_dica_mudar_new">Para mudar botões, vá em Configurações &gt; Controles</string>
+    <string name="controles_restaurar_botoes">Restaurar botões padrão</string>
+    <string name="controles_dica_mudar_new">Botões e atalhos podem ser mudados aqui mesmo.</string>
     <string name="atalhos_aviso_conflito">Um atalho atribuído a uma única tecla tirará essa tecla do jogo. Para não perder botões, ative "Usar hotkey".</string>
 
     <string name="controles_em_breve">On-screen controls: coming soon</string>
@@ -393,5 +394,7 @@
     <string name="atalhos_restaurar_padrao">Restaurar padrão</string>
     <string name="atalhos_confirme_novamente">Confirmar novamente</string>
     <string name="atalhos_restaurado">Atalhos restaurados para o padrão</string>
+    <string name="controles_rotulo_atual">Atual</string>
+    <string name="controles_rotulo_remapear">Remapear</string>
 
 </resources>

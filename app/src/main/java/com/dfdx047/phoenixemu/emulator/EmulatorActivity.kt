@@ -71,6 +71,7 @@ import com.dfdx047.phoenixemu.R
 import com.dfdx047.phoenixemu.TemaApp
 import com.dfdx047.phoenixemu.data.AcaoAtalho
 import com.dfdx047.phoenixemu.data.AtalhoDaAcao
+import com.dfdx047.phoenixemu.data.BotaoVirtual
 import com.dfdx047.phoenixemu.data.ConfigDeAtalhos
 import com.dfdx047.phoenixemu.data.combo
 import com.dfdx047.phoenixemu.ui.theme.PhoenixEmuTheme
@@ -177,6 +178,7 @@ class EmulatorActivity : ComponentActivity() {
     private var rewindJob: kotlinx.coroutines.Job? = null
     private var rewindActive = false
     private var rewindSecs by mutableStateOf(0f)
+    var mapeamentoAtual by mutableStateOf(IntArray(12))
 
     private fun setFfActive(active: Boolean) {
         val shouldBeActive = active && !rewindActive
@@ -261,6 +263,64 @@ class EmulatorActivity : ComponentActivity() {
         }
         sendBroadcast(intent)
         Log.d("PhoenixAjustes", "atalhos restaurados")
+    }
+
+    private fun aplicarMapeamentoNoMotor() {
+        motorDeAtalhos.limparBotoes()
+        val botoes = arrayOf(
+            NucleoLibretro.Botao.CIMA,
+            NucleoLibretro.Botao.BAIXO,
+            NucleoLibretro.Botao.ESQUERDA,
+            NucleoLibretro.Botao.DIREITA,
+            NucleoLibretro.Botao.A,
+            NucleoLibretro.Botao.B,
+            NucleoLibretro.Botao.X,
+            NucleoLibretro.Botao.Y,
+            NucleoLibretro.Botao.L,
+            NucleoLibretro.Botao.R,
+            NucleoLibretro.Botao.SELECT,
+            NucleoLibretro.Botao.START
+        )
+        for (i in mapeamentoAtual.indices) {
+            val codigo = mapeamentoAtual[i]
+            if (codigo != 0) {
+                motorDeAtalhos.bindKey(codigo, botoes[i])
+            }
+        }
+        motorDeAtalhos.resetar()
+    }
+
+    fun definirBotaoNoJogo(botao: BotaoVirtual, tecla: Int) {
+        val arr = mapeamentoAtual.copyOf()
+        val i = botao.ordinal
+        val oldCode = arr[i]
+        for (j in arr.indices) {
+            if (j != i && arr[j] == tecla) {
+                arr[j] = oldCode
+            }
+        }
+        arr[i] = tecla
+        mapeamentoAtual = arr
+        aplicarMapeamentoNoMotor()
+        val intent = Intent("com.dfdx047.phoenixemu.AJUSTE_MUDOU").apply {
+            setPackage(packageName)
+            putExtra("acao", "botao_definir")
+            putExtra("botao", botao.name)
+            putExtra("tecla", tecla)
+        }
+        sendBroadcast(intent)
+        Log.d("PhoenixAjustes", "botao ${botao.name} tecla=$tecla")
+    }
+
+    fun restaurarBotoesNoJogo() {
+        mapeamentoAtual = IntArray(12) { BotaoVirtual.entries[it].padrao }
+        aplicarMapeamentoNoMotor()
+        val intent = Intent("com.dfdx047.phoenixemu.AJUSTE_MUDOU").apply {
+            setPackage(packageName)
+            putExtra("acao", "botao_restaurar")
+        }
+        sendBroadcast(intent)
+        Log.d("PhoenixAjustes", "botoes restaurados")
     }
 
     fun aplicarNoMotor() {
@@ -400,18 +460,8 @@ class EmulatorActivity : ComponentActivity() {
 
         val mapKeys = intent.getIntArrayExtra(EXTRA_MAPEAMENTO)
         if (mapKeys != null && mapKeys.size >= 12) {
-            motorDeAtalhos.bindKey(mapKeys[0], NucleoLibretro.Botao.CIMA)
-            motorDeAtalhos.bindKey(mapKeys[1], NucleoLibretro.Botao.BAIXO)
-            motorDeAtalhos.bindKey(mapKeys[2], NucleoLibretro.Botao.ESQUERDA)
-            motorDeAtalhos.bindKey(mapKeys[3], NucleoLibretro.Botao.DIREITA)
-            motorDeAtalhos.bindKey(mapKeys[4], NucleoLibretro.Botao.A)
-            motorDeAtalhos.bindKey(mapKeys[5], NucleoLibretro.Botao.B)
-            motorDeAtalhos.bindKey(mapKeys[6], NucleoLibretro.Botao.X)
-            motorDeAtalhos.bindKey(mapKeys[7], NucleoLibretro.Botao.Y)
-            motorDeAtalhos.bindKey(mapKeys[8], NucleoLibretro.Botao.L)
-            motorDeAtalhos.bindKey(mapKeys[9], NucleoLibretro.Botao.R)
-            motorDeAtalhos.bindKey(mapKeys[10], NucleoLibretro.Botao.SELECT)
-            motorDeAtalhos.bindKey(mapKeys[11], NucleoLibretro.Botao.START)
+            mapeamentoAtual = mapKeys.copyOf()
+            aplicarMapeamentoNoMotor()
         }
 
         motorDeAtalhos.definirPadroes((applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0)
@@ -635,7 +685,7 @@ class EmulatorActivity : ComponentActivity() {
                             amoled = amoled,
                             acabamento = acabamento.name,
                             reduzirEfeitos = reduzirEfeitos,
-                            mapeamento = mapKeys,
+                            mapeamento = mapeamentoAtual,
                             atalhosJson = atalhosJson,
                             atalhosCfg = atalhosCfg,
                             capturando = capturaAtalho,
@@ -671,6 +721,7 @@ class EmulatorActivity : ComponentActivity() {
                                 aplicarNoMotor()
                                 mensagemFeedback = ctx.getString(R.string.atalhos_restaurado)
                             },
+                            aoRestaurarBotoes = { restaurarBotoesNoJogo() },
                             aoFechar = {
                                 mensagemFeedback = ""
                                 isPaused = false
@@ -888,6 +939,10 @@ class EmulatorActivity : ComponentActivity() {
                         Log.d("PhoenixAjustes", "captura=$capturaAtalho")
                     } else if (capturaAtalho == "HOTKEY") {
                         definirHotkeyNoJogo(kc)
+                        capturaAtalho = null
+                        Log.d("PhoenixAjustes", "captura=$capturaAtalho")
+                    } else if (capturaAtalho!!.startsWith("BTN_")) {
+                        definirBotaoNoJogo(BotaoVirtual.valueOf(capturaAtalho!!.removePrefix("BTN_")), kc)
                         capturaAtalho = null
                         Log.d("PhoenixAjustes", "captura=$capturaAtalho")
                     } else {

@@ -31,6 +31,8 @@ internal class MotorDeAtalhos(
         keyToBit[keyCode] = (keyToBit[keyCode] ?: 0) or bit
     }
 
+    fun limparBotoes() { keyToBit.clear() }
+
     fun definirPadroes(debug: Boolean) {
         atalhos[Acao.AVANCAR] = listOf(KeyEvent.KEYCODE_BUTTON_R2)
         atalhos[Acao.VOLTAR] = listOf(KeyEvent.KEYCODE_BUTTON_L2)

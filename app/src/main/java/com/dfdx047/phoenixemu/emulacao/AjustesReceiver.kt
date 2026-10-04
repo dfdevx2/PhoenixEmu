@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.dfdx047.phoenixemu.data.AcaoAtalho
+import com.dfdx047.phoenixemu.data.BotaoVirtual
 import com.dfdx047.phoenixemu.data.Preferencias
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -48,6 +49,18 @@ class AjustesReceiver : BroadcastReceiver() {
                     "atalho_restaurar" -> {
                         prefs.restaurarAtalhos()
                         Log.i("PhoenixAjustes", "atalho acao=$acao nome=restaurar tecla=0")
+                    }
+                    "botao_definir" -> {
+                        val botao = intent.getStringExtra("botao") ?: return@launch
+                        val tecla = intent.getIntExtra("tecla", 0)
+                        runCatching { BotaoVirtual.valueOf(botao) }.onSuccess { b ->
+                            prefs.definirTecla(b, tecla)
+                            Log.i("PhoenixAjustes", "botao acao=$acao botao=$botao tecla=$tecla")
+                        }
+                    }
+                    "botao_restaurar" -> {
+                        prefs.restaurarMapeamento()
+                        Log.i("PhoenixAjustes", "botao acao=$acao nome=restaurar tecla=0")
                     }
                     "limpar" -> {
                         if (idDoJogo.isNotEmpty()) {

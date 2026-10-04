@@ -381,7 +381,8 @@
     <string name="controles_botoes_control">Game Controls</string>
     <string name="controles_indisponivel">Not set</string>
     <string name="controles_dica_mudar">To change buttons, go to Settings &gt; Controls</string>
-    <string name="controles_dica_mudar_new">To change buttons, go to Settings &gt; Controls</string>
+    <string name="controles_restaurar_botoes">Restore default buttons</string>
+    <string name="controles_dica_mudar_new">Buttons and shortcuts can be changed right here.</string>
     <string name="atalhos_aviso_conflito">A shortcut assigned to a single key will take that key away from the game. To avoid losing buttons, enable "Use shortcut button".</string>
 
     <string name="controles_em_breve">On-screen controls: coming soon</string>
@@ -397,5 +398,7 @@
     <string name="atalhos_restaurar_padrao">Restore defaults</string>
     <string name="atalhos_confirme_novamente">Confirm again</string>
     <string name="atalhos_restaurado">Shortcuts restored to defaults</string>
+    <string name="controles_rotulo_atual">Current</string>
+    <string name="controles_rotulo_remapear">Remap</string>
 
 </resources>

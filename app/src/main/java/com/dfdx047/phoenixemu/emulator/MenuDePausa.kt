@@ -283,6 +283,7 @@ internal fun MenuDePausa(
     aoLimparHotkey: () -> Unit,
     aoAlternarHotkey: (AcaoAtalho, Boolean) -> Unit,
     aoRestaurarAtalhos: () -> Unit,
+    aoRestaurarBotoes: () -> Unit,
 ) {
     AnimatedVisibility(
         visible = visivel,
@@ -337,6 +338,7 @@ internal fun MenuDePausa(
             aoLimparHotkey = aoLimparHotkey,
             aoAlternarHotkey = aoAlternarHotkey,
             aoRestaurarAtalhos = aoRestaurarAtalhos,
+            aoRestaurarBotoes = aoRestaurarBotoes,
         )
     }
 }
@@ -383,6 +385,7 @@ private fun MenuDePausaInner(
     aoLimparHotkey: () -> Unit,
     aoAlternarHotkey: (AcaoAtalho, Boolean) -> Unit,
     aoRestaurarAtalhos: () -> Unit,
+    aoRestaurarBotoes: () -> Unit,
 ) {
     val corPrimaria = Color(temaCorPrimaria)
     val corSuperficie = Color(temaCorSuperficie)
@@ -544,6 +547,7 @@ private fun MenuDePausaInner(
                                 aoLimparHotkey = aoLimparHotkey,
                                 aoAlternarHotkey = aoAlternarHotkey,
                                 aoRestaurar = aoRestaurarAtalhos,
+                                aoRestaurarBotoes = aoRestaurarBotoes,
                             )
                             else -> ConteudoAbaJogo(
                                 slots = slots,
