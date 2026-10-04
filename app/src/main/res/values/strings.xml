@@ -379,4 +379,9 @@
     <string name="ajustes_dialog_apagar_titulo">Delete per-game settings?</string>
     <string name="ajustes_dialog_apagar_texto">Every game will use the global settings again. Your library and saves are not affected.</string>
     <string name="ajustes_botao_confirmar">Confirm</string>
+    <!-- Controls (pause menu tab) -->
+    <string name="controles_botoes_control">Game Controls</string>
+    <string name="controles_indisponivel">Not set</string>
+    <string name="controles_dica_mudar">To change buttons, go to Settings &gt; Controls</string>
+    <string name="controles_em_breve">On-screen controls: coming soon</string>
 </resources>

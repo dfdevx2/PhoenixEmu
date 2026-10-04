@@ -375,4 +375,9 @@
     <string name="ajustes_dialog_apagar_titulo">Apagar ajustes por jogo?</string>
     <string name="ajustes_dialog_apagar_texto">Todos os jogos passarão a usar os ajustes globais novamente. Sua biblioteca e saves não são afetados.</string>
     <string name="ajustes_botao_confirmar">Confirmar</string>
+    <!-- Controles (aba do menu de pausa) -->
+    <string name="controles_botoes_control">Game Controls</string>
+    <string name="controles_indisponivel">Not set</string>
+    <string name="controles_dica_mudar">To change buttons, go to Settings &gt; Controls</string>
+    <string name="controles_em_breve">On-screen controls: coming soon</string>
 </resources>

@@ -344,7 +344,8 @@ class EmulatorActivity : ComponentActivity() {
         }
 
         motorDeAtalhos.definirPadroes((applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0)
-        motorDeAtalhos.carregarDoJson(intent.getStringExtra(EXTRA_ATALHOS))
+        val atalhosJson = intent.getStringExtra(EXTRA_ATALHOS) ?: ""
+        motorDeAtalhos.carregarDoJson(atalhosJson)
 
         val nucleoName = intent.getStringExtra(EXTRA_NUCLEO) ?: ""
         val romUriString = intent.getStringExtra(EXTRA_ROM)
@@ -592,6 +593,8 @@ class EmulatorActivity : ComponentActivity() {
                             amoled = amoled,
                             acabamento = acabamento.name,
                             reduzirEfeitos = reduzirEfeitos,
+                            mapeamento = mapKeys,
+                            atalhosJson = atalhosJson,
                             aoFechar = {
                                 mensagemFeedback = ""
                                 isPaused = false

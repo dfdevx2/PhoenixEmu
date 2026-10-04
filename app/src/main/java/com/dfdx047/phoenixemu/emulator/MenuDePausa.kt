@@ -269,6 +269,8 @@ internal fun MenuDePausa(
     amoled: Boolean,
     acabamento: String,
     reduzirEfeitos: Boolean,
+    mapeamento: IntArray?,
+    atalhosJson: String,
 ) {
     AnimatedVisibility(
         visible = visivel,
@@ -313,6 +315,8 @@ internal fun MenuDePausa(
             amoled = amoled,
             acabamento = acabamento,
             reduzirEfeitos = reduzirEfeitos,
+            mapeamento = mapeamento,
+            atalhosJson = atalhosJson,
         )
     }
 }
@@ -349,6 +353,8 @@ private fun MenuDePausaInner(
     amoled: Boolean,
     acabamento: String,
     reduzirEfeitos: Boolean,
+    mapeamento: IntArray?,
+    atalhosJson: String,
 ) {
     val corPrimaria = Color(temaCorPrimaria)
     val corSuperficie = Color(temaCorSuperficie)
@@ -497,7 +503,12 @@ private fun MenuDePausaInner(
                                 paleta = paleta,
                                 acabamento = acabamento,
                             )
-                            AbaDoMenu.CONTROLES -> TextoEmBreve(paleta = paleta)
+                            AbaDoMenu.CONTROLES -> ConteudoAbaControles(
+                                paleta = paleta,
+                                mapeamento = mapeamento ?: IntArray(12),
+                                atalhosJson = atalhosJson,
+                                plataforma = plataforma,
+                            )
                             else -> ConteudoAbaJogo(
                                 slots = slots,
                                 slotSelecionado = slotSelecionado,
