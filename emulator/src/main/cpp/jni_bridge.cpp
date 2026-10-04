@@ -272,41 +272,55 @@ void lacoEmulador() {
                     std::this_thread::sleep_until(proximo_quadro);
                 }
             } else {
-                if (phoenix_audio_ativo()) {
-                    if (!stream_iniciado) {
-                        if (phoenix_audio_ocupacao() >= ALVO_QUADROS * quadros_minimos) {
-                            phoenix_audio_iniciar_stream();
-                            stream_iniciado = true;
+                // Áudio morto: não espera buffer, usa só relógio de vídeo
+                if (phoenix_audio_audio_morto()) {
+                    __android_log_print(ANDROID_LOG_INFO, "PhoenixPausa", "audio morto, pacing por relógio");
+                    processar_quadro_normal();
+                    proximo_quadro += intervalo;
+                    std::this_thread::sleep_until(proximo_quadro);
+                } else {
+                    // Áudio saudável: comportamento normal
+                    if (phoenix_audio_ativo()) {
+                        if (!stream_iniciado) {
+                            if (phoenix_audio_ocupacao() >= ALVO_QUADROS * quadros_minimos) {
+                                phoenix_audio_iniciar_stream();
+                                stream_iniciado = true;
+                            }
                         }
-                    }
 
-                    if (phoenix_audio_ocupacao() < ALVO_QUADROS * quadros_minimos) {
-                        processar_quadro_normal();
-                        proximo_quadro = clock::now();
-                        ultimo_quadro_forcado = clock::now();
-                    } else {
-                        // Buffer cheio: se durar mais de 100ms, forçar quadro
-                        if (clock::now() - ultimo_quadro_forcado > std::chrono::milliseconds(100)) {
-                            __android_log_print(ANDROID_LOG_INFO, "PhoenixPausa", "audio buffer cheio >100ms, forçando quadro"); // TEMPORARIO: remover
+                        if (phoenix_audio_ocupacao() < ALVO_QUADROS * quadros_minimos) {
                             processar_quadro_normal();
                             proximo_quadro = clock::now();
                             ultimo_quadro_forcado = clock::now();
                         } else {
-                            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                            // Buffer cheio: se durar mais de 100ms, forçar quadro
+                            if (clock::now() - ultimo_quadro_forcado > std::chrono::milliseconds(100)) {
+                                __android_log_print(ANDROID_LOG_INFO, "PhoenixPausa", "audio buffer cheio >100ms, forçando quadro"); // TEMPORARIO: remover
+                                processar_quadro_normal();
+                                proximo_quadro = clock::now();
+                                ultimo_quadro_forcado = clock::now();
+                            } else {
+                                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                            }
                         }
+                    } else {
+                        processar_quadro_normal();
+                        proximo_quadro += intervalo;
+                        std::this_thread::sleep_until(proximo_quadro);
                     }
-                } else {
-                    processar_quadro_normal();
-                    proximo_quadro += intervalo;
-                    std::this_thread::sleep_until(proximo_quadro);
                 }
             }
 
             auto agora = clock::now();
             if (agora >= proximo_relato) {
+                if (phoenix_audio_verificar_recuperacao()) {
+                    g_reiniciar_pacing.store(true, std::memory_order_release);
+                }
                 if (stream_iniciado && phoenix_audio_ativo()) {
                     phoenix_audio_relatar();
                 }
+
+                phoenix_audio_reset_falhas_consumo_normal();
 
                 g_stats_fps.store(static_cast<float>(quadros_contados), std::memory_order_relaxed);
                 g_stats_ms_medio.store(quadros_contados > 0 ? tempo_acumulado_ms / quadros_contados : 0.0f, std::memory_order_relaxed);

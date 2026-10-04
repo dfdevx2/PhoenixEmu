@@ -15,4 +15,8 @@ extern "C" {
     void phoenix_audio_flush_ring_buffer();
     size_t phoenix_audio_tamanho_minimo();
     void phoenix_audio_relatar();
+    bool phoenix_audio_audio_morto();
+    void phoenix_audio_reiniciar_saude();
+    bool phoenix_audio_verificar_recuperacao();
+    void phoenix_audio_reset_falhas_consumo_normal();
 }
