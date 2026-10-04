@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import org.json.JSONObject
+import org.json.JSONArray
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.aspectRatio
@@ -68,6 +69,10 @@ import androidx.lifecycle.lifecycleScope
 import com.dfdx047.phoenixemu.Acabamento
 import com.dfdx047.phoenixemu.R
 import com.dfdx047.phoenixemu.TemaApp
+import com.dfdx047.phoenixemu.data.AcaoAtalho
+import com.dfdx047.phoenixemu.data.AtalhoDaAcao
+import com.dfdx047.phoenixemu.data.ConfigDeAtalhos
+import com.dfdx047.phoenixemu.data.combo
 import com.dfdx047.phoenixemu.ui.theme.PhoenixEmuTheme
 import com.google.gson.Gson
 import android.content.Intent
@@ -155,6 +160,8 @@ class EmulatorActivity : ComponentActivity() {
     }
     
     private lateinit var motorDeAtalhos: MotorDeAtalhos
+    private var atalhosCfg by mutableStateOf(ConfigDeAtalhos.padrao())
+    private var capturaAtalho by mutableStateOf<String?>(null)
     private var contextoLocalizado: Context? = null
 
     private var avisoTexto by mutableStateOf("")
@@ -201,6 +208,70 @@ class EmulatorActivity : ComponentActivity() {
             rewindJob?.cancel()
             rewindJob = null
         }
+    }
+
+    fun definirAtalhoNoJogo(acao: AcaoAtalho, tecla: Int) {
+        atalhosCfg = atalhosCfg.comAtalho(acao, tecla)
+        aplicarNoMotor()
+        val intent = Intent("com.dfdx047.phoenixemu.AJUSTE_MUDOU").apply {
+            setPackage(packageName)
+            putExtra("acao", "atalho_definir")
+            putExtra("acaoAtalho", acao.name)
+            putExtra("tecla", tecla)
+        }
+        sendBroadcast(intent)
+        Log.d("PhoenixAjustes", "atalho ${acao.name} tecla=$tecla combo=${atalhosCfg.combo(acao)}")
+    }
+
+    fun alternarUsarHotkey(acao: AcaoAtalho, usar: Boolean) {
+        atalhosCfg = atalhosCfg.comUsarHotkey(acao, usar)
+        aplicarNoMotor()
+        val intent = Intent("com.dfdx047.phoenixemu.AJUSTE_MUDOU").apply {
+            setPackage(packageName)
+            putExtra("acao", "atalho_usar_hotkey")
+            putExtra("acaoAtalho", acao.name)
+            putExtra("usar", usar)
+        }
+        sendBroadcast(intent)
+        Log.d("PhoenixAjustes", "atalho ${acao.name} tecla=${atalhosCfg.combo(acao)} usarHotkey=$usar")
+    }
+
+    fun definirHotkeyNoJogo(tecla: Int) {
+        atalhosCfg = atalhosCfg.comHotkey(tecla)
+        aplicarNoMotor()
+        val intent = Intent("com.dfdx047.phoenixemu.AJUSTE_MUDOU").apply {
+            setPackage(packageName)
+            putExtra("acao", "atalho_hotkey")
+            putExtra("tecla", tecla)
+        }
+        sendBroadcast(intent)
+        Log.d("PhoenixAjustes", "hotkey=$tecla")
+    }
+
+    fun limparAtalho(acao: AcaoAtalho) {
+        definirAtalhoNoJogo(acao, 0)
+    }
+
+    fun restaurarAtalhosNoJogo() {
+        atalhosCfg = ConfigDeAtalhos.padrao()
+        aplicarNoMotor()
+        val intent = Intent("com.dfdx047.phoenixemu.AJUSTE_MUDOU").apply {
+            setPackage(packageName)
+            putExtra("acao", "atalho_restaurar")
+        }
+        sendBroadcast(intent)
+        Log.d("PhoenixAjustes", "atalhos restaurados")
+    }
+
+    fun aplicarNoMotor() {
+        val json = org.json.JSONObject()
+        for (acao in AcaoAtalho.entries) {
+            val combo = atalhosCfg.combo(acao)
+            val arr = org.json.JSONArray()
+            for (kc in combo) arr.put(kc)
+            json.put(acao.name, arr)
+        }
+        motorDeAtalhos.carregarDoJson(json.toString())
     }
 
     private fun mostrarAviso(texto: String) {
@@ -346,6 +417,18 @@ class EmulatorActivity : ComponentActivity() {
         motorDeAtalhos.definirPadroes((applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0)
         val atalhosJson = intent.getStringExtra(EXTRA_ATALHOS) ?: ""
         motorDeAtalhos.carregarDoJson(atalhosJson)
+
+        atalhosCfg = try {
+            val cfgJson = intent.getStringExtra(EXTRA_ATALHOS_CFG)
+            if (!cfgJson.isNullOrBlank()) {
+                Gson().fromJson(cfgJson, ConfigDeAtalhos::class.java)
+            } else {
+                ConfigDeAtalhos.padrao()
+            }
+        } catch (_: Exception) {
+            ConfigDeAtalhos.padrao()
+        }
+        aplicarNoMotor()
 
         val nucleoName = intent.getStringExtra(EXTRA_NUCLEO) ?: ""
         val romUriString = intent.getStringExtra(EXTRA_ROM)
@@ -800,6 +883,38 @@ class EmulatorActivity : ComponentActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // PASSO 3: modo captura
+        if (capturaAtalho != null) {
+            val kc = event.keyCode
+            // Ignorar teclas de volume e power sem capturá-las
+            if (kc != KeyEvent.KEYCODE_VOLUME_UP && kc != KeyEvent.KEYCODE_VOLUME_DOWN
+                && kc != KeyEvent.KEYCODE_VOLUME_MUTE && kc != KeyEvent.KEYCODE_POWER) {
+                if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+                    if (kc == KeyEvent.KEYCODE_BACK) {
+                        capturaAtalho = null
+                        Log.d("PhoenixAjustes", "captura=$capturaAtalho")
+                    } else if (capturaAtalho == "HOTKEY") {
+                        definirHotkeyNoJogo(kc)
+                        capturaAtalho = null
+                        Log.d("PhoenixAjustes", "captura=$capturaAtalho")
+                    } else {
+                        try {
+                            definirAtalhoNoJogo(AcaoAtalho.valueOf(capturaAtalho!!), kc)
+                            capturaAtalho = null
+                            Log.d("PhoenixAjustes", "captura=$capturaAtalho")
+                        } catch (_: IllegalArgumentException) {
+                            // nome inválido, cancela
+                            capturaAtalho = null
+                            Log.d("PhoenixAjustes", "captura=$capturaAtalho")
+                        }
+                    }
+                }
+                return true
+            }
+            // teclas ignoradas: retorna false para comportamento padrão
+            return super.dispatchKeyEvent(event)
+        }
+
         Log.i("PhoenixInput", "tecla=" + KeyEvent.keyCodeToString(event.keyCode) + " acao=" + event.action)
         if (event.keyCode == KeyEvent.KEYCODE_BACK || event.keyCode == KeyEvent.KEYCODE_BUTTON_MODE) {
             if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
@@ -832,6 +947,31 @@ class EmulatorActivity : ComponentActivity() {
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        // PASSO 3: modo captura para L2/R2 (gatilhos)
+        if (capturaAtalho != null) {
+            if (event.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK
+                && event.action == MotionEvent.ACTION_MOVE) {
+                val ltrigger = event.getAxisValue(MotionEvent.AXIS_LTRIGGER)
+                val brake = event.getAxisValue(MotionEvent.AXIS_BRAKE)
+                if (ltrigger > 0.5f || brake > 0.5f) {
+                    definirHotkeyNoJogo(KeyEvent.KEYCODE_BUTTON_L2)
+                    capturaAtalho = null
+                    Log.d("PhoenixAjustes", "captura=$capturaAtalho")
+                    return true
+                }
+                val rtrigger = event.getAxisValue(MotionEvent.AXIS_RTRIGGER)
+                val gas = event.getAxisValue(MotionEvent.AXIS_GAS)
+                if (rtrigger > 0.5f || gas > 0.5f) {
+                    definirHotkeyNoJogo(KeyEvent.KEYCODE_BUTTON_R2)
+                    capturaAtalho = null
+                    Log.d("PhoenixAjustes", "captura=$capturaAtalho")
+                    return true
+                }
+            }
+            // enquanto capturar, não repasse eixos ao motor
+            return true
+        }
+
         if (isPaused) return super.dispatchGenericMotionEvent(event)
 
         if (event.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK && event.action == MotionEvent.ACTION_MOVE) {
@@ -922,6 +1062,7 @@ class EmulatorActivity : ComponentActivity() {
         const val EXTRA_OVERLAY = "phoenix.overlay"
 
         const val EXTRA_ATALHOS = "phoenix.atalhos"
+        const val EXTRA_ATALHOS_CFG = "phoenix.atalhos_cfg"
         const val EXTRA_AUTOSALVAR = "phoenix.autosalvar"
         const val EXTRA_AUTOCARREGAR = "phoenix.autocarregar"
         
@@ -948,5 +1089,23 @@ class EmulatorActivity : ComponentActivity() {
             "A", "B", "X", "Y", "L", "R", "SELECT", "START"
         )
     }
+}
+
+fun ConfigDeAtalhos.comAtalho(acao: AcaoAtalho, codigo: Int): ConfigDeAtalhos {
+    val mapa = acoes.toMutableMap()
+    val atual = mapa[acao.name]?.copy() ?: AtalhoDaAcao()
+    mapa[acao.name] = atual.copy(tecla = codigo)
+    return copy(acoes = mapa)
+}
+
+fun ConfigDeAtalhos.comUsarHotkey(acao: AcaoAtalho, usar: Boolean): ConfigDeAtalhos {
+    val mapa = acoes.toMutableMap()
+    val atual = mapa[acao.name]?.copy() ?: AtalhoDaAcao()
+    mapa[acao.name] = atual.copy(usarHotkey = usar)
+    return copy(acoes = mapa)
+}
+
+fun ConfigDeAtalhos.comHotkey(codigo: Int): ConfigDeAtalhos {
+    return copy(hotkey = codigo)
 }
 
