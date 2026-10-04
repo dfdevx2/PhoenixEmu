@@ -186,8 +186,6 @@
     <string name="controles_atalhos">Atalhos</string>
     <string name="atalhos_botao_hotkey">Botão de atalho (hotkey)</string>
     <string name="atalhos_nenhum">Nenhum</string>
-    <string name="atalhos_usar_hotkey">Usar botão de atalho</string>
-    <string name="atalhos_limpar">Limpar</string>
     <string name="atalhos_hotkey_descricao">Segure o botão de atalho e aperte outra tecla para ativar os combos.</string>
     <string name="atalhos_aviso">Um atalho de tecla única "toma" essa tecla do jogo. Para não perder botões, ligue "Usar botão de atalho".</string>
     <string name="atalhos_salvar_estado">Salvar estado</string>
@@ -379,5 +377,21 @@
     <string name="controles_botoes_control">Game Controls</string>
     <string name="controles_indisponivel">Not set</string>
     <string name="controles_dica_mudar">To change buttons, go to Settings &gt; Controls</string>
+    <string name="controles_dica_mudar_new">Para mudar botões, vá em Configurações &gt; Controles</string>
+    <string name="atalhos_aviso_conflito">Um atalho atribuído a uma única tecla tirará essa tecla do jogo. Para não perder botões, ative "Usar hotkey".</string>
+
     <string name="controles_em_breve">On-screen controls: coming soon</string>
+    <!-- Atalhos (aba de controles do menu de pausa) -->
+    <string name="atalhos_titulo">Atalhos</string>
+    <string name="atalhos_hotkey_titulo">Hotkey</string>
+    <string name="atalhos_pressione_botao">Pressione qualquer botão para capturar…</string>
+    <string name="atalhos_alterar">Alterar</string>
+    <string name="atalhos_limpar">Limpar</string>
+    <string name="atalhos_cancelar">Cancelar</string>
+    <string name="atalhos_usar_hotkey">Usar hotkey</string>
+    <string name="atalhos_definir_hotkey_primeiro">Defina a hotkey primeiro</string>
+    <string name="atalhos_restaurar_padrao">Restaurar padrão</string>
+    <string name="atalhos_confirme_novamente">Confirmar novamente</string>
+    <string name="atalhos_restaurado">Atalhos restaurados para o padrão</string>
+
 </resources>

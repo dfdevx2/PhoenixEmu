@@ -415,7 +415,7 @@ class EmulatorActivity : ComponentActivity() {
         }
 
         motorDeAtalhos.definirPadroes((applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0)
-        val atalhosJson = intent.getStringExtra(EXTRA_ATALHOS) ?: ""
+        var atalhosJson = intent.getStringExtra(EXTRA_ATALHOS) ?: ""
         motorDeAtalhos.carregarDoJson(atalhosJson)
 
         atalhosCfg = try {
@@ -678,6 +678,40 @@ class EmulatorActivity : ComponentActivity() {
                             reduzirEfeitos = reduzirEfeitos,
                             mapeamento = mapKeys,
                             atalhosJson = atalhosJson,
+                            atalhosCfg = atalhosCfg,
+                            capturando = capturaAtalho,
+                            aoCapturar = { acao ->
+                                capturaAtalho = acao
+                            },
+                            aoCancelarCaptura = {
+                                capturaAtalho = null
+                            },
+                            aoLimparAtalho = { acao ->
+                                atalhosCfg = atalhosCfg.comSemAtalho(acao)
+                                aplicarNoMotor()
+                                atalhosJson = Gson().toJson(atalhosCfg)
+                                salvarAjuste("atalhos_json", atalhosJson, "string", false)
+                            },
+                            aoLimparHotkey = {
+                                atalhosCfg = atalhosCfg.comHotkey(0)
+                                aplicarNoMotor()
+                                atalhosJson = Gson().toJson(atalhosCfg)
+                                salvarAjuste("atalhos_json", atalhosJson, "string", false)
+                            },
+                            aoAlternarHotkey = { acao, usar ->
+                                atalhosCfg = atalhosCfg.comUsarHotkey(acao, usar)
+                                aplicarNoMotor()
+                                atalhosJson = Gson().toJson(atalhosCfg)
+                                salvarAjuste("atalhos_json", atalhosJson, "string", false)
+                            },
+                            aoRestaurarAtalhos = {
+                                val ctx = contextoLocalizado ?: this@EmulatorActivity
+                                atalhosCfg = atalhosCfg.restaurarPadrao()
+                                atalhosJson = Gson().toJson(atalhosCfg)
+                                salvarAjuste("atalhos_json", atalhosJson, "string", false)
+                                aplicarNoMotor()
+                                mensagemFeedback = ctx.getString(R.string.atalhos_restaurado)
+                            },
                             aoFechar = {
                                 mensagemFeedback = ""
                                 isPaused = false
@@ -1107,5 +1141,15 @@ fun ConfigDeAtalhos.comUsarHotkey(acao: AcaoAtalho, usar: Boolean): ConfigDeAtal
 
 fun ConfigDeAtalhos.comHotkey(codigo: Int): ConfigDeAtalhos {
     return copy(hotkey = codigo)
+}
+
+fun ConfigDeAtalhos.comSemAtalho(acao: AcaoAtalho): ConfigDeAtalhos {
+    val mapa = acoes.toMutableMap()
+    mapa[acao.name] = AtalhoDaAcao(0, usarHotkey = mapa[acao.name]?.usarHotkey != false)
+    return copy(acoes = mapa)
+}
+
+fun ConfigDeAtalhos.restaurarPadrao(): ConfigDeAtalhos {
+    return ConfigDeAtalhos.padrao()
 }
 

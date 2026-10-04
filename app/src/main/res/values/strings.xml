@@ -188,8 +188,6 @@
     <string name="controles_atalhos">Shortcuts</string>
     <string name="atalhos_botao_hotkey">Shortcut button (hotkey)</string>
     <string name="atalhos_nenhum">None</string>
-    <string name="atalhos_usar_hotkey">Use shortcut button</string>
-    <string name="atalhos_limpar">Clear</string>
     <string name="atalhos_hotkey_descricao">Hold the shortcut button and press another key to activate combos.</string>
     <string name="atalhos_aviso">A shortcut assigned to a single key will take that key away from the game. To avoid losing buttons, enable "Use shortcut button".</string>
     <string name="atalhos_salvar_estado">Save state</string>
@@ -383,5 +381,21 @@
     <string name="controles_botoes_control">Game Controls</string>
     <string name="controles_indisponivel">Not set</string>
     <string name="controles_dica_mudar">To change buttons, go to Settings &gt; Controls</string>
+    <string name="controles_dica_mudar_new">To change buttons, go to Settings &gt; Controls</string>
+    <string name="atalhos_aviso_conflito">A shortcut assigned to a single key will take that key away from the game. To avoid losing buttons, enable "Use shortcut button".</string>
+
     <string name="controles_em_breve">On-screen controls: coming soon</string>
+    <!-- Shortcuts (pause menu controls tab) -->
+    <string name="atalhos_titulo">Shortcuts</string>
+    <string name="atalhos_hotkey_titulo">Hotkey</string>
+    <string name="atalhos_pressione_botao">Press any button to capture…</string>
+    <string name="atalhos_alterar">Change</string>
+    <string name="atalhos_limpar">Clear</string>
+    <string name="atalhos_cancelar">Cancel</string>
+    <string name="atalhos_usar_hotkey">Use hotkey</string>
+    <string name="atalhos_definir_hotkey_primeiro">Set hotkey first</string>
+    <string name="atalhos_restaurar_padrao">Restore defaults</string>
+    <string name="atalhos_confirme_novamente">Confirm again</string>
+    <string name="atalhos_restaurado">Shortcuts restored to defaults</string>
+
 </resources>

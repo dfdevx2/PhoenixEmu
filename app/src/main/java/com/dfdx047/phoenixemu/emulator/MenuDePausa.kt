@@ -71,6 +71,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dfdx047.phoenixemu.R
+import com.dfdx047.phoenixemu.data.AcaoAtalho
+import com.dfdx047.phoenixemu.data.AtalhoDaAcao
+import com.dfdx047.phoenixemu.data.ConfigDeAtalhos
+import com.dfdx047.phoenixemu.data.nomeDaTecla
 import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.min
@@ -271,6 +275,14 @@ internal fun MenuDePausa(
     reduzirEfeitos: Boolean,
     mapeamento: IntArray?,
     atalhosJson: String,
+    atalhosCfg: ConfigDeAtalhos,
+    capturando: String?,
+    aoCapturar: (String) -> Unit,
+    aoCancelarCaptura: () -> Unit,
+    aoLimparAtalho: (AcaoAtalho) -> Unit,
+    aoLimparHotkey: () -> Unit,
+    aoAlternarHotkey: (AcaoAtalho, Boolean) -> Unit,
+    aoRestaurarAtalhos: () -> Unit,
 ) {
     AnimatedVisibility(
         visible = visivel,
@@ -317,6 +329,14 @@ internal fun MenuDePausa(
             reduzirEfeitos = reduzirEfeitos,
             mapeamento = mapeamento,
             atalhosJson = atalhosJson,
+            atalhosCfg = atalhosCfg,
+            capturando = capturando,
+            aoCapturar = aoCapturar,
+            aoCancelarCaptura = aoCancelarCaptura,
+            aoLimparAtalho = aoLimparAtalho,
+            aoLimparHotkey = aoLimparHotkey,
+            aoAlternarHotkey = aoAlternarHotkey,
+            aoRestaurarAtalhos = aoRestaurarAtalhos,
         )
     }
 }
@@ -355,6 +375,14 @@ private fun MenuDePausaInner(
     reduzirEfeitos: Boolean,
     mapeamento: IntArray?,
     atalhosJson: String,
+    atalhosCfg: ConfigDeAtalhos,
+    capturando: String?,
+    aoCapturar: (String) -> Unit,
+    aoCancelarCaptura: () -> Unit,
+    aoLimparAtalho: (AcaoAtalho) -> Unit,
+    aoLimparHotkey: () -> Unit,
+    aoAlternarHotkey: (AcaoAtalho, Boolean) -> Unit,
+    aoRestaurarAtalhos: () -> Unit,
 ) {
     val corPrimaria = Color(temaCorPrimaria)
     val corSuperficie = Color(temaCorSuperficie)
@@ -507,7 +535,15 @@ private fun MenuDePausaInner(
                                 paleta = paleta,
                                 mapeamento = mapeamento ?: IntArray(12),
                                 atalhosJson = atalhosJson,
+                                atalhosCfg = atalhosCfg,
                                 plataforma = plataforma,
+                                capturando = capturando,
+                                aoCapturar = aoCapturar,
+                                aoCancelarCaptura = aoCancelarCaptura,
+                                aoLimpar = aoLimparAtalho,
+                                aoLimparHotkey = aoLimparHotkey,
+                                aoAlternarHotkey = aoAlternarHotkey,
+                                aoRestaurar = aoRestaurarAtalhos,
                             )
                             else -> ConteudoAbaJogo(
                                 slots = slots,
@@ -730,7 +766,8 @@ private fun BarraDeAbas(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp)
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 2.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
