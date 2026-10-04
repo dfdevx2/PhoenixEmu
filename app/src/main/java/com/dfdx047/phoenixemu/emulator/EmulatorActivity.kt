@@ -40,6 +40,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
@@ -548,8 +550,8 @@ class EmulatorActivity : ComponentActivity() {
                                 .align(if (menuLado == "DIREITA") Alignment.CenterEnd else Alignment.CenterStart)
                                 .width(20.dp)
                                 .height(80.dp)
-                                .background(Color.White.copy(alpha = 0.15f), if (menuLado == "DIREITA") androidx.compose.foundation.shape.RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp) else androidx.compose.foundation.shape.RoundedCornerShape(topEnd = 10.dp, bottomEnd = 10.dp))
-                                .androidx.compose.foundation.clickable(onClick = { alternarMenu() })
+                                .background(Color.White.copy(alpha = 0.15f), if (menuLado == "DIREITA") RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp) else RoundedCornerShape(topEnd = 10.dp, bottomEnd = 10.dp))
+                                .clickable(onClick = { alternarMenu() })
                         )
                     }
                     
@@ -559,8 +561,8 @@ class EmulatorActivity : ComponentActivity() {
                                 .align(if (menuLado == "DIREITA") Alignment.CenterEnd else Alignment.CenterStart)
                                 .width(32.dp)
                                 .fillMaxHeight()
-                                .androidx.compose.ui.input.pointer.pointerInput(Unit) {
-                                    androidx.compose.foundation.gestures.detectHorizontalDragGestures { _, dragAmount ->
+                                .pointerInput(Unit) {
+                                    detectHorizontalDragGestures { _, dragAmount ->
                                         if (menuLado == "DIREITA" && dragAmount < -20f) alternarMenu()
                                         else if (menuLado != "DIREITA" && dragAmount > 20f) alternarMenu()
                                     }
