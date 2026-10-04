@@ -1,5 +1,6 @@
 package com.dfdx047.phoenixemu.emulacao
 
+import androidx.compose.ui.graphics.toArgb
 import android.content.Context
 import android.content.Intent
 import com.google.gson.Gson
@@ -110,9 +111,9 @@ object Emulador {
         val darkTheme = (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
         val schemeBase = com.dfdx047.phoenixemu.ui.theme.esquemaDeAmostraSemComposable(prefs.tema.value, context, darkTheme)
         
-        val corPrimaria = schemeBase.primary.value.toInt()
-        val corSuperficie = schemeBase.surface.value.toInt()
-        val corTexto = schemeBase.onSurface.value.toInt()
+        val corPrimaria = schemeBase.primary.toArgb()
+        val corSuperficie = schemeBase.surface.toArgb()
+        val corTexto = schemeBase.onSurface.toArgb()
 
         val atalhos = prefs.atalhos.value
         val atalhosJson = JSONObject()

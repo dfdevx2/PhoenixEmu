@@ -2,6 +2,7 @@ package com.dfdx047.phoenixemu.data
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.SharedPreferencesMigration
 import androidx.datastore.preferences.core.MutablePreferences
@@ -495,6 +496,21 @@ class Preferencias private constructor(context: Context) {
             prefs.remove(floatPreferencesKey(it))
             prefs.remove(booleanPreferencesKey(it))
         }
+    }
+
+    suspend fun apagarTodosOsAjustesPorJogo() {
+        val prefs = app.armazem.data.first()
+        val chaves = prefs.asMap().keys.filter { it.name.startsWith("aj_jogo_") }
+        val count = chaves.size
+        if (count > 0) {
+            editar { p ->
+                for (k in chaves) {
+                    @Suppress("UNCHECKED_CAST")
+                    p.remove(k as Preferences.Key<Any>)
+                }
+            }
+        }
+        Log.d("PhoenixAjustes", "apagarTodosOsAjustesPorJogo: removidas $count chaves aj_jogo_*")
     }
 
     val globalEscalaImagem: StateFlow<String> = derivar("AJUSTAR") { it[stringPreferencesKey("aj_global_escala")] ?: "AJUSTAR" }

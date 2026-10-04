@@ -362,4 +362,12 @@
     <string name="ajustes_titulo_apagar_jogos">Apagar ajustes por jogo</string>
     <string name="ajustes_desc_apagar_jogos">Remove os ajustes próprios de todos os jogos, fazendo com que todos usem os ajustes globais novamente.</string>
     <string name="ajustes_botao_apagar_jogos">Apagar ajustes</string>
+    <string name="ajustes_op_proporcao_pixels_quadrados">Pixels quadrados</string>
+    <string name="ajustes_op_proporcao_16_9">16:9</string>
+    <!-- Diálogos de confirmação -->
+    <string name="ajustes_dialog_restaurar_titulo">Restaurar ajustes de jogo?</string>
+    <string name="ajustes_dialog_restaurar_texto">Os ajustes globais de vídeo, áudio e jogo voltarão ao padrão. Os ajustes individuais de cada jogo serão mantidos.</string>
+    <string name="ajustes_dialog_apagar_titulo">Apagar ajustes por jogo?</string>
+    <string name="ajustes_dialog_apagar_texto">Todos os jogos passarão a usar os ajustes globais novamente. Sua biblioteca e saves não são afetados.</string>
+    <string name="ajustes_botao_confirmar">Confirmar</string>
 </resources>

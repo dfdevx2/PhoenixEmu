@@ -41,6 +41,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Gamepad
@@ -48,6 +49,7 @@ import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -55,9 +57,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -71,6 +75,146 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dfdx047.phoenixemu.R
+import kotlin.math.absoluteValue
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.pow
+
+/**
+ * Estrutura com todas as cores derivadas para o menu de pausa.
+ *
+ * Quando "Seguir o tema" está desligado, esta função retorna a paleta
+ * antiga (cores fixas) para manter o comportamento inalterado.
+ */
+internal data class PaletaMenu(
+    val texto: Color,
+    val textoSecundario: Color,
+    val destaque: Color,
+    val contorno: Color,
+    val fundoBotao: Color,
+    val fundoPainel: Color,
+)
+
+/**
+ * Deriva a paleta final do menu a partir das cores brutas recebidas via Intent.
+ *
+ * Regras:
+ *  - superficie: cor de superfície com alpha = max(opacidade, 0.55) no estilo Vidro,
+ *    ou alpha = opacidade no estilo Fosco.
+ *  - texto: se contraste texto/superficie < 4.5:1, usa branco (painel escuro) ou preto (painel claro).
+ *  - destaque: se contraste destaque/superficie < 3:1, ajusta (clareia com branco em painel escuro,
+ *    escurece com preto em painel claro) em passos de 10%. Se alpha=0 ou muito próximo da superfície,
+ *    usa o destaque fixo antigo (#AA00FF).
+ *  - contorno: texto com alpha 0.25; fundo botao: texto com alpha 0.08.
+ */
+private fun derivarPaletaFinal(
+    temaCorPrimaria: Int,
+    temaCorSuperficie: Int,
+    temaCorTexto: Int,
+    menuEstilo: String,
+    menuOpacidade: Float,
+): PaletaMenu {
+    val corPrimaria = Color(temaCorPrimaria)
+    val corSuperficieRaw = Color(temaCorSuperficie)
+    val corTextoRaw = Color(temaCorTexto)
+
+    // --- Superfície ---
+    val alphaSuperficie = if (menuEstilo == "VIDRO") {
+        max(corSuperficieRaw.alpha, 0.55f)
+    } else {
+        menuOpacidade.coerceIn(0f, 1f)
+    }
+    val superficie = corSuperficieRaw.copy(alpha = alphaSuperficie)
+    val superficieLuminancia = superficie.luminance()
+    val ehPainelEscuro = superficieLuminancia < 0.5f
+
+    // --- Texto ---
+    val contrasteTexto = contrasteEntre(corTextoRaw, superficie)
+    val texto = if (contrasteTexto >= 4.5f) {
+        corTextoRaw
+    } else {
+        if (ehPainelEscuro) Color.White else Color.Black
+    }
+
+    // --- Destaque (primária) ---
+    val destaque: Color
+    if (corPrimaria.alpha == 0f || contrasteEntre(corPrimaria, superficie) < 1.05f) {
+        // Transparente ou muito próxima da superfície → usar destaque fixo antigo
+        destaque = Color(0xFFAA00FF)
+    } else {
+        var d = corPrimaria
+        val maxIteracoes = 20
+        for (i in 1..maxIteracoes) {
+            val c = contrasteEntre(d, superficie)
+            if (c >= 3.0f) break
+            // Ajusta: clareia em painel escuro, escurece em painel claro
+            d = if (ehPainelEscuro) {
+                d.mixWith(Color.White, 0.1f)
+            } else {
+                d.mixWith(Color.Black, 0.1f)
+            }
+        }
+        if (contrasteEntre(d, superficie) < 3.0f) {
+            destaque = Color(0xFFAA00FF)
+        } else {
+            destaque = d
+        }
+    }
+
+    // --- Contorno e fundo dos botões ---
+    val contorno = texto.copy(alpha = 0.25f)
+    val fundoBotao = texto.copy(alpha = 0.08f)
+    val textoSecundario = texto.copy(alpha = 0.7f)
+
+    // --- Fundo do painel (para MaterialTheme) ---
+    val fundoPainel = superficie
+
+    return PaletaMenu(
+        texto = texto,
+        textoSecundario = textoSecundario,
+        destaque = destaque,
+        contorno = contorno,
+        fundoBotao = fundoBotao,
+        fundoPainel = fundoPainel,
+    )
+}
+
+/**
+ * Mistura esta cor com [outro] na proporção [fraction].
+ * fraction=0.1 → 10% de outro, 90% desta.
+ */
+private fun Color.mixWith(outro: Color, fraction: Float): Color {
+    val r = this.red * (1f - fraction) + outro.red * fraction
+    val g = this.green * (1f - fraction) + outro.green * fraction
+    val b = this.blue * (1f - fraction) + outro.blue * fraction
+    val a = this.alpha * (1f - fraction) + outro.alpha * fraction
+    return Color(r, g, b, a)
+}
+
+/**
+ * Calcula o ratio de contraste relativo entre duas cores (WCAG 2.0).
+ * Retorna um valor >= 0.
+ */
+private fun contrasteEntre(cor1: Color, cor2: Color): Float {
+    val l1 = luminanciaRelativa(cor1)
+    val l2 = luminanciaRelativa(cor2)
+    val maisClara = max(l1, l2)
+    val maisEscura = min(l1, l2)
+    return (maisClara + 0.05f) / (maisEscura + 0.05f)
+}
+
+private fun luminanciaRelativa(c: Color): Float {
+    val r = lineariza(c.red)
+    val g = lineariza(c.green)
+    val b = lineariza(c.blue)
+    return 0.2126f * r + 0.7152f * g + 0.0722f * b
+}
+
+private fun lineariza(canal: Float): Float = when {
+    canal <= 0.04045f -> canal / 12.92f
+    else -> ((canal + 0.055f) / 1.055f).toDouble().pow(2.4).toFloat()
+}
+
 
 /**
  * Menu de pausa completo: fundo desfocado + painel lateral esquerdo com
@@ -193,6 +337,26 @@ private fun MenuDePausaInner(
     temaCorSuperficie: Int,
     temaCorTexto: Int,
 ) {
+    // Log temporário para conferição das cores recebidas
+    val paletaBruta = remember(temaCorPrimaria, temaCorSuperficie, temaCorTexto, menuTema, menuEstilo, menuOpacidade) {
+        "primaria=0x${temaCorPrimaria.toString(16).padStart(8, '0').uppercase()}, superficie=0x${temaCorSuperficie.toString(16).padStart(8, '0').uppercase()}, texto=0x${temaCorTexto.toString(16).padStart(8, '0').uppercase()}, menuTema=$menuTema, menuEstilo=$menuEstilo, menuOpacidade=$menuOpacidade"
+    }
+    android.util.Log.d("PhoenixAjustes", "MenuDePausa cores: $paletaBruta")
+
+    val paleta = if (menuTema) {
+        derivarPaletaFinal(temaCorPrimaria, temaCorSuperficie, temaCorTexto, menuEstilo, menuOpacidade)
+    } else {
+        // Paleta antiga (cores fixas) quando "Seguir o tema" está desligado
+        PaletaMenu(
+            texto = Color.White,
+            textoSecundario = Color.White.copy(alpha = 0.7f),
+            destaque = Color(0xFFAA00FF),
+            contorno = Color.White.copy(alpha = 0.25f),
+            fundoBotao = Color.White.copy(alpha = 0.08f),
+            fundoPainel = Color.Black.copy(alpha = menuOpacidade),
+        )
+    }
+
     val config = LocalConfiguration.current
     val telaLarguraDp = config.screenWidthDp.dp
     val painelLarguraDp = (telaLarguraDp * 0.42f).coerceIn(340.dp, 420.dp)
@@ -202,7 +366,7 @@ private fun MenuDePausaInner(
 
     val isVidro = menuEstilo == "VIDRO"
     val isEsquerda = menuLado == "ESQUERDA"
-    val corPainel = if (menuTema && !isVidro) Color(temaCorSuperficie).copy(alpha = menuOpacidade) else Color.Black.copy(alpha = if (isVidro) 0.45f else menuOpacidade)
+    val corPainel = paleta.fundoPainel
     val alignPainel = if (isEsquerda) Alignment.CenterStart else Alignment.CenterEnd
     val shapePainel = if (isEsquerda) RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp) else RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)
 
@@ -243,29 +407,34 @@ private fun MenuDePausaInner(
             shape = shapePainel,
             color = corPainel,
         ) {
-            val schemeOverride = if (menuTema) {
-                androidx.compose.material3.darkColorScheme(
-                    primary = Color(temaCorPrimaria),
-                    surface = Color(temaCorSuperficie),
-                    onSurface = Color(temaCorTexto)
-                )
-            } else MaterialTheme.colorScheme
-            
-            MaterialTheme(colorScheme = schemeOverride) {
+            // Fundo do painel derivado da paleta final
+            MaterialTheme(colorScheme = androidx.compose.material3.darkColorScheme(
+                primary = paleta.destaque,
+                surface = paleta.fundoPainel,
+                onSurface = paleta.texto,
+            )) {
                 Column(modifier = Modifier.fillMaxSize()) {
 
                     // — Cabeçalho fixo —
-                    CabecalhoPausa(nomeDoJogo, tempoJogadoMinutos, aoFechar, capaLocalPath, tempoJogadoMs, plataforma)
+                    CabecalhoPausa(
+                        nomeDoJogo = nomeDoJogo,
+                        tempoJogadoMinutos = tempoJogadoMinutos,
+                        aoFechar = aoFechar,
+                        capaLocalPath = capaLocalPath,
+                        tempoJogadoMs = tempoJogadoMs,
+                        plataforma = plataforma,
+                        paleta = paleta,
+                    )
 
                     // — Barra de abas fixa —
-                    BarraDeAbas(abaAtual, aoMudarAba)
+                    BarraDeAbas(abaAtual, aoMudarAba, paleta = paleta)
 
                     // Divisor sob a barra de abas
                     Spacer(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(1.dp)
-                            .background(Color.White.copy(alpha = 0.08f))
+                            .background(paleta.texto.copy(alpha = 0.08f))
                     )
 
                     // — Área rolável com peso —
@@ -277,21 +446,45 @@ private fun MenuDePausaInner(
                             .padding(horizontal = 16.dp, vertical = 12.dp),
                     ) {
                         when (abaAtual) {
-                            AbaDoMenu.JOGO -> ConteudoAbaJogo(slots, slotSelecionado, aoSalvarEstado, aoCarregarEstado, { novoSlot ->
-                                slotSelecionado = novoSlot
-                                aoMudarSlot(novoSlot)
-                            })
-                            AbaDoMenu.AJUSTES -> ConteudoAbaAjustes(ajustes, aoMudarAjuste, aoLimparAjustesJogo)
-                            AbaDoMenu.CONTROLES -> TextoEmBreve()
-                            else -> ConteudoAbaJogo(slots, slotSelecionado, aoSalvarEstado, aoCarregarEstado, { novoSlot ->
-                                slotSelecionado = novoSlot
-                                aoMudarSlot(novoSlot)
-                            })
+                            AbaDoMenu.JOGO -> ConteudoAbaJogo(
+                                slots = slots,
+                                slotSelecionado = slotSelecionado,
+                                aoSalvarEstado = aoSalvarEstado,
+                                aoCarregarEstado = aoCarregarEstado,
+                                aoMudarSlot = { novoSlot ->
+                                    slotSelecionado = novoSlot
+                                    aoMudarSlot(novoSlot)
+                                },
+                                paleta = paleta,
+                            )
+                            AbaDoMenu.AJUSTES -> ConteudoAbaAjustes(
+                                ajustes = ajustes,
+                                aoMudarAjuste = aoMudarAjuste,
+                                aoLimparAjustesJogo = aoLimparAjustesJogo,
+                                paleta = paleta,
+                            )
+                            AbaDoMenu.CONTROLES -> TextoEmBreve(paleta = paleta)
+                            else -> ConteudoAbaJogo(
+                                slots = slots,
+                                slotSelecionado = slotSelecionado,
+                                aoSalvarEstado = aoSalvarEstado,
+                                aoCarregarEstado = aoCarregarEstado,
+                                aoMudarSlot = { novoSlot ->
+                                    slotSelecionado = novoSlot
+                                    aoMudarSlot(novoSlot)
+                                },
+                                paleta = paleta,
+                            )
                         }
                     }
 
                     // — Rodapé fixo —
-                    RodapeFixo(aoContinuar, aoReiniciar, aoSair)
+                    RodapeFixo(
+                        aoContinuar = aoContinuar,
+                        aoReiniciar = aoReiniciar,
+                        aoSair = aoSair,
+                        paleta = paleta,
+                    )
                 }
             }
         }
@@ -310,6 +503,7 @@ private fun CabecalhoPausa(
     capaLocalPath: String?,
     tempoJogadoMs: Long,
     plataforma: String,
+    paleta: PaletaMenu,
 ) {
     val ctx = LocalContext.current
     val nomeAmigavel = rememberNomeAmigavel(nomeDoJogo)
@@ -389,7 +583,7 @@ private fun CabecalhoPausa(
                     painter = rememberVectorPainter(image = Icons.Outlined.Gamepad),
                     contentDescription = null,
                     modifier = Modifier.size(28.dp),
-                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(Color.White.copy(alpha = 0.7f)),
+                    colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(paleta.texto.copy(alpha = 0.7f)),
                 )
             }
         }
@@ -401,13 +595,13 @@ private fun CabecalhoPausa(
         ) {
             BasicText(
                 text = nomeAmigavel,
-                style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White),
+                style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = paleta.texto),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = textoPlataformaTempo,
-                style = TextStyle(fontSize = 12.sp, color = Color.LightGray.copy(alpha = 0.7f)),
+                style = TextStyle(fontSize = 12.sp, color = paleta.textoSecundario),
             )
         }
 
@@ -417,7 +611,7 @@ private fun CabecalhoPausa(
                 .width(40.dp)
                 .height(40.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(Color.White.copy(alpha = 0.15f))
+                .background(paleta.texto.copy(alpha = 0.15f))
                 .clickable(onClick = aoFechar),
             contentAlignment = Alignment.Center,
         ) {
@@ -425,7 +619,7 @@ private fun CabecalhoPausa(
                 text = "\u2715",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = paleta.texto,
             )
         }
     }
@@ -467,6 +661,7 @@ private data class TabItem(
 private fun BarraDeAbas(
     abaAtual: AbaDoMenu,
     aoMudarAba: (AbaDoMenu) -> Unit,
+    paleta: PaletaMenu,
 ) {
     val ctx = LocalContext.current
     val abas = listOf(
@@ -474,10 +669,9 @@ private fun BarraDeAbas(
         TabItem(AbaDoMenu.AJUSTES, R.string.pause_aba_ajustes, Icons.Outlined.Settings),
         TabItem(AbaDoMenu.CONTROLES, R.string.pause_aba_controles, Icons.Outlined.Gamepad),
     )
-    val primaria = MaterialTheme.colorScheme.primary
-    val secundaria = MaterialTheme.colorScheme.secondary
 
     var abaIndex by remember { mutableIntStateOf(abas.indexOfFirst { it.aba == abaAtual }.takeIf { it >= 0 } ?: 0) }
+    var larguraTab by remember { mutableStateOf(0f) }
 
     Box(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -489,54 +683,46 @@ private fun BarraDeAbas(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             abas.forEachIndexed { index, item ->
-                val ativa = index == abaIndex
-                val corTexto = if (ativa) primaria else secundaria
-                val corIndicador by animateColorAsState(
-                    targetValue = if (ativa) primaria else Color.Transparent,
-                    label = "tabIndicatorColor",
-                )
-
+                val isSelected = index == abaIndex
+                val corTexto = if (isSelected) paleta.texto else paleta.texto.copy(alpha = 0.6f)
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .clickable(onClick = {
-                            abaIndex = index
-                            aoMudarAba(item.aba)
-                        })
-                        .padding(horizontal = 4.dp),
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isSelected) paleta.destaque.copy(alpha = 0.14f) else Color.Transparent)
+                        .clickable(onClick = { aoMudarAba(item.aba) })
+                        .onSizeChanged { size ->
+                            if (larguraTab == 0f) larguraTab = size.width.toFloat()
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
-                    // Fundo suave para aba ativa
-                    if (ativa) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .fillMaxHeight()
-                                .background(primaria.copy(alpha = 0.14f), RoundedCornerShape(12.dp))
-                                .padding(vertical = 4.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(3.dp),
-                            ) {
-                                TabConteudo(item, corTexto, ativa, ctx)
-                                // Linha indicadora EMBAIXO do rótulo — 3dp de altura, 60% da largura da aba
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth(0.6f)
-                                        .height(3.dp)
-                                        .clip(RoundedCornerShape(1.5.dp))
-                                        .background(corIndicador),
-                                )
-                            }
-                        }
-                    } else {
-                        TabConteudo(item, corTexto, ativa, ctx)
-                    }
+                    Icon(
+                        imageVector = item.iconVector,
+                        contentDescription = ctx.getString(item.labelRes),
+                        tint = corTexto,
+                        modifier = Modifier.size(20.dp),
+                    )
                 }
             }
         }
+        // Sublinhado deslizante
+        val larguraDp = with(LocalDensity.current) { larguraTab.dp }
+        val targetX = remember(abaIndex, larguraTab) {
+            16.dp + ((larguraDp + 8.dp) * abaIndex.toFloat())
+        }
+        val animX by animateDpAsState(
+            targetValue = targetX,
+            animationSpec = spring(stiffness = Spring.StiffnessMedium),
+            label = "tabUnderlineX",
+        )
+        Box(
+            modifier = Modifier
+                .offset(x = animX)
+                .width(larguraDp)
+                .height(2.dp)
+                .background(paleta.destaque, RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp, bottomStart = 0.dp, bottomEnd = 0.dp)),
+        )
     }
 }
 
@@ -577,6 +763,7 @@ private fun ConteudoAbaJogo(
     aoSalvarEstado: (Int) -> Unit,
     aoCarregarEstado: (Int) -> Unit,
     aoMudarSlot: (Int) -> Unit,
+    paleta: PaletaMenu,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
@@ -590,13 +777,14 @@ private fun ConteudoAbaJogo(
             },
             slotVazio = slots.getOrNull(slotSelecionado - 1)?.exists != true,
             numeroSlot = slotSelecionado,
+            paleta = paleta,
         )
 
         // 2 — Rótulo SLOTS
-        RótuloSeção(texto = "SLOTS")
+        RótuloSeção(texto = "SLOTS", paleta = paleta)
 
         // 3 — Linha dos 4 slots
-        LinhaSlots(slots, slotSelecionado, aoSelecionar = { aoMudarSlot(it) })
+        LinhaSlots(slots, slotSelecionado, aoSelecionar = { aoMudarSlot(it) }, paleta = paleta)
     }
 }
 
@@ -610,17 +798,18 @@ private fun BotaoVidro(
     iconRes: Int,
     labelRes: Int,
     ctx: android.content.Context = androidx.compose.ui.platform.LocalContext.current,
+    paleta: PaletaMenu,
 ) {
-    val primária = MaterialTheme.colorScheme.primary
+    val corDestaque = paleta.destaque
     val alphaEnabled = if (enabled) 1f else 0.4f
     Box(
         modifier = modifier
             .border(
                 width = 1.dp,
-                color = primária.copy(alpha = 0.5f),
+                color = corDestaque.copy(alpha = 0.5f),
                 shape = RoundedCornerShape(12.dp),
             )
-            .background(Color.Black.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+            .background(paleta.fundoBotao, RoundedCornerShape(12.dp))
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center,
@@ -635,26 +824,26 @@ private fun BotaoVidro(
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
                 colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
-                    if (enabled) Color.White else Color.LightGray.copy(alpha = 0.5f),
+                    if (enabled) paleta.texto else paleta.texto.copy(alpha = 0.5f),
                 ),
             )
             Text(
                 text = ctx.getString(labelRes),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (enabled) Color.White else Color.LightGray.copy(alpha = 0.5f),
+                color = if (enabled) paleta.texto else paleta.texto.copy(alpha = 0.5f),
             )
         }
     }
 }
 
 @Composable
-private fun RótuloSeção(texto: String) {
+private fun RótuloSeção(texto: String, paleta: PaletaMenu) {
     Text(
         text = texto,
         fontSize = 11.sp,
         fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+        color = paleta.destaque.copy(alpha = 0.6f),
         letterSpacing = 2.sp,
     )
 }
@@ -665,6 +854,7 @@ private fun LinhaSalvarCarregarVidro(
     aoCarregar: () -> Unit,
     slotVazio: Boolean,
     numeroSlot: Int,
+    paleta: PaletaMenu,
 ) {
     val ctx = LocalContext.current
     Row(
@@ -678,6 +868,7 @@ private fun LinhaSalvarCarregarVidro(
             iconRes = R.drawable.ic_menu_salvar,
             labelRes = R.string.jogo_menu_salvar_estado,
             ctx = ctx,
+            paleta = paleta,
         )
         BotaoVidro(
             onClick = aoCarregar,
@@ -686,12 +877,13 @@ private fun LinhaSalvarCarregarVidro(
             iconRes = R.drawable.ic_menu_carregar,
             labelRes = R.string.jogo_menu_carregar_estado,
             ctx = ctx,
+            paleta = paleta,
         )
     }
 }
 
 @Composable
-private fun TextoEmBreve() {
+private fun TextoEmBreve(paleta: PaletaMenu) {
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center,
@@ -700,7 +892,7 @@ private fun TextoEmBreve() {
             text = stringResource(R.string.em_breve),
             fontSize = 16.sp,
             fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.primary,
+            color = paleta.destaque,
         )
     }
 }
@@ -710,6 +902,7 @@ private fun LinhaSlots(
     slots: List<SlotData>,
     slotSelecionado: Int,
     aoSelecionar: (Int) -> Unit,
+    paleta: PaletaMenu,
 ) {
     BoxWithConstraints(
         modifier = Modifier
@@ -732,6 +925,7 @@ private fun LinhaSlots(
                     selecionado = isSelected,
                     onClick = { aoSelecionar(numeroSlot) },
                     cardWidth = cardW,
+                    paleta = paleta,
                 )
             }
         }
@@ -745,9 +939,10 @@ private fun SlotCardMini(
     selecionado: Boolean,
     onClick: () -> Unit,
     cardWidth: androidx.compose.ui.unit.Dp,
+    paleta: PaletaMenu,
 ) {
     val ctx = LocalContext.current
-    val corPrimaria = MaterialTheme.colorScheme.primary
+    val corDestaque = paleta.destaque
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -762,7 +957,7 @@ private fun SlotCardMini(
                 .clip(RoundedCornerShape(8.dp))
                 .border(
                     width = if (selecionado) 2.dp else 1.dp,
-                    color = if (selecionado) corPrimaria else Color.White.copy(alpha = 0.15f),
+                    color = if (selecionado) corDestaque else paleta.texto.copy(alpha = 0.15f),
                     shape = RoundedCornerShape(8.dp),
                 )
                 .background(
@@ -787,7 +982,7 @@ private fun SlotCardMini(
                     Text(
                         text = ctx.getString(R.string.jogo_slot_vazio_text),
                         fontSize = 10.sp,
-                        color = Color.LightGray.copy(alpha = 0.5f),
+                        color = paleta.texto.copy(alpha = 0.5f),
                     )
                 }
             }
@@ -801,7 +996,7 @@ private fun SlotCardMini(
                     .clip(androidx.compose.foundation.shape.CircleShape)
                     .border(
                         width = 1.5.dp,
-                        color = corPrimaria,
+                        color = corDestaque,
                         shape = androidx.compose.foundation.shape.CircleShape,
                     )
                     .background(Color.Black.copy(alpha = 0.6f)),
@@ -811,7 +1006,7 @@ private fun SlotCardMini(
                     text = numeroSlot.toString(),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = paleta.texto,
                 )
             }
         }
@@ -826,7 +1021,7 @@ private fun SlotCardMini(
                     text = slot.dateText,
                     fontSize = 10.sp,
                     lineHeight = 12.sp,
-                    color = Color.LightGray.copy(alpha = 0.8f),
+                    color = paleta.texto.copy(alpha = 0.8f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -834,7 +1029,7 @@ private fun SlotCardMini(
                     text = slot.timeText,
                     fontSize = 10.sp,
                     lineHeight = 12.sp,
-                    color = Color.LightGray.copy(alpha = 0.6f),
+                    color = paleta.texto.copy(alpha = 0.6f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -852,9 +1047,10 @@ private fun RodapeFixo(
     aoContinuar: () -> Unit,
     aoReiniciar: () -> Unit,
     aoSair: () -> Unit,
+    paleta: PaletaMenu,
 ) {
     val ctx = LocalContext.current
-    val primária = MaterialTheme.colorScheme.primary
+    val corDestaque = paleta.destaque
 
     Column {
         // Divisor de 1dp no topo (alpha 0.12)
@@ -862,7 +1058,7 @@ private fun RodapeFixo(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(primária.copy(alpha = 0.12f)),
+                .background(corDestaque.copy(alpha = 0.12f)),
         )
 
         Row(
@@ -876,25 +1072,28 @@ private fun RodapeFixo(
                 modifier = Modifier.weight(1f),
                 onClick = aoContinuar,
                 labelRes = R.string.jogo_menu_continuar,
-                cor = primária,
+                cor = corDestaque,
                 alphaFundo = 0.24f,
                 ctx = ctx,
+                paleta = paleta,
             )
             RodapeBotao(
                 modifier = Modifier.weight(1f),
                 onClick = aoReiniciar,
                 labelRes = R.string.jogo_menu_reiniciar,
-                cor = primária,
+                cor = corDestaque,
                 alphaFundo = 0.12f,
                 ctx = ctx,
+                paleta = paleta,
             )
             RodapeBotao(
                 modifier = Modifier.weight(1f),
                 onClick = aoSair,
                 labelRes = R.string.jogo_menu_sair,
-                cor = primária,
+                cor = corDestaque,
                 alphaFundo = 0.12f,
                 ctx = ctx,
+                paleta = paleta,
             )
         }
     }
@@ -908,6 +1107,7 @@ private fun RodapeBotao(
     cor: Color,
     alphaFundo: Float,
     ctx: android.content.Context,
+    paleta: PaletaMenu,
 ) {
     Box(
         modifier = modifier
@@ -925,7 +1125,7 @@ private fun RodapeBotao(
             text = ctx.getString(labelRes),
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
-            color = Color.White,
+            color = paleta.texto,
         )
     }
 }

@@ -34,6 +34,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AccountCircle
@@ -65,6 +67,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -741,12 +744,12 @@ fun TelaConfiguracoes(prefs: Preferencias) {
                     HorizontalDivider()
                     
                     RotuloComDica(R.string.ajustes_titulo_varredura, R.string.ajustes_dica_varredura)
-                    Text("Em breve", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.em_breve), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     
                     HorizontalDivider()
                     
                     RotuloComDica(R.string.ajustes_titulo_suavizacao, R.string.ajustes_dica_suavizacao)
-                    Text("Em breve", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.em_breve), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else if (abaSelecionada == 3) {
                 Cartao {
@@ -825,18 +828,16 @@ fun TelaConfiguracoes(prefs: Preferencias) {
                     )
                 }
             } else if (abaSelecionada == 5) {
+                var mostrarDialogoRestaurar by remember { mutableStateOf(false) }
+                var mostrarDialogoApagar by remember { mutableStateOf(false) }
+                val escopo = rememberCoroutineScope()
+
                 Cartao {
                     RotuloComDica(R.string.ajustes_titulo_restaurar_globais, R.string.ajustes_desc_restaurar_globais)
                     OutlinedButton(
                         onClick = {
                             audio.playClick()
-                            prefs.limparOverrides(listOf(
-                                "aj_global_escala", "aj_global_proporcao", "aj_global_mostrarFps",
-                                "aj_global_volume", "aj_global_mudo", "aj_global_velocidadeFF",
-                                "aj_global_menu_estilo", "aj_global_menu_desfoque", "aj_global_menu_opacidade",
-                                "aj_global_menu_lado", "aj_global_menu_tema", "aj_global_menu_alca",
-                                "aj_global_menu_voltar", "aj_global_menu_gesto"
-                            ))
+                            mostrarDialogoRestaurar = true
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) { Text(stringResource(R.string.ajustes_botao_restaurar)) }
@@ -847,12 +848,10 @@ fun TelaConfiguracoes(prefs: Preferencias) {
                     OutlinedButton(
                         onClick = {
                             audio.playClick()
-                            // Aqui idealmente limparíamos todos os `aj_jogo_*` do DataStore.
-                            // Mas como precisamos de acesso ao fluxo pra ver as chaves ou limpar tudo:
-                            // Só mostramos em breve porque iterar chaves requer ler o Map do DataStore.
+                            mostrarDialogoApagar = true
                         },
                         modifier = Modifier.fillMaxWidth()
-                    ) { Text(stringResource(R.string.ajustes_botao_apagar_jogos) + " (Em breve)") }
+                    ) { Text(stringResource(R.string.ajustes_botao_apagar_jogos)) }
                     
                     HorizontalDivider()
                     
@@ -899,6 +898,59 @@ fun TelaConfiguracoes(prefs: Preferencias) {
                             modifier = Modifier.fillMaxWidth()
                         ) { Text(stringResource(R.string.acao_calcular)) }
                     }
+                }
+                if (mostrarDialogoRestaurar) {
+                    val focusCancelarRestaurar = remember { FocusRequester() }
+                    LaunchedEffect(Unit) { focusCancelarRestaurar.requestFocus() }
+                    AlertDialog(
+                        onDismissRequest = { mostrarDialogoRestaurar = false },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                mostrarDialogoRestaurar = false
+                                escopo.launch {
+                                    prefs.limparOverrides(listOf(
+                                        "aj_global_escala", "aj_global_proporcao", "aj_global_mostrarFps",
+                                        "aj_global_volume", "aj_global_mudo", "aj_global_velocidadeFF",
+                                        "aj_global_menu_estilo", "aj_global_menu_desfoque", "aj_global_menu_opacidade",
+                                        "aj_global_menu_lado", "aj_global_menu_tema", "aj_global_menu_alca",
+                                        "aj_global_menu_voltar", "aj_global_menu_gesto"
+                                    ))
+                                }
+                            }) { Text(stringResource(R.string.ajustes_botao_confirmar)) }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { mostrarDialogoRestaurar = false },
+                                modifier = Modifier.focusRequester(focusCancelarRestaurar)) {
+                                Text(stringResource(R.string.acao_cancelar))
+                            }
+                        },
+                        shape = RoundedCornerShape(28.dp),
+                        title = { Text(stringResource(R.string.ajustes_dialog_restaurar_titulo), fontWeight = FontWeight.Bold) },
+                        text = { Text(stringResource(R.string.ajustes_dialog_restaurar_texto)) }
+                    )
+                }
+
+                if (mostrarDialogoApagar) {
+                    val focusCancelarApagar = remember { FocusRequester() }
+                    LaunchedEffect(Unit) { focusCancelarApagar.requestFocus() }
+                    AlertDialog(
+                        onDismissRequest = { mostrarDialogoApagar = false },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                mostrarDialogoApagar = false
+                                escopo.launch { prefs.apagarTodosOsAjustesPorJogo() }
+                            }) { Text(stringResource(R.string.ajustes_botao_confirmar)) }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { mostrarDialogoApagar = false },
+                                modifier = Modifier.focusRequester(focusCancelarApagar)) {
+                                Text(stringResource(R.string.acao_cancelar))
+                            }
+                        },
+                        shape = RoundedCornerShape(28.dp),
+                        title = { Text(stringResource(R.string.ajustes_dialog_apagar_titulo), fontWeight = FontWeight.Bold) },
+                        text = { Text(stringResource(R.string.ajustes_dialog_apagar_texto)) }
+                    )
                 }
             }
             EspacoDaNavegacao()

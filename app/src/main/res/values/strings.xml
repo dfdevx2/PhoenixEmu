@@ -365,4 +365,12 @@
     <string name="ajustes_titulo_apagar_jogos">Clear per-game settings</string>
     <string name="ajustes_desc_apagar_jogos">Removes custom settings from all games, making them use global settings again.</string>
     <string name="ajustes_botao_apagar_jogos">Clear settings</string>
+    <string name="ajustes_op_proporcao_pixels_quadrados">Square pixels</string>
+    <string name="ajustes_op_proporcao_16_9">16:9</string>
+    <!-- Confirmation dialogs -->
+    <string name="ajustes_dialog_restaurar_titulo">Reset game settings?</string>
+    <string name="ajustes_dialog_restaurar_texto">Global video, audio and game settings will go back to the defaults. Per-game settings are kept.</string>
+    <string name="ajustes_dialog_apagar_titulo">Delete per-game settings?</string>
+    <string name="ajustes_dialog_apagar_texto">Every game will use the global settings again. Your library and saves are not affected.</string>
+    <string name="ajustes_botao_confirmar">Confirm</string>
 </resources>
