@@ -300,11 +300,19 @@ class Preferencias private constructor(context: Context) {
         }.getOrDefault(padrao)
     }
 
-    val overlay: StateFlow<ConfigDoOverlay> = derivar(ConfigDoOverlay()) { prefs ->
+    val overlay: StateFlow<OverlayConfigNova> = derivar(OverlayConfigNova()) { prefs ->
         val json = prefs[K_OVERLAY]
-        if (json.isNullOrBlank()) ConfigDoOverlay()
-        else runCatching { gson.fromJson(json, ConfigDoOverlay::class.java) ?: ConfigDoOverlay() }
-            .getOrDefault(ConfigDoOverlay())
+        if (json.isNullOrBlank()) OverlayConfigNova()
+        else {
+            val configNova = runCatching { gson.fromJson(json, OverlayConfigNova::class.java) }.getOrNull()
+            if (configNova?.controles != null && configNova.controles.isNotEmpty()) {
+                configNova
+            } else {
+                // Try old format
+                val configAntiga = runCatching { gson.fromJson(json, ConfigDoOverlay::class.java) }.getOrNull()
+                if (configAntiga != null) OverlayConfigNova.converterAntigo(configAntiga) else OverlayConfigNova()
+            }
+        }
     }
 
     val atalhos: StateFlow<ConfigDeAtalhos> = derivar(ConfigDeAtalhos.padrao()) { prefs ->
@@ -319,7 +327,7 @@ class Preferencias private constructor(context: Context) {
         }.getOrDefault(ConfigDeAtalhos.padrao())
     }
 
-    fun definirOverlay(config: ConfigDoOverlay) = editar {
+    fun definirOverlay(config: OverlayConfigNova) = editar {
         it[K_OVERLAY] = gson.toJson(config)
     }
 

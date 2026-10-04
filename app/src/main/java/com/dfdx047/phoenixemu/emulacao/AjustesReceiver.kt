@@ -62,6 +62,27 @@ class AjustesReceiver : BroadcastReceiver() {
                         prefs.restaurarMapeamento()
                         Log.i("PhoenixAjustes", "botao acao=$acao nome=restaurar tecla=0")
                     }
+                    "overlay_salvar" -> {
+                        val json = intent.getStringExtra("json") ?: return@launch
+                        val config = com.google.gson.Gson().fromJson(json, com.dfdx047.phoenixemu.data.OverlayConfigNova::class.java)
+                        
+                        if (escopo == "JOGO" && idDoJogo.isNotEmpty()) {
+                            prefs.setAjusteString("aj_jogo_${idDoJogo}_overlay_controle", json)
+                            Log.i("PhoenixAjustes", "overlay_salvar JOGO $idDoJogo")
+                        } else {
+                            prefs.definirOverlay(config)
+                            Log.i("PhoenixAjustes", "overlay_salvar GLOBAL")
+                        }
+                    }
+                    "overlay_restaurar" -> {
+                        if (escopo == "JOGO" && idDoJogo.isNotEmpty()) {
+                            prefs.limparOverrides(listOf("aj_jogo_${idDoJogo}_overlay_controle"))
+                            Log.i("PhoenixAjustes", "overlay_restaurar JOGO $idDoJogo")
+                        } else {
+                            prefs.restaurarOverlay()
+                            Log.i("PhoenixAjustes", "overlay_restaurar GLOBAL")
+                        }
+                    }
                     "limpar" -> {
                         if (idDoJogo.isNotEmpty()) {
                             prefs.limparOverrides(listOf(

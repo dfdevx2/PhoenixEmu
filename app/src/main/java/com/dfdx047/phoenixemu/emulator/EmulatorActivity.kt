@@ -180,6 +180,9 @@ class EmulatorActivity : ComponentActivity() {
     private var rewindActive = false
     private var rewindSecs by mutableStateOf(0f)
     var mapeamentoAtual by mutableStateOf(IntArray(12))
+    
+    private var overlayConfig by mutableStateOf(com.dfdx047.phoenixemu.data.OverlayConfigNova())
+    private var controleOcultouOverlay by mutableStateOf(false)
 
     private fun setFfActive(active: Boolean) {
         val shouldBeActive = active && !rewindActive
@@ -483,6 +486,17 @@ class EmulatorActivity : ComponentActivity() {
         var atalhosJson = intent.getStringExtra(EXTRA_ATALHOS) ?: ""
         motorDeAtalhos.carregarDoJson(atalhosJson)
 
+        overlayConfig = try {
+            val cfgJson = intent.getStringExtra(EXTRA_OVERLAY)
+            if (!cfgJson.isNullOrBlank()) {
+                Gson().fromJson(cfgJson, com.dfdx047.phoenixemu.data.OverlayConfigNova::class.java)
+            } else {
+                com.dfdx047.phoenixemu.data.OverlayConfigNova()
+            }
+        } catch (_: Exception) {
+            com.dfdx047.phoenixemu.data.OverlayConfigNova()
+        }
+
         atalhosCfg = try {
             val cfgJson = intent.getStringExtra(EXTRA_ATALHOS_CFG)
             if (!cfgJson.isNullOrBlank()) {
@@ -640,6 +654,18 @@ class EmulatorActivity : ComponentActivity() {
                                 Log.i("PhoenixAjustes", "proporcao=${ajustes.proporcao} ratio=$ratio")
                                 it.aspectRatio(ratio.coerceAtLeast(0.1f))
                             }
+                        }
+                    )
+
+                    OverlayDeToque(
+                        config = overlayConfig,
+                        visivel = (!isPaused || !overlayConfig.ocultarNoMenu) && !controleOcultouOverlay,
+                        corPrimaria = Color(temaCorPrimaria),
+                        corAcento = Color(temaCorSuperficie),
+                        aoMudarToque = { mask ->
+                            motorDeAtalhos.atualizarTouchMask(mask)
+                            // Se tocou na tela, reexibir overlay
+                            controleOcultouOverlay = false
                         }
                     )
 
@@ -942,6 +968,15 @@ class EmulatorActivity : ComponentActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // Hide overlay on controller input if configured
+        if (overlayConfig.visivelModo == com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.AUTO_ESCONDER_COM_CONTROLE &&
+            event.keyCode != KeyEvent.KEYCODE_VOLUME_UP &&
+            event.keyCode != KeyEvent.KEYCODE_VOLUME_DOWN &&
+            event.keyCode != KeyEvent.KEYCODE_VOLUME_MUTE &&
+            event.keyCode != KeyEvent.KEYCODE_POWER) {
+            controleOcultouOverlay = true
+        }
+
         // PASSO 3: modo captura
         if (capturaAtalho != null) {
             val kc = event.keyCode
@@ -1010,6 +1045,11 @@ class EmulatorActivity : ComponentActivity() {
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        if (overlayConfig.visivelModo == com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.AUTO_ESCONDER_COM_CONTROLE &&
+            event.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK) {
+            controleOcultouOverlay = true
+        }
+
         if (capturaAtalho != null) {
             if (event.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK &&
                 event.action == MotionEvent.ACTION_MOVE) {

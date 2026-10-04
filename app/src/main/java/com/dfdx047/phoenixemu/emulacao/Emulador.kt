@@ -96,6 +96,9 @@ object Emulador {
             if (mO) overrides.add(AjustesDeJogo.CHAVE_MUDO)
             if (ffO) overrides.add(AjustesDeJogo.CHAVE_VELOCIDADE_FF)
 
+            val (overlayJsonStr, overlayOverride) = prefs.getAjusteString("dummy", idDoJogo.takeIf { it.isNotEmpty() }?.let { "aj_jogo_${it}_overlay_controle" }, "")
+            if (overlayOverride && overlayJsonStr.isNotBlank()) overrides.add("overlay_controle")
+
             AjustesDeJogo(
                 escala = runCatching { EscalaImagem.valueOf(escalaStr) }.getOrDefault(EscalaImagem.AJUSTAR),
                 proporcao = runCatching { ProporcaoImagem.valueOf(proporcaoStr) }.getOrDefault(ProporcaoImagem.AUTOMATICA),
@@ -106,6 +109,21 @@ object Emulador {
                 overrides = overrides,
                 idDoJogo = idDoJogo
             )
+        }
+        
+        val overlayJsonStr = runBlocking { 
+            val (str, override) = prefs.getAjusteString("dummy", idDoJogo.takeIf { it.isNotEmpty() }?.let { "aj_jogo_${it}_overlay_controle" }, "")
+            val overlayConfigEfetivo = if (override && str.isNotBlank()) {
+                Gson().fromJson(str, com.dfdx047.phoenixemu.data.OverlayConfigNova::class.java)
+            } else {
+                prefs.overlay.first()
+            }
+            val overlayFinal = if (overlayConfigEfetivo.controles.isEmpty()) {
+                overlayConfigEfetivo.copy(controles = if (plataforma == "SNES") com.dfdx047.phoenixemu.data.OverlayConfigNova.layoutSnes() else com.dfdx047.phoenixemu.data.OverlayConfigNova.layoutNes())
+            } else {
+                overlayConfigEfetivo
+            }
+            Gson().toJson(overlayFinal)
         }
 
         val darkTheme = (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
@@ -132,9 +150,7 @@ object Emulador {
             .putExtra(EmulatorActivity.EXTRA_NUCLEO, nucleo)
             .putExtra(EmulatorActivity.EXTRA_NOME_SAVE, nomeSave)
             .putExtra(EmulatorActivity.EXTRA_MAPEAMENTO, mapeamento(prefs))
-            // Mesmo JSON que as Preferencias ja gravam: o modulo le com
-            // org.json e nao precisa conhecer a classe ConfigDoOverlay.
-            .putExtra(EmulatorActivity.EXTRA_OVERLAY, Gson().toJson(prefs.overlay.value))
+            .putExtra(EmulatorActivity.EXTRA_OVERLAY, overlayJsonStr)
             .putExtra(EmulatorActivity.EXTRA_ATALHOS, atalhosJson.toString())
             .putExtra(EmulatorActivity.EXTRA_ATALHOS_CFG, Gson().toJson(prefs.atalhos.value))
             .putExtra(EmulatorActivity.EXTRA_AUTOSALVAR, prefs.autoSalvar.value)

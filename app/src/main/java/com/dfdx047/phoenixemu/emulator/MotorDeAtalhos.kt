@@ -13,6 +13,7 @@ internal class MotorDeAtalhos(
 ) {
     var keyMask = 0
     var axisMask = 0
+    var touchMask = 0
     val keyToBit = mutableMapOf<Int, Int>()
 
     val atalhos = mutableMapOf<Acao, List<Int>>()
@@ -127,14 +128,21 @@ internal class MotorDeAtalhos(
         }
         if (newKeyMask != keyMask) {
             keyMask = newKeyMask
-            aoMudarBotoes(keyMask or axisMask)
+            aoMudarBotoes(keyMask or axisMask or touchMask)
         }
     }
 
     fun atualizarAxisMask(newAxisMask: Int) {
         if (newAxisMask != axisMask) {
             axisMask = newAxisMask
-            aoMudarBotoes(keyMask or axisMask)
+            aoMudarBotoes(keyMask or axisMask or touchMask)
+        }
+    }
+
+    fun atualizarTouchMask(newTouchMask: Int) {
+        if (newTouchMask != touchMask) {
+            touchMask = newTouchMask
+            aoMudarBotoes(keyMask or axisMask or touchMask)
         }
     }
 
@@ -152,6 +160,7 @@ internal class MotorDeAtalhos(
         aoMudarAvanco(false)
         keyMask = 0
         axisMask = 0
+        touchMask = 0
         aoMudarBotoes(0)
     }
 }

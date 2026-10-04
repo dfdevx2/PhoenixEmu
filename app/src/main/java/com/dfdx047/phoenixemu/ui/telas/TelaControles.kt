@@ -54,7 +54,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dfdx047.phoenixemu.LocalAudio
 import com.dfdx047.phoenixemu.R
 import com.dfdx047.phoenixemu.data.BotaoVirtual
-import com.dfdx047.phoenixemu.data.ConfigDoOverlay
+import com.dfdx047.phoenixemu.data.OverlayConfigNova
 import com.dfdx047.phoenixemu.data.Preferencias
 import com.dfdx047.phoenixemu.data.nomeDaTecla
 import com.dfdx047.phoenixemu.data.AcaoAtalho
@@ -377,64 +377,50 @@ private fun EditorDoOverlay(prefs: Preferencias) {
     val audio = LocalAudio.current
     val config by prefs.overlay.collectAsStateWithLifecycle()
 
-    var opacidade by remember(config.opacidade) { mutableFloatStateOf(config.opacidade) }
-    var escala by remember(config.escala) { mutableFloatStateOf(config.escala) }
-
     CartaoDeVidro {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(stringResource(R.string.overlay_mostrar), fontWeight = FontWeight.Bold)
-                Text(
-                    stringResource(R.string.overlay_mostrar_desc),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        Text("Modo de Visibilidade", fontWeight = FontWeight.Bold)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            TextButton(onClick = { prefs.definirOverlay(config.copy(visivelModo = com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.SEMPRE)) }) {
+                Text(if (config.visivelModo == com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.SEMPRE) "[ Sempre ]" else "Sempre")
             }
-            Spacer(Modifier.width(12.dp))
-            Switch(
-                checked = config.visivel,
-                onCheckedChange = {
-                    audio.playClick()
-                    prefs.definirOverlay(config.copy(visivel = it))
-                }
-            )
+            TextButton(onClick = { prefs.definirOverlay(config.copy(visivelModo = com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.AUTO_ESCONDER_COM_CONTROLE)) }) {
+                Text(if (config.visivelModo == com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.AUTO_ESCONDER_COM_CONTROLE) "[ Auto-esconder ]" else "Auto-esconder")
+            }
+            TextButton(onClick = { prefs.definirOverlay(config.copy(visivelModo = com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.NUNCA)) }) {
+                Text(if (config.visivelModo == com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.NUNCA) "[ Nunca ]" else "Nunca")
+            }
         }
 
         HorizontalDivider()
 
-        Text(stringResource(R.string.overlay_arraste), style = MaterialTheme.typography.bodySmall)
-
-        // A area de edicao usa 16:9 porque e a proporcao em que o jogo vai
-        // aparecer. Arrastar aqui e arrastar onde o botao vai ficar de fato.
-        AreaDeEdicao(
-            config = config.copy(opacidade = opacidade, escala = escala),
-            onMover = { botao, x, y ->
-                val novas = config.posicoes.map {
-                    if (it.botao == botao) it.copy(x = x, y = y) else it
-                }
-                prefs.definirOverlay(config.copy(posicoes = novas))
-            }
-        )
-
-        Text(stringResource(R.string.overlay_opacidade), style = MaterialTheme.typography.bodyMedium)
+        Text("Opacidade Ociosa: ${(config.opacidadeOciosa * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
         Slider(
-            value = opacidade,
-            onValueChange = { opacidade = it },
-            onValueChangeFinished = { prefs.definirOverlay(config.copy(opacidade = opacidade)) },
-            valueRange = 0.15f..1f
+            value = config.opacidadeOciosa,
+            onValueChange = { prefs.definirOverlay(config.copy(opacidadeOciosa = it)) },
+            valueRange = 0.0f..1f
+        )
+        
+        Text("Opacidade Pressionado: ${(config.opacidadePressionado * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
+        Slider(
+            value = config.opacidadePressionado,
+            onValueChange = { prefs.definirOverlay(config.copy(opacidadePressionado = it)) },
+            valueRange = 0.0f..1f
         )
 
-        Text(stringResource(R.string.overlay_tamanho), style = MaterialTheme.typography.bodyMedium)
+        Text("Tamanho Global: ${(config.escalaGlobal * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
         Slider(
-            value = escala,
-            onValueChange = { escala = it },
-            onValueChangeFinished = { prefs.definirOverlay(config.copy(escala = escala)) },
-            valueRange = 0.6f..1.8f
+            value = config.escalaGlobal,
+            onValueChange = { prefs.definirOverlay(config.copy(escalaGlobal = it)) },
+            valueRange = 0.5f..2.0f
         )
+
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Ocultar no menu de pausa")
+            Switch(
+                checked = config.ocultarNoMenu,
+                onCheckedChange = { prefs.definirOverlay(config.copy(ocultarNoMenu = it)) }
+            )
+        }
 
         OutlinedButton(
             onClick = { audio.playClick(); prefs.restaurarOverlay() },
@@ -443,76 +429,3 @@ private fun EditorDoOverlay(prefs: Preferencias) {
     }
 }
 
-@Composable
-private fun AreaDeEdicao(
-    config: ConfigDoOverlay,
-    onMover: (BotaoVirtual, Float, Float) -> Unit
-) {
-    val densidade = LocalDensity.current
-
-    BoxWithConstraints(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(16f / 9f)
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-            .border(
-                1.dp,
-                MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                RoundedCornerShape(16.dp)
-            )
-    ) {
-        val larguraPx = with(densidade) { maxWidth.toPx() }
-        val alturaPx = with(densidade) { maxHeight.toPx() }
-        val tamanhoBotao = 34.dp * config.escala
-        val tamanhoPx = with(densidade) { tamanhoBotao.toPx() }
-
-        config.posicoes.forEach { posicao ->
-            var x by remember(posicao.botao, posicao.x) { mutableFloatStateOf(posicao.x) }
-            var y by remember(posicao.botao, posicao.y) { mutableFloatStateOf(posicao.y) }
-
-            Box(
-                modifier = Modifier
-                    .offset {
-                        IntOffset(
-                            (x * larguraPx - tamanhoPx / 2f).roundToInt(),
-                            (y * alturaPx - tamanhoPx / 2f).roundToInt()
-                        )
-                    }
-                    .size(tamanhoBotao)
-                    .alpha(config.opacidade)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.85f))
-                    .pointerInput(posicao.botao) {
-                        detectDragGestures(
-                            onDragEnd = { onMover(posicao.botao, x, y) }
-                        ) { mudanca, arrasto ->
-                            mudanca.consume()
-                            // Guardado em fracao, nao em pixels: o mesmo
-                            // arranjo serve a qualquer tela sem recalcular.
-                            x = (x + arrasto.x / larguraPx).coerceIn(0.02f, 0.98f)
-                            y = (y + arrasto.y / alturaPx).coerceIn(0.04f, 0.96f)
-                        }
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    textoCurto(posicao.botao),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-            }
-        }
-    }
-}
-
-private fun textoCurto(botao: BotaoVirtual): String = when (botao) {
-    BotaoVirtual.CIMA -> "↑"
-    BotaoVirtual.BAIXO -> "↓"
-    BotaoVirtual.ESQUERDA -> "←"
-    BotaoVirtual.DIREITA -> "→"
-    BotaoVirtual.SELECT -> "SEL"
-    BotaoVirtual.START -> "ST"
-    else -> botao.name
-}
