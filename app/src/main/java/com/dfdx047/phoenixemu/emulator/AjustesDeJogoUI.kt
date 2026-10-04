@@ -122,7 +122,9 @@ internal fun ConteudoAbaAjustes(
             dica = stringResource(R.string.ajustes_dica_volume),
             valor = ajustes.volume,
             onValueChange = { aoMudarAjuste(AjustesDeJogo.CHAVE_VOLUME, it, "float") },
-            paleta = paleta
+            paleta = paleta,
+            faixa = 0f..2f,
+            passos = 39
         )
 
         LinhaInterruptor(
@@ -236,7 +238,9 @@ private fun LinhaInterruptor(
 @Composable
 private fun LinhaSlider(
     titulo: String, dica: String, valor: Float, onValueChange: (Float) -> Unit,
-    paleta: PaletaMenu
+    paleta: PaletaMenu,
+    faixa: ClosedFloatingPointRange<Float> = 0f..1f,
+    passos: Int = 19
 ) {
     var dicaAberta by remember { mutableStateOf(false) }
 
@@ -254,7 +258,7 @@ private fun LinhaSlider(
         }
         Slider(
             value = valor, onValueChange = { onValueChange((it * 20).roundToInt() / 20f) },
-            valueRange = 0f..1f, steps = 19,
+            valueRange = faixa, steps = passos,
             colors = SliderDefaults.colors(thumbColor = paleta.destaque, activeTrackColor = paleta.destaque)
         )
     }

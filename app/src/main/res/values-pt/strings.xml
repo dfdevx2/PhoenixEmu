@@ -333,7 +333,7 @@
     <string name="ajustes_titulo_mostrar_fps">Mostrar FPS</string>
     <string name="ajustes_dica_mostrar_fps">Exibe um contador de quadros por segundo no canto superior da tela.</string>
     <string name="ajustes_titulo_volume">Volume do jogo</string>
-    <string name="ajustes_dica_volume">Ajusta o volume do áudio do emulador.</string>
+    <string name="ajustes_dica_volume">Ajusta o volume do áudio do jogo. Valores acima de 100 % amplificam o som e podem causar distorção.</string>
     <string name="ajustes_titulo_mudo">Mudo</string>
     <string name="ajustes_dica_mudo">Silencia o áudio completamente sem perder o ajuste de volume.</string>
     <string name="ajustes_titulo_velocidade_ff">Velocidade do avanço rápido</string>
