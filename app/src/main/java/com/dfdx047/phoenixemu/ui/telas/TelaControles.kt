@@ -376,8 +376,32 @@ private fun EscutaDeTeclas(chave: Any, onCapturar: (Int) -> Unit) {
 private fun EditorDoOverlay(prefs: Preferencias) {
     val audio = LocalAudio.current
     val config by prefs.overlay.collectAsStateWithLifecycle()
+    var editandoLayout by remember { mutableStateOf(false) }
+
+    if (editandoLayout) {
+        com.dfdx047.phoenixemu.emulator.EditorDeOverlayUI(
+            configInicial = config,
+            corPrimaria = MaterialTheme.colorScheme.primary,
+            corAcento = MaterialTheme.colorScheme.secondary,
+            onSave = { 
+                audio.playClick()
+                prefs.definirOverlay(it)
+                editandoLayout = false 
+            },
+            onCancel = { 
+                audio.playClick()
+                editandoLayout = false 
+            }
+        )
+        return
+    }
 
     CartaoDeVidro {
+        OutlinedButton(
+            onClick = { audio.playClick(); editandoLayout = true },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Editar Layout (Arrastar, Adicionar, Propriedades)") }
+
         Text("Modo de Visibilidade", fontWeight = FontWeight.Bold)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             TextButton(onClick = { prefs.definirOverlay(config.copy(visivelModo = com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.SEMPRE)) }) {
@@ -391,6 +415,10 @@ private fun EditorDoOverlay(prefs: Preferencias) {
             }
         }
 
+        HorizontalDivider()
+        
+        BotaoExportarImportarLayout(config, onImportar = { prefs.definirOverlay(it) })
+        
         HorizontalDivider()
 
         Text("Opacidade Ociosa: ${(config.opacidadeOciosa * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)

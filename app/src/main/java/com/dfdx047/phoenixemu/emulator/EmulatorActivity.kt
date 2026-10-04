@@ -183,6 +183,7 @@ class EmulatorActivity : ComponentActivity() {
     
     private var overlayConfig by mutableStateOf(com.dfdx047.phoenixemu.data.OverlayConfigNova())
     private var controleOcultouOverlay by mutableStateOf(false)
+    private var editandoOverlay by mutableStateOf(false)
 
     private fun setFfActive(active: Boolean) {
         val shouldBeActive = active && !rewindActive
@@ -704,7 +705,28 @@ class EmulatorActivity : ComponentActivity() {
                         )
                     }
 
-                    if (isPaused) {
+                    if (editandoOverlay) {
+                        EditorDeOverlayUI(
+                            configInicial = overlayConfig,
+                            corPrimaria = Color(temaCorPrimaria),
+                            corAcento = Color(temaCorSuperficie),
+                            onSave = { novaConfig ->
+                                overlayConfig = novaConfig
+                                salvarAjuste("overlay_controle", Gson().toJson(novaConfig), "string", false)
+                                // also save it via broadcast like overlay_salvar 
+                                val intent = Intent("com.dfdx047.phoenixemu.AJUSTE_MUDOU").apply {
+                                    setPackage(packageName)
+                                    putExtra("acao", "overlay_salvar")
+                                    putExtra("escopo", if (ajustes.isSomenteEsteJogo()) "JOGO" else "GLOBAL")
+                                    putExtra("idDoJogo", idDoJogoAtual)
+                                    putExtra("json", Gson().toJson(novaConfig))
+                                }
+                                sendBroadcast(intent)
+                                editandoOverlay = false
+                            },
+                            onCancel = { editandoOverlay = false }
+                        )
+                    } else if (isPaused) {
                         MenuDePausa(
                             visivel = isPaused,
                             fundo = fundoDoMenu,
@@ -804,6 +826,7 @@ class EmulatorActivity : ComponentActivity() {
                             aoSair = { finish() },
                             aoMudarSlot = { slot -> slotAtual = slot },
                             aoMudarAba = { aba -> abaAtual = aba },
+                            aoEditarLayout = { editandoOverlay = true },
                             ajustes = ajustes,
                             aoMudarAjuste = { chave, valor, tipo -> 
                                 if (chave == AjustesDeJogo.CHAVE_ESCALA && valor is String) {

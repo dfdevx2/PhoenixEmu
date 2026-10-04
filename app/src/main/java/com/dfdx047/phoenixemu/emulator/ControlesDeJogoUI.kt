@@ -70,6 +70,7 @@ internal fun ConteudoAbaControles(
     aoAlternarHotkey: (AcaoAtalho, Boolean) -> Unit,
     aoRestaurar: () -> Unit,
     aoRestaurarBotoes: () -> Unit,
+    aoEditarLayout: () -> Unit,
     ajustes: AjustesDeJogo,
     aoMudarAjuste: (String, Any, String) -> Unit
 ) {
@@ -107,11 +108,12 @@ internal fun ConteudoAbaControles(
             color = corDestaque,
         )
         
-        // Pass the request to open settings if we had full logic, or just have simple controls here.
-        Text(
-            text = "Para editar o layout na tela, use as configurações do App.",
-            style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
-            color = corTexto.copy(alpha=0.7f)
+        LinhaBotaoGenerico(
+            texto = "Editar Layout (Arrastar, Adicionar, ...)",
+            corTexto = corTexto,
+            corDestaque = corDestaque,
+            corContorno = corContorno,
+            onClick = aoEditarLayout
         )
 
         // ——— ATALHOS ———
