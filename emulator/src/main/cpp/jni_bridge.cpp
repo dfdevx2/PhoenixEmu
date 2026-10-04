@@ -510,6 +510,18 @@ Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeObterAspectRatio(
     return g_nucleo.obterAspectRatio();
 }
 
+JNIEXPORT jint JNICALL
+Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeObterLarguraNativa(
+    JNIEnv * /*env*/, jobject /*thiz*/) {
+    return g_nucleo.obterLarguraNativa();
+}
+
+JNIEXPORT jint JNICALL
+Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeObterAlturaNativa(
+    JNIEnv * /*env*/, jobject /*thiz*/) {
+    return g_nucleo.obterAlturaNativa();
+}
+
 JNIEXPORT void JNICALL
 Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeReiniciar(
     JNIEnv * /*env*/, jobject /*thiz*/) {

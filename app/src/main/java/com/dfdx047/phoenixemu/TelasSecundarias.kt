@@ -140,6 +140,16 @@ private fun LinhaDeOpcao(
     selecionado: Boolean,
     onSelecionar: () -> Unit
 ) {
+    LinhaDeOpcaoString(stringResource(rotulo), dica, selecionado, onSelecionar)
+}
+
+@Composable
+private fun LinhaDeOpcaoString(
+    rotulo: String,
+    @StringRes dica: Int? = null,
+    selecionado: Boolean,
+    onSelecionar: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -150,7 +160,7 @@ private fun LinhaDeOpcao(
     ) {
         RadioButton(selected = selecionado, onClick = null)
         Spacer(Modifier.width(8.dp))
-        Text(stringResource(rotulo))
+        Text(rotulo)
         if (dica != null) {
             Spacer(Modifier.weight(1f))
             BotaoDeDica(stringResource(dica))
@@ -275,8 +285,26 @@ fun TelaConfiguracoes(prefs: Preferencias) {
     var mostrarSeletorDeTema by remember { mutableStateOf(false) }
     var desfoqueArrastado by remember(wallDesfoque) { mutableFloatStateOf(wallDesfoque) }
     var opacidadeArrastada by remember(wallOpacidade) { mutableFloatStateOf(wallOpacidade) }
-    val proporcao by prefs.proporcaoTela.collectAsStateWithLifecycle()
-    val filtroVideo by prefs.filtroVideo.collectAsStateWithLifecycle()
+    val globalEscala by prefs.globalEscalaImagem.collectAsStateWithLifecycle()
+    val globalProporcao by prefs.globalProporcaoImagem.collectAsStateWithLifecycle()
+    val globalMostrarFps by prefs.globalMostrarFps.collectAsStateWithLifecycle()
+    
+    val globalVolume by prefs.globalVolume.collectAsStateWithLifecycle()
+    val globalMudo by prefs.globalMudo.collectAsStateWithLifecycle()
+    var volumeArrastado by remember(globalVolume) { mutableFloatStateOf(globalVolume) }
+    
+    val globalVelocidadeFF by prefs.globalVelocidadeFF.collectAsStateWithLifecycle()
+    val globalMenuEstilo by prefs.globalMenuEstilo.collectAsStateWithLifecycle()
+    val globalMenuDesfoque by prefs.globalMenuDesfoque.collectAsStateWithLifecycle()
+    val globalMenuOpacidade by prefs.globalMenuOpacidade.collectAsStateWithLifecycle()
+    var opacidadeArrastadaMenu by remember(globalMenuOpacidade) { mutableFloatStateOf(globalMenuOpacidade) }
+    var desfoqueArrastadoMenu by remember(globalMenuDesfoque) { mutableFloatStateOf(globalMenuDesfoque) }
+    val globalMenuLado by prefs.globalMenuLado.collectAsStateWithLifecycle()
+    val globalMenuTema by prefs.globalMenuTema.collectAsStateWithLifecycle()
+    val globalMenuAlca by prefs.globalMenuAlca.collectAsStateWithLifecycle()
+    val globalMenuVoltar by prefs.globalMenuVoltar.collectAsStateWithLifecycle()
+    val globalMenuGesto by prefs.globalMenuGesto.collectAsStateWithLifecycle()
+
     val wallpaperUri by prefs.wallpaperUri.collectAsStateWithLifecycle()
     // Nao vem do DataStore: veja Idioma.kt. Ler uma vez basta, porque trocar
     // de idioma recria a Activity.
@@ -428,6 +456,63 @@ fun TelaConfiguracoes(prefs: Preferencias) {
 
                     HorizontalDivider()
 
+                    RotuloComDica(R.string.ajustes_titulo_menu_estilo, R.string.ajustes_dica_menu_estilo)
+                    val menuEstiloOpcoes = listOf(
+                        "VIDRO" to stringResource(R.string.ajustes_op_estilo_vidro),
+                        "FOSCO" to stringResource(R.string.ajustes_op_estilo_fosco)
+                    )
+                    menuEstiloOpcoes.forEach { (nome, rotulo) ->
+                        LinhaDeOpcaoString(
+                            rotulo = rotulo,
+                            selecionado = globalMenuEstilo == nome,
+                            onSelecionar = { prefs.setAjusteString("aj_global_menu_estilo", nome) }
+                        )
+                    }
+
+                    if (globalMenuEstilo == "VIDRO") {
+                        RotuloComDica(R.string.ajustes_titulo_menu_desfoque, R.string.ajustes_dica_menu_desfoque)
+                        Slider(
+                            value = desfoqueArrastadoMenu,
+                            onValueChange = { desfoqueArrastadoMenu = it },
+                            onValueChangeFinished = { prefs.setAjusteFloat("aj_global_menu_desfoque", desfoqueArrastadoMenu) },
+                            valueRange = 0f..40f
+                        )
+                    }
+                    
+                    RotuloComDica(R.string.ajustes_titulo_menu_opacidade, R.string.ajustes_dica_menu_opacidade)
+                    Slider(
+                        value = opacidadeArrastadaMenu,
+                        onValueChange = { opacidadeArrastadaMenu = it },
+                        onValueChangeFinished = { prefs.setAjusteFloat("aj_global_menu_opacidade", opacidadeArrastadaMenu) },
+                        valueRange = 0.40f..1f
+                    )
+
+                    HorizontalDivider()
+
+                    RotuloComDica(R.string.ajustes_titulo_menu_lado, R.string.ajustes_dica_menu_lado)
+                    val menuLadoOpcoes = listOf(
+                        "ESQUERDA" to stringResource(R.string.ajustes_op_lado_esquerda),
+                        "DIREITA" to stringResource(R.string.ajustes_op_lado_direita)
+                    )
+                    menuLadoOpcoes.forEach { (nome, rotulo) ->
+                        LinhaDeOpcaoString(
+                            rotulo = rotulo,
+                            selecionado = globalMenuLado == nome,
+                            onSelecionar = { prefs.setAjusteString("aj_global_menu_lado", nome) }
+                        )
+                    }
+
+                    HorizontalDivider()
+
+                    LinhaDeInterruptor(
+                        rotulo = R.string.ajustes_titulo_menu_tema,
+                        dica = R.string.ajustes_dica_menu_tema,
+                        marcado = globalMenuTema,
+                        onMudar = { prefs.setAjusteBoolean("aj_global_menu_tema", it) }
+                    )
+
+                    HorizontalDivider()
+
                     LinhaDeInterruptor(
                         rotulo = R.string.config_reduzir_efeitos,
                         descricao = R.string.config_reduzir_efeitos_desc,
@@ -501,6 +586,14 @@ fun TelaConfiguracoes(prefs: Preferencias) {
                 }
             } else if (abaSelecionada == 1) {
                 Cartao {
+                    Text(
+                        stringResource(R.string.ajustes_aviso_sobrepor),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    HorizontalDivider()
+
                     LinhaDeInterruptor(
                         rotulo = R.string.config_bgm,
                         dica = R.string.dica_bgm,
@@ -575,47 +668,96 @@ fun TelaConfiguracoes(prefs: Preferencias) {
                             onMudar = { prefs.definirSomEntrarJogo(it) }
                         )
                     }
+
+                    HorizontalDivider()
+                    
+                    RotuloComDica(R.string.ajustes_titulo_volume, R.string.ajustes_dica_volume)
+                    Slider(
+                        value = volumeArrastado,
+                        onValueChange = { volumeArrastado = it },
+                        onValueChangeFinished = { prefs.setAjusteFloat("aj_global_volume", volumeArrastado) },
+                        valueRange = 0f..1f
+                    )
+                    
+                    LinhaDeInterruptor(
+                        rotulo = R.string.ajustes_titulo_mudo,
+                        dica = R.string.ajustes_dica_mudo,
+                        marcado = globalMudo,
+                        onMudar = { prefs.setAjusteBoolean("aj_global_mudo", it) }
+                    )
                 }
             } else if (abaSelecionada == 2) {
                 Cartao {
-                    RotuloComDica(R.string.config_proporcao, R.string.dica_proporcao)
-                    val proporcoes = listOf(
-                        R.string.proporcao_4_3,
-                        R.string.proporcao_16_9,
-                        R.string.proporcao_esticar
+                    Text(
+                        stringResource(R.string.ajustes_aviso_sobrepor),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    proporcoes.forEachIndexed { indice, rotulo ->
-                        LinhaDeOpcao(
+
+                    HorizontalDivider()
+
+                    RotuloComDica(R.string.ajustes_titulo_escala, R.string.ajustes_dica_escala)
+                    val escalasOpcoes = listOf(
+                        "AJUSTAR" to stringResource(R.string.ajustes_op_escala_ajustar),
+                        "X1" to stringResource(R.string.ajustes_op_escala_1x),
+                        "X2" to stringResource(R.string.ajustes_op_escala_2x),
+                        "X3" to stringResource(R.string.ajustes_op_escala_3x)
+                    )
+                    escalasOpcoes.forEach { (nome, rotulo) ->
+                        LinhaDeOpcaoString(
                             rotulo = rotulo,
-                            selecionado = proporcao == indice,
-                            onSelecionar = { audio.playClick(); prefs.definirProporcaoTela(indice) }
+                            selecionado = globalEscala == nome,
+                            onSelecionar = { prefs.setAjusteString("aj_global_escala", nome) }
                         )
                     }
 
                     HorizontalDivider()
 
-                    RotuloComDica(R.string.config_filtro_video, R.string.dica_filtro_video)
-                    val filtros = listOf(
-                        R.string.filtro_nenhum,
-                        R.string.filtro_bilinear,
-                        R.string.filtro_crt
+                    RotuloComDica(R.string.ajustes_titulo_proporcao, R.string.ajustes_dica_proporcao)
+                    val proporcoesOpcoes = listOf(
+                        "AUTOMATICA" to stringResource(R.string.ajustes_op_proporcao_auto),
+                        "PIXELS_QUADRADOS" to "Pixels quadrados",
+                        "RATIO_4_3" to stringResource(R.string.ajustes_op_proporcao_4_3),
+                        "RATIO_16_9" to "16:9",
+                        "ESTICAR" to stringResource(R.string.ajustes_op_proporcao_esticar)
                     )
-                    filtros.forEachIndexed { indice, rotulo ->
-                        LinhaDeOpcao(
+                    proporcoesOpcoes.forEach { (nome, rotulo) ->
+                        LinhaDeOpcaoString(
                             rotulo = rotulo,
-                            selecionado = filtroVideo == indice,
-                            onSelecionar = { audio.playClick(); prefs.definirFiltroVideo(indice) }
+                            selecionado = globalProporcao == nome,
+                            onSelecionar = { prefs.setAjusteString("aj_global_proporcao", nome) }
                         )
                     }
 
-                    Text(
-                        stringResource(R.string.config_aviso_video),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    HorizontalDivider()
+
+                    LinhaDeInterruptor(
+                        rotulo = R.string.ajustes_titulo_mostrar_fps,
+                        dica = R.string.ajustes_dica_mostrar_fps,
+                        marcado = globalMostrarFps,
+                        onMudar = { prefs.setAjusteBoolean("aj_global_mostrarFps", it) }
                     )
+                    
+                    HorizontalDivider()
+                    
+                    RotuloComDica(R.string.ajustes_titulo_varredura, R.string.ajustes_dica_varredura)
+                    Text("Em breve", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    
+                    HorizontalDivider()
+                    
+                    RotuloComDica(R.string.ajustes_titulo_suavizacao, R.string.ajustes_dica_suavizacao)
+                    Text("Em breve", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else if (abaSelecionada == 3) {
                 Cartao {
+                    Text(
+                        stringResource(R.string.ajustes_aviso_sobrepor),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    HorizontalDivider()
+
                     val autoSalvar by prefs.autoSalvar.collectAsStateWithLifecycle()
                     val autoCarregar by prefs.autoCarregar.collectAsStateWithLifecycle()
                     
@@ -634,6 +776,21 @@ fun TelaConfiguracoes(prefs: Preferencias) {
                         marcado = autoCarregar,
                         onMudar = { audio.playClick(); prefs.definirAutoCarregar(it) }
                     )
+                    HorizontalDivider()
+                    
+                    RotuloComDica(R.string.ajustes_titulo_velocidade_ff, R.string.ajustes_dica_velocidade_ff)
+                    val ffOpcoes = listOf(
+                        2 to stringResource(R.string.ajustes_op_ff_2x),
+                        3 to stringResource(R.string.ajustes_op_ff_3x),
+                        4 to stringResource(R.string.ajustes_op_ff_4x)
+                    )
+                    ffOpcoes.forEach { (valor, rotulo) ->
+                        LinhaDeOpcaoString(
+                            rotulo = rotulo,
+                            selecionado = globalVelocidadeFF == valor,
+                            onSelecionar = { prefs.setAjusteInt("aj_global_velocidadeFF", valor) }
+                        )
+                    }
                 }
             } else if (abaSelecionada == 4) {
                 Cartao {
@@ -645,9 +802,60 @@ fun TelaConfiguracoes(prefs: Preferencias) {
                         marcado = ombrosTrocamSecao,
                         onMudar = { audio.playClick(); prefs.definirOmbrosTrocamSecao(it) }
                     )
+                    
+                    HorizontalDivider()
+                    
+                    LinhaDeInterruptor(
+                        rotulo = R.string.ajustes_titulo_menu_alca,
+                        dica = R.string.ajustes_dica_menu_alca,
+                        marcado = globalMenuAlca,
+                        onMudar = { prefs.setAjusteBoolean("aj_global_menu_alca", it) }
+                    )
+                    LinhaDeInterruptor(
+                        rotulo = R.string.ajustes_titulo_menu_voltar,
+                        dica = R.string.ajustes_dica_menu_voltar,
+                        marcado = globalMenuVoltar,
+                        onMudar = { prefs.setAjusteBoolean("aj_global_menu_voltar", it) }
+                    )
+                    LinhaDeInterruptor(
+                        rotulo = R.string.ajustes_titulo_menu_gesto,
+                        dica = R.string.ajustes_dica_menu_gesto,
+                        marcado = globalMenuGesto,
+                        onMudar = { prefs.setAjusteBoolean("aj_global_menu_gesto", it) }
+                    )
                 }
             } else if (abaSelecionada == 5) {
                 Cartao {
+                    RotuloComDica(R.string.ajustes_titulo_restaurar_globais, R.string.ajustes_desc_restaurar_globais)
+                    OutlinedButton(
+                        onClick = {
+                            audio.playClick()
+                            prefs.limparOverrides(listOf(
+                                "aj_global_escala", "aj_global_proporcao", "aj_global_mostrarFps",
+                                "aj_global_volume", "aj_global_mudo", "aj_global_velocidadeFF",
+                                "aj_global_menu_estilo", "aj_global_menu_desfoque", "aj_global_menu_opacidade",
+                                "aj_global_menu_lado", "aj_global_menu_tema", "aj_global_menu_alca",
+                                "aj_global_menu_voltar", "aj_global_menu_gesto"
+                            ))
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text(stringResource(R.string.ajustes_botao_restaurar)) }
+
+                    HorizontalDivider()
+
+                    RotuloComDica(R.string.ajustes_titulo_apagar_jogos, R.string.ajustes_desc_apagar_jogos)
+                    OutlinedButton(
+                        onClick = {
+                            audio.playClick()
+                            // Aqui idealmente limparíamos todos os `aj_jogo_*` do DataStore.
+                            // Mas como precisamos de acesso ao fluxo pra ver as chaves ou limpar tudo:
+                            // Só mostramos em breve porque iterar chaves requer ler o Map do DataStore.
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text(stringResource(R.string.ajustes_botao_apagar_jogos) + " (Em breve)") }
+                    
+                    HorizontalDivider()
+                    
                     RotuloComDica(R.string.config_hashes, R.string.dica_hashes)
                     Text(
                         stringResource(R.string.config_hashes_desc),

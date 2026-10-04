@@ -1,7 +1,7 @@
 package com.dfdx047.phoenixemu.emulator
 
 enum class EscalaImagem { AJUSTAR, X1, X2, X3 }
-enum class ProporcaoImagem { AUTOMATICA, RATIO_4_3, ESTICAR }
+enum class ProporcaoImagem { AUTOMATICA, PIXELS_QUADRADOS, RATIO_4_3, RATIO_16_9, ESTICAR }
 
 data class AjustesDeJogo(
     val escala: EscalaImagem = EscalaImagem.AJUSTAR,

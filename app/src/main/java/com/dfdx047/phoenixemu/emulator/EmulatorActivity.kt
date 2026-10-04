@@ -27,7 +27,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import org.json.JSONObject
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -295,10 +301,16 @@ class EmulatorActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        val menuVoltar = intent.getBooleanExtra("phoenix.menu_voltar", true)
+        
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 Log.i("PhoenixInput", "voltar do sistema")
-                alternarMenu()
+                if (menuVoltar) {
+                    alternarMenu()
+                } else {
+                    finish()
+                }
             }
         })
 
@@ -345,6 +357,18 @@ class EmulatorActivity : ComponentActivity() {
         val reduzirEfeitos = intent.getBooleanExtra(EXTRA_REDUZIR_EFEITOS, false)
         val amoled = intent.getBooleanExtra(EXTRA_AMOLED, false)
         val sombras = intent.getBooleanExtra(EXTRA_SOMBRAS, false)
+        
+        val temaCorPrimaria = intent.getIntExtra("phoenix.cor_primaria", 0)
+        val temaCorSuperficie = intent.getIntExtra("phoenix.cor_superficie", 0)
+        val temaCorTexto = intent.getIntExtra("phoenix.cor_texto", 0)
+        
+        val menuEstilo = intent.getStringExtra("phoenix.menu_estilo") ?: "VIDRO"
+        val menuDesfoque = intent.getFloatExtra("phoenix.menu_desfoque", 20f)
+        val menuOpacidade = intent.getFloatExtra("phoenix.menu_opacidade", 1.0f)
+        val menuLado = intent.getStringExtra("phoenix.menu_lado") ?: "ESQUERDA"
+        val menuTema = intent.getBooleanExtra("phoenix.menu_tema", true)
+        val menuAlca = intent.getBooleanExtra("phoenix.menu_alca", true)
+        val menuGesto = intent.getBooleanExtra("phoenix.menu_gesto", true)
 
         val carregador = CarregadorDeJogo(this, nucleo)
         val resultado = carregador.carregar(
@@ -449,11 +473,14 @@ class EmulatorActivity : ComponentActivity() {
                             }
                         },
                         modifier = Modifier.let {
-                            val h = 240
+                            val wNat = nucleo.obterLarguraNativa().toFloat()
+                            val hNat = nucleo.obterAlturaNativa().toFloat()
                             
                             val density = LocalDensity.current.density
                             val screenW = LocalConfiguration.current.screenWidthDp * density
                             val screenH = LocalConfiguration.current.screenHeightDp * density
+                            
+                            val aspectRatioNat = wNat / hNat
                             
                             var escala = when (ajustes.escala) {
                                 EscalaImagem.X1 -> 1
@@ -462,30 +489,47 @@ class EmulatorActivity : ComponentActivity() {
                                 else -> 0
                             }
                             
-                            val modSize = if (escala > 0) {
-                                val ratio = if (ajustes.proporcao == ProporcaoImagem.RATIO_4_3) 4f/3f else if (ajustes.proporcao == ProporcaoImagem.ESTICAR) (screenW/screenH) else aspectRatio
-                                
-                                var displayH = h * escala
-                                var displayW = (displayH * ratio).toInt()
-                                
-                                while (escala > 1 && (displayH > screenH || displayW > screenW)) {
-                                    escala--
-                                    displayH = h * escala
-                                    displayW = (displayH * ratio).toInt()
-                                }
-                                
-                                it.size((displayW / density).dp, (displayH / density).dp)
-                            } else {
-                                it.fillMaxSize()
+                            val ratio = when (ajustes.proporcao) {
+                                ProporcaoImagem.AUTOMATICA -> aspectRatio
+                                ProporcaoImagem.PIXELS_QUADRADOS -> aspectRatioNat
+                                ProporcaoImagem.RATIO_4_3 -> 4f / 3f
+                                ProporcaoImagem.RATIO_16_9 -> 16f / 9f
+                                ProporcaoImagem.ESTICAR -> (screenW / screenH)
                             }
                             
                             if (ajustes.proporcao == ProporcaoImagem.ESTICAR) {
-                                modSize
-                            } else if (ajustes.proporcao == ProporcaoImagem.RATIO_4_3) {
-                                modSize.aspectRatio(4f/3f)
-                            } else {
-                                modSize.aspectRatio(aspectRatio)
+                                Log.i("PhoenixAjustes", "area=${screenW.toInt()}x${screenH.toInt()} px, tamanho=$escala, proporcao=${ajustes.proporcao}, destino=${screenW.toInt()}x${screenH.toInt()} px")
+                                return@let it.fillMaxSize()
                             }
+                            
+                            if (escala > 0) {
+                                var displayH = hNat * escala
+                                var displayW = displayH * ratio
+                                
+                                while (escala > 1 && (displayH > screenH || displayW > screenW)) {
+                                    escala--
+                                    displayH = hNat * escala
+                                    displayW = displayH * ratio
+                                }
+                                
+                                if (displayH <= screenH && displayW <= screenW) {
+                                    Log.i("PhoenixAjustes", "area=${screenW.toInt()}x${screenH.toInt()} px, tamanho=$escala, proporcao=${ajustes.proporcao}, destino=${displayW.toInt()}x${displayH.toInt()} px")
+                                    return@let it.size((displayW / density).dp, (displayH / density).dp)
+                                }
+                            }
+                            
+                            val fitW = screenH * ratio
+                            val displayW: Float
+                            val displayH: Float
+                            if (fitW > screenW) {
+                                displayW = screenW
+                                displayH = screenW / ratio
+                            } else {
+                                displayW = fitW
+                                displayH = screenH
+                            }
+                            Log.i("PhoenixAjustes", "area=${screenW.toInt()}x${screenH.toInt()} px, tamanho=0, proporcao=${ajustes.proporcao}, destino=${displayW.toInt()}x${displayH.toInt()} px")
+                            it.fillMaxSize().aspectRatio(ratio)
                         }
                     )
 
@@ -497,6 +541,32 @@ class EmulatorActivity : ComponentActivity() {
                         mostrarStats = !isPaused && ((applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0 || ajustes.mostrarFps),
                         avisoTexto = avisoTexto
                     )
+
+                    if (!isPaused && menuAlca) {
+                        Box(
+                            modifier = Modifier
+                                .align(if (menuLado == "DIREITA") Alignment.CenterEnd else Alignment.CenterStart)
+                                .width(20.dp)
+                                .height(80.dp)
+                                .background(Color.White.copy(alpha = 0.15f), if (menuLado == "DIREITA") androidx.compose.foundation.shape.RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp) else androidx.compose.foundation.shape.RoundedCornerShape(topEnd = 10.dp, bottomEnd = 10.dp))
+                                .androidx.compose.foundation.clickable(onClick = { alternarMenu() })
+                        )
+                    }
+                    
+                    if (!isPaused && menuGesto) {
+                        Box(
+                            modifier = Modifier
+                                .align(if (menuLado == "DIREITA") Alignment.CenterEnd else Alignment.CenterStart)
+                                .width(32.dp)
+                                .fillMaxHeight()
+                                .androidx.compose.ui.input.pointer.pointerInput(Unit) {
+                                    androidx.compose.foundation.gestures.detectHorizontalDragGestures { _, dragAmount ->
+                                        if (menuLado == "DIREITA" && dragAmount < -20f) alternarMenu()
+                                        else if (menuLado != "DIREITA" && dragAmount > 20f) alternarMenu()
+                                    }
+                                }
+                        )
+                    }
 
                     if (isPaused) {
                         MenuDePausa(
@@ -510,6 +580,14 @@ class EmulatorActivity : ComponentActivity() {
                             capaLocalPath = capaLocal,
                             tempoJogadoMs = tempoJogadoMs,
                             plataforma = plataforma,
+                            menuEstilo = menuEstilo,
+                            menuDesfoque = menuDesfoque,
+                            menuOpacidade = menuOpacidade,
+                            menuLado = menuLado,
+                            menuTema = menuTema,
+                            temaCorPrimaria = temaCorPrimaria,
+                            temaCorSuperficie = temaCorSuperficie,
+                            temaCorTexto = temaCorTexto,
                             aoFechar = {
                                 mensagemFeedback = ""
                                 isPaused = false

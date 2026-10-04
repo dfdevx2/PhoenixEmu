@@ -108,6 +108,14 @@ internal fun MenuDePausa(
     capaLocalPath: String?,
     tempoJogadoMs: Long,
     plataforma: String,
+    menuEstilo: String,
+    menuDesfoque: Float,
+    menuOpacidade: Float,
+    menuLado: String,
+    menuTema: Boolean,
+    temaCorPrimaria: Int,
+    temaCorSuperficie: Int,
+    temaCorTexto: Int,
 ) {
     AnimatedVisibility(
         visible = visivel,
@@ -142,6 +150,14 @@ internal fun MenuDePausa(
             capaLocalPath = capaLocalPath,
             tempoJogadoMs = tempoJogadoMs,
             plataforma = plataforma,
+            menuEstilo = menuEstilo,
+            menuDesfoque = menuDesfoque,
+            menuOpacidade = menuOpacidade,
+            menuLado = menuLado,
+            menuTema = menuTema,
+            temaCorPrimaria = temaCorPrimaria,
+            temaCorSuperficie = temaCorSuperficie,
+            temaCorTexto = temaCorTexto,
         )
     }
 }
@@ -168,6 +184,14 @@ private fun MenuDePausaInner(
     capaLocalPath: String?,
     tempoJogadoMs: Long,
     plataforma: String,
+    menuEstilo: String,
+    menuDesfoque: Float,
+    menuOpacidade: Float,
+    menuLado: String,
+    menuTema: Boolean,
+    temaCorPrimaria: Int,
+    temaCorSuperficie: Int,
+    temaCorTexto: Int,
 ) {
     val config = LocalConfiguration.current
     val telaLarguraDp = config.screenWidthDp.dp
@@ -176,9 +200,15 @@ private fun MenuDePausaInner(
     // Estado local único e mutável para o slot selecionado
     var slotSelecionado by remember { mutableIntStateOf(slotSelecionadoInicial.coerceIn(1, 4)) }
 
+    val isVidro = menuEstilo == "VIDRO"
+    val isEsquerda = menuLado == "ESQUERDA"
+    val corPainel = if (menuTema && !isVidro) Color(temaCorSuperficie).copy(alpha = menuOpacidade) else Color.Black.copy(alpha = if (isVidro) 0.45f else menuOpacidade)
+    val alignPainel = if (isEsquerda) Alignment.CenterStart else Alignment.CenterEnd
+    val shapePainel = if (isEsquerda) RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp) else RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)
+
     Box(modifier = Modifier.fillMaxSize()) {
         // Fundo desfocado
-        if (fundo != null) {
+        if (fundo != null && isVidro) {
             Box(modifier = Modifier.fillMaxSize()) {
                 Image(
                     bitmap = fundo.asImageBitmap(),
@@ -186,7 +216,7 @@ private fun MenuDePausaInner(
                     modifier = Modifier
                         .fillMaxSize()
                         .let {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) it.blur(24.dp) else it
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && menuDesfoque > 0f) it.blur(menuDesfoque.dp) else it
                         },
                     contentScale = ContentScale.Crop,
                 )
@@ -195,69 +225,74 @@ private fun MenuDePausaInner(
                         .fillMaxSize()
                         .background(Color.Black.copy(alpha = 0.35f))
                 ) {
-                    // Area toda clicavel fecha o menu
-                    Box(
-                        modifier = Modifier.fillMaxSize().clickable(onClick = aoFechar),
-                    ) {}
+                    Box(modifier = Modifier.fillMaxSize().clickable(onClick = aoFechar)) {}
                 }
             }
         } else {
-            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.85f))) {
+            Box(modifier = Modifier.fillMaxSize().background(if (isVidro) Color.Black.copy(alpha = 0.85f) else Color.Black.copy(alpha = 0.5f))) {
                 Box(modifier = Modifier.fillMaxSize().clickable(onClick = aoFechar)) {}
             }
         }
 
-        // Painel lateral esquerdo (vidro)
+        // Painel lateral
         Surface(
             modifier = Modifier
                 .width(painelLarguraDp)
                 .fillMaxHeight()
-                .align(Alignment.CenterStart),
-            shape = RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp),
-            color = Color.Black.copy(alpha = 0.45f),
+                .align(alignPainel),
+            shape = shapePainel,
+            color = corPainel,
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-
-                // — Cabeçalho fixo —
-                CabecalhoPausa(nomeDoJogo, tempoJogadoMinutos, aoFechar, capaLocalPath, tempoJogadoMs, plataforma)
-
-                // — Barra de abas fixa —
-                BarraDeAbas(abaAtual, aoMudarAba)
-
-                // Divisor sob a barra de abas
-                Spacer(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(1.dp)
-                        .background(Color.White.copy(alpha = 0.08f))
+            val schemeOverride = if (menuTema) {
+                androidx.compose.material3.darkColorScheme(
+                    primary = Color(temaCorPrimaria),
+                    surface = Color(temaCorSuperficie),
+                    onSurface = Color(temaCorTexto)
                 )
+            } else MaterialTheme.colorScheme
+            
+            MaterialTheme(colorScheme = schemeOverride) {
+                Column(modifier = Modifier.fillMaxSize()) {
 
-                // — Área rolável com peso —
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                ) {
-                    when (abaAtual) {
-                        AbaDoMenu.JOGO -> ConteudoAbaJogo(slots, slotSelecionado, aoSalvarEstado, aoCarregarEstado, { novoSlot ->
-                            slotSelecionado = novoSlot
-                            Log.i("PhoenixMenu", "slot=$novoSlot") // TEMPORARIO: remover
-                            aoMudarSlot(novoSlot)
-                        })
-                        AbaDoMenu.AJUSTES -> ConteudoAbaAjustes(ajustes, aoMudarAjuste, aoLimparAjustesJogo)
-                        AbaDoMenu.CONTROLES -> TextoEmBreve()
-                        else -> ConteudoAbaJogo(slots, slotSelecionado, aoSalvarEstado, aoCarregarEstado, { novoSlot ->
-                            slotSelecionado = novoSlot
-                            Log.i("PhoenixMenu", "slot=$novoSlot") // TEMPORARIO: remover
-                            aoMudarSlot(novoSlot)
-                        })
+                    // — Cabeçalho fixo —
+                    CabecalhoPausa(nomeDoJogo, tempoJogadoMinutos, aoFechar, capaLocalPath, tempoJogadoMs, plataforma)
+
+                    // — Barra de abas fixa —
+                    BarraDeAbas(abaAtual, aoMudarAba)
+
+                    // Divisor sob a barra de abas
+                    Spacer(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(Color.White.copy(alpha = 0.08f))
+                    )
+
+                    // — Área rolável com peso —
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                    ) {
+                        when (abaAtual) {
+                            AbaDoMenu.JOGO -> ConteudoAbaJogo(slots, slotSelecionado, aoSalvarEstado, aoCarregarEstado, { novoSlot ->
+                                slotSelecionado = novoSlot
+                                aoMudarSlot(novoSlot)
+                            })
+                            AbaDoMenu.AJUSTES -> ConteudoAbaAjustes(ajustes, aoMudarAjuste, aoLimparAjustesJogo)
+                            AbaDoMenu.CONTROLES -> TextoEmBreve()
+                            else -> ConteudoAbaJogo(slots, slotSelecionado, aoSalvarEstado, aoCarregarEstado, { novoSlot ->
+                                slotSelecionado = novoSlot
+                                aoMudarSlot(novoSlot)
+                            })
+                        }
                     }
-                }
 
-                // — Rodapé fixo —
-                RodapeFixo(aoContinuar, aoReiniciar, aoSair)
+                    // — Rodapé fixo —
+                    RodapeFixo(aoContinuar, aoReiniciar, aoSair)
+                }
             }
         }
     }

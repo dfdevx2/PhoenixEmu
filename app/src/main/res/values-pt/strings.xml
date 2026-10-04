@@ -1,12 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
+<resources>
+    <string name="ajustes_aviso_sobrepor">Cada jogo pode ter ajustes próprios, escolhidos no menu de pausa.</string>
+    <string name="ajustes_titulo_menu_estilo">Estilo do painel</string>
+    <string name="ajustes_dica_menu_estilo">Estilo visual do menu de pausa.</string>
+    <string name="ajustes_op_estilo_vidro">Vidro</string>
+    <string name="ajustes_op_estilo_fosco">Fosco</string>
+    <string name="ajustes_titulo_menu_desfoque">Intensidade do desfoque</string>
+    <string name="ajustes_dica_menu_desfoque">Intensidade do desfoque de fundo (apenas estilo Vidro).</string>
+    <string name="ajustes_titulo_menu_opacidade">Opacidade do painel</string>
+    <string name="ajustes_dica_menu_opacidade">Opacidade do painel do menu de pausa.</string>
+    <string name="ajustes_titulo_menu_lado">Lado do painel</string>
+    <string name="ajustes_dica_menu_lado">Lado da tela onde o painel aparece.</string>
+    <string name="ajustes_op_lado_esquerda">Esquerda</string>
+    <string name="ajustes_op_lado_direita">Direita</string>
+    <string name="ajustes_titulo_menu_tema">Seguir o tema do app</string>
+    <string name="ajustes_dica_menu_tema">Usa as cores do tema do aplicativo no menu de pausa em vez das cores escuras padrão.</string>
+    <!--
   Português (PT-BR), servindo todos os locales "pt" — inclusive pt-PT.
   A pasta antiga values-pt-rBR/ só casava com pt-BR; celular em
   Português (Portugal) caía no inglês. Apague values-pt-rBR/.
 -->
-<resources>
     <string name="app_name">Phoenix Emu</string>
-
     <!-- Ações -->
     <string name="acao_ordenar">Ordenar</string>
     <string name="acao_alternar_modo">Alternar modo de exibição</string>
@@ -19,23 +33,19 @@
     <string name="acao_doar">Apoiar no Ko-fi</string>
     <string name="acao_mostrar_senha">Mostrar chave</string>
     <string name="acao_ocultar_senha">Ocultar chave</string>
-
     <!-- Navegação -->
     <string name="nav_conquistas">RetroAchievements</string>
     <string name="nav_sobre">Sobre</string>
     <string name="titulo_configuracoes">Configurações</string>
-
     <!-- Sistemas -->
     <string name="tab_nes">NES</string>
     <string name="tab_snes">SNES</string>
-
     <!-- Temas -->
     <string name="tema_dinamico">Material You (sistema)</string>
     <string name="tema_nes_us">NES (americano)</string>
     <string name="tema_nes_jp">Famicom (japonês)</string>
     <string name="tema_snes_us">Super Nintendo (americano)</string>
     <string name="tema_snes_jp">Super Famicom (japonês)</string>
-
     <!-- Biblioteca -->
     <string name="filtro_todos">Todos</string>
     <string name="filtro_recentes">Recentes</string>
@@ -52,25 +62,21 @@
     <string name="cartao_nunca_jogado">Nunca jogado</string>
     <string name="cartao_tempo_jogado">%1$d min jogados</string>
     <string name="jogo_formato">Formato: .%1$s</string>
-
     <!-- Varredura -->
     <string name="scan_titulo">Processando os jogos</string>
     <string name="scan_lendo_pastas">Lendo as pastas</string>
     <string name="scan_identificando">Identificando as ROMs</string>
     <string name="scan_buscando_capas">Baixando as capas</string>
     <string name="scan_percentual">%1$d%% concluído</string>
-
     <!-- Configurações -->
     <string name="sec_jogo">JOGO</string>
     <string name="config_autosalvar">Salvar ao sair</string>
     <string name="config_autosalvar_desc">Guarda o estado do jogo automaticamente quando você sai dele.</string>
     <string name="config_autocarregar">Continuar ao entrar</string>
     <string name="config_autocarregar_desc">Abre o jogo de onde você parou. Desligado, o jogo começa do início.</string>
-
     <string name="sec_navegacao">NAVEGAÇÃO</string>
     <string name="config_ombros_secao">Trocar de seção com L1/R1</string>
     <string name="config_ombros_secao_desc">Com o controle, L1 e R1 passam para a seção anterior ou seguinte da barra de navegação.</string>
-
     <string name="sec_personalizacao">PERSONALIZAÇÃO VISUAL</string>
     <string name="config_tema">Tema do emulador</string>
     <string name="config_fundo">Plano de fundo da biblioteca</string>
@@ -90,7 +96,6 @@
     <string name="filtro_bilinear">Bilinear suave</string>
     <string name="filtro_crt">CRT scanlines</string>
     <string name="config_aviso_video">Estas opções só passam a valer quando o núcleo de emulação entrar, na Fase 4.</string>
-
     <!-- Sobre -->
     <string name="sobre_versao">Versão %1$s</string>
     <string name="sobre_descricao">Um emulador de NES e SNES construído do zero, com foco em elegância, performance e comodidades modernas.</string>
@@ -98,7 +103,6 @@
     <string name="sobre_autor">dfdx047</string>
     <string name="sobre_doacao_desc">O Phoenix Emu é gratuito e vai continuar sendo. Se ele te serve, um café ajuda.</string>
     <string name="sobre_licenca_desc">Software livre. Os núcleos de emulação são projetos de terceiros, cada um com a sua própria licença.</string>
-
     <!-- RetroAchievements -->
     <string name="ra_vincular">Vincular conta</string>
     <string name="ra_usuario">Usuário</string>
@@ -110,7 +114,6 @@
     <string name="ra_conquistas">%1$d de %2$d conquistas</string>
     <string name="ra_platinado">Platinado</string>
     <string name="ra_aviso_mock">Esta tela ainda mostra dados de exemplo. O acompanhamento real de conquistas chega com a biblioteca rcheevos, na Fase 5.</string>
-
     <!-- Conquistas — jogos -->
     <string name="ra_destaque_conquistas">Conquistas</string>
     <string name="ra_recentes">Jogados recentemente</string>
@@ -120,7 +123,6 @@
     <string name="ra_pontos">%1$d pontos</string>
     <string name="ra_ex_titulo">Conquista de exemplo %1$d</string>
     <string name="ra_ex_desc">Descrição de exemplo. Os dados reais virão com a integração do RetroAchievements.</string>
-
     <!-- Configurações por jogo -->
     <string name="jogo_config_intro">Você está editando regras exclusivas para:</string>
     <string name="sec_overrides">SUBSTITUIÇÕES (OVERRIDES)</string>
@@ -173,11 +175,9 @@
     <string name="aviso_sem_nucleo">A emulação ainda não entrou — o núcleo chega na Fase 4.</string>
     <string name="acao_favoritar">Marcar como favorito</string>
     <string name="acao_desfavoritar">Remover dos favoritos</string>
-
     <!-- navegacao -->
     <string name="nav_controles">Controles</string>
     <string name="nav_controles_curto">Controles</string>
-
     <string name="controles_atalhos">Atalhos</string>
     <string name="atalhos_botao_hotkey">Botão de atalho (hotkey)</string>
     <string name="atalhos_nenhum">Nenhum</string>
@@ -185,7 +185,6 @@
     <string name="atalhos_limpar">Limpar</string>
     <string name="atalhos_hotkey_descricao">Segure o botão de atalho e aperte outra tecla para ativar os combos.</string>
     <string name="atalhos_aviso">Um atalho de tecla única "toma" essa tecla do jogo. Para não perder botões, ligue "Usar botão de atalho".</string>
-
     <string name="atalhos_salvar_estado">Salvar estado</string>
     <string name="atalhos_carregar_estado">Carregar estado</string>
     <string name="atalhos_slot_anterior">Slot anterior</string>
@@ -194,14 +193,12 @@
     <string name="atalhos_voltar_tempo">Voltar no tempo (rewind)</string>
     <string name="atalhos_menu_pausa">Menu de pausa</string>
     <string name="atalhos_reiniciar">Reiniciar</string>
-
     <!-- controles: mapeamento fisico -->
     <string name="controles_fisico">Controle</string>
     <string name="controles_tela">Na tela</string>
     <string name="controles_fisico_desc">Toque num botão para trocar a tecla. A lista segue o layout do SNES; o NES simplesmente ignora os botões que não tem.</string>
     <string name="controles_pressione">Pressione o botão que quer usar para %1$s</string>
     <string name="acao_restaurar_padrao">Restaurar padrão</string>
-
     <!-- controles: nomes dos botoes virtuais -->
     <string name="botao_cima">Cima</string>
     <string name="botao_baixo">Baixo</string>
@@ -215,20 +212,17 @@
     <string name="botao_r">R</string>
     <string name="botao_start">Start</string>
     <string name="botao_select">Select</string>
-
     <!-- controles: overlay de toque -->
     <string name="overlay_mostrar">Mostrar controles na tela</string>
     <string name="overlay_mostrar_desc">Úteis sem controle físico. Com um conectado, podem ficar desligados.</string>
     <string name="overlay_arraste">Arraste um botão para movê-lo. O layout é salvo na hora.</string>
     <string name="overlay_opacidade">Opacidade</string>
     <string name="overlay_tamanho">Tamanho</string>
-
     <!-- idioma -->
     <string name="config_idioma">Idioma</string>
     <string name="idioma_sistema">Sistema</string>
     <string name="idioma_portugues">Português</string>
     <string name="idioma_ingles">English</string>
-
     <!-- primeira execucao -->
     <string name="boasvindas_subtitulo">Três escolhas rápidas e pronto. Todas podem ser mudadas depois, em Ajustes.</string>
     <string name="boasvindas_idioma">Idioma</string>
@@ -242,7 +236,6 @@
     <string name="aba_navegacao">Navegação</string>
     <string name="aba_manutencao">Manutenção</string>
     <string name="acao_dica">Ajuda</string>
-
     <string name="dica_tema">Muda as cores do app. Cada tema tem uma paleta própria; o Dinâmico usa as cores do seu Android.</string>
     <string name="dica_amoled">Deixa o fundo totalmente preto nos temas escuros. Em telas OLED isso economiza bateria.</string>
     <string name="dica_acabamento">Escolhe o material das barras e cartões: vidro com desfoque ou um acabamento mais simples e leve.</string>
@@ -256,31 +249,25 @@
     <string name="ajuste_som_capa_passa">Som ao passar capas</string>
     <string name="ajuste_som_capa_passa_desc">Toca um tique suave toda vez que você passa de uma capa para outra.</string>
     <string name="dica_ajuste_som_capa_passa">Toca um tique suave toda vez que você passa de uma capa para outra.</string>
-
     <string name="ajuste_som_troca_aba">Som ao trocar de aba</string>
     <string name="ajuste_som_troca_aba_desc">Toca um som ao trocar de seção (Biblioteca, Conquistas…).</string>
     <string name="dica_ajuste_som_troca_aba">Toca um som ao trocar de seção (Biblioteca, Conquistas…).</string>
-
     <string name="ajuste_som_boot">Som de abertura</string>
     <string name="ajuste_som_boot_desc">Toca o som de abertura quando o app inicia.</string>
     <string name="dica_ajuste_som_boot">Toca o som de abertura quando o app inicia.</string>
-
     <string name="ajuste_som_entar_jogo">Som ao entrar no jogo</string>
     <string name="ajuste_som_entar_jogo_desc">Toca um som ao abrir um jogo.</string>
     <string name="dica_ajuste_som_entar_jogo">Toca um som ao abrir um jogo.</string>
-
     <string name="dica_proporcao">Como a imagem do jogo ocupa a tela: 4:3 mantém o formato original, 16:9 preenche mais, Esticar ocupa tudo.</string>
     <string name="dica_filtro_video">Suaviza ou estiliza a imagem do jogo. Nenhum mantém os pixels nítidos.</string>
     <string name="dica_autosalvar">Guarda o estado do jogo sozinho quando você sai. Não usa os 4 manual slots.</string>
     <string name="dica_autocarregar">Ao abrir um jogo, continua do último estado salvo automaticamente. Desligado, começa do início.</string>
     <string name="dica_ombros">Com um controle, L1 e R1 passam para a seção anterior ou seguinte da barra de navegação.</string>
     <string name="dica_hashes">Calcula a identificação (CRC32) das ROMs. Ajuda a reconhecer o jogo e a achar a capa certa.</string>
-
     <!-- Comportamento da barra superior na grade -->
     <string name="titulo_topo_fixo">Barra superior fixa na grade</string>
     <string name="desc_topo_fixo">Mantém busca e filtros fixos no topo.</string>
     <string name="dica_topo_fixo">Ligado, a busca e os filtros ficam fixos e a grade de capas rola numa área própria abaixo deles, sem passar por trás. Desligado, a barra some quando você rola e volta ao subir.</string>
-
     <!-- Sombras -->
     <string name="titulo_sombras">Sombras</string>
     <string name="desc_sombras">Sombra suave sob barras e botões flutuantes.</string>
@@ -289,7 +276,6 @@
     <string name="titulo_nav_oculta">Esconder a navegação ao descer</string>
     <string name="desc_nav_oculta">Na grade, a barra de navegação some ao descer pelos jogos.</string>
     <string name="dica_nav_oculta">Ao descer pela grade de jogos, a barra de navegação e o botão de adicionar pasta saem da frente e voltam quando você sobe. L1 e R1 também trazem a barra de volta.</string>
-
     <string name="jogo_menu_continuar">Continuar</string>
     <string name="jogo_menu_salvar_estado">Salvar estado</string>
     <string name="jogo_menu_carregar_estado">Carregar estado</string>
@@ -301,7 +287,6 @@
     <string name="jogo_menu_vazio">Vazio</string>
     <string name="jogo_menu_slot">Slot %1$d</string>
     <string name="jogo_menu_voltar">Voltar</string>
-
     <!-- Avisos do jogo (mostrados na tela) -->
     <string name="jogo_aviso_reiniciado">Reiniciado</string>
     <string name="jogo_aviso_slot">Slot %1$d</string>
@@ -311,68 +296,70 @@
     <string name="jogo_aviso_slot_vazio">Slot %1$d vazio</string>
     <string name="jogo_aviso_falha_carregar">Falha ao carregar</string>
     <string name="jogo_aviso_jogo_retomado">Jogo retomado</string>
-
     <!-- Mensagens de erro do jogo -->
     <string name="jogo_erro_nucleo_nao_encontrado">Núcleo não encontrado: %1$s</string>
     <string name="jogo_erro_falha_carregar_nucleo">Falha ao carregar o núcleo.</string>
     <string name="jogo_erro_falha_ler_rom">Falha ao ler a ROM.</string>
     <string name="jogo_erro_falha_carregar_jogo">Falha ao carregar o jogo.</string>
     <string name="jogo_erro_generico">Erro: %1$s</string>
-
     <!-- Abas do menu de pausa -->
     <string name="pause_aba_jogo">Jogo</string>
     <string name="pause_aba_ajustes">Ajustes</string>
     <string name="pause_aba_controles">Controles</string>
     <string name="em_breve">Em breve</string>
     <string name="jogo_menu_fechar">Fechar</string>
-
     <!-- Cabeçalho do menu de pausa -->
     <string name="jogo_menu_tempo_jogado">Tempo de jogo: --</string>
     <string name="jogo_menu_tempo_sem_tempo">—</string>
     <string name="jogo_menu_tempo_formatado">%1$s · %2$s</string>
-
     <!-- Mensagens de confirmação do menu de pausa -->
     <string name="jogo_aviso_salvo">Estado salvo!</string>
-
     <!-- Texto para slot vazio -->
     <string name="jogo_slot_vazio_text">vazio</string>
-
     <string name="ajustes_titulo_escala">Escala da imagem</string>
     <string name="ajustes_dica_escala">Ajusta o tamanho da imagem na tela. \'Ajustar\' preenche o máximo possível preservando a proporção. 1x, 2x e 3x usam múltiplos exatos da resolução original (pixels nítidos).</string>
     <string name="ajustes_op_escala_ajustar">Ajustar</string>
     <string name="ajustes_op_escala_1x">1x</string>
     <string name="ajustes_op_escala_2x">2x</string>
     <string name="ajustes_op_escala_3x">3x</string>
-
     <string name="ajustes_titulo_proporcao">Proporção</string>
     <string name="ajustes_dica_proporcao">Define o formato da tela. \'Automática\' mantém o aspecto original do console. \'4:3\' força o formato clássico de TV. \'Esticar\' preenche a tela toda.</string>
     <string name="ajustes_op_proporcao_auto">Automática</string>
     <string name="ajustes_op_proporcao_4_3">4:3</string>
     <string name="ajustes_op_proporcao_esticar">Esticar</string>
-
     <string name="ajustes_titulo_mostrar_fps">Mostrar FPS</string>
     <string name="ajustes_dica_mostrar_fps">Exibe um contador de quadros por segundo no canto superior da tela.</string>
-
     <string name="ajustes_titulo_volume">Volume do jogo</string>
     <string name="ajustes_dica_volume">Ajusta o volume do áudio do emulador.</string>
-
     <string name="ajustes_titulo_mudo">Mudo</string>
     <string name="ajustes_dica_mudo">Silencia o áudio completamente sem perder o ajuste de volume.</string>
-
     <string name="ajustes_titulo_velocidade_ff">Velocidade do avanço rápido</string>
     <string name="ajustes_dica_velocidade_ff">Velocidade usada ao segurar o botão de avanço rápido.</string>
     <string name="ajustes_op_ff_2x">2x</string>
     <string name="ajustes_op_ff_3x">3x</string>
     <string name="ajustes_op_ff_4x">4x</string>
-
     <string name="ajustes_aplicar_todos">Todos os jogos</string>
     <string name="ajustes_aplicar_este">Só este jogo</string>
     <string name="ajustes_estado_todos">Usando os ajustes de todos os jogos</string>
     <string name="ajustes_estado_este">Este jogo tem ajustes próprios</string>
     <string name="ajustes_botao_limpar">Usar os ajustes de todos os jogos neste jogo</string>
-
     <string name="ajustes_secao_video">VÍDEO</string>
     <string name="ajustes_secao_audio">ÁUDIO</string>
     <string name="ajustes_secao_jogo">JOGO</string>
-
+    <string name="ajustes_titulo_varredura">Linhas de varredura</string>
+    <string name="ajustes_dica_varredura">Adiciona linhas horizontais escuras sobre a imagem para simular TVs CRT clássicas.</string>
+    <string name="ajustes_titulo_suavizacao">Suavização</string>
+    <string name="ajustes_dica_suavizacao">Suaviza os pixels da imagem. \'Nítida\' usa escala por vizinho mais próximo. \'Suave\' aplica filtro bilinear.</string>
+    <string name="ajustes_titulo_menu_alca">Abrir o menu pela alça lateral</string>
+    <string name="ajustes_dica_menu_alca">Mostra uma alça na lateral da tela para abrir o menu de pausa.</string>
+    <string name="ajustes_titulo_menu_voltar">Abrir o menu pelo botão Voltar</string>
+    <string name="ajustes_dica_menu_voltar">O botão Voltar do aparelho abre o menu de pausa em vez de sair do jogo.</string>
+    <string name="ajustes_titulo_menu_gesto">Abrir o menu com gesto da borda</string>
+    <string name="ajustes_dica_menu_gesto">Deslizar o dedo a partir da borda da tela abre o menu de pausa.</string>
+    <string name="ajustes_titulo_restaurar_globais">Restaurar ajustes de jogo ao padrão</string>
+    <string name="ajustes_desc_restaurar_globais">Remove todos os ajustes globais de vídeo, áudio e jogo, voltando aos valores de fábrica.</string>
+    <string name="ajustes_botao_restaurar">Restaurar padrão</string>
+    <string name="ajustes_titulo_apagar_jogos">Apagar ajustes por jogo</string>
+    <string name="ajustes_desc_apagar_jogos">Remove os ajustes próprios de todos os jogos, fazendo com que todos usem os ajustes globais novamente.</string>
+    <string name="ajustes_botao_apagar_jogos">Apagar ajustes</string>
 </resources>

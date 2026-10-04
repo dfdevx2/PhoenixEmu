@@ -187,6 +187,20 @@ float LibretroCore::obterAspectRatio() {
     return aspect;
 }
 
+int LibretroCore::obterLarguraNativa() {
+    if (!get_system_av_info_) return 256;
+    retro_system_av_info avInfo = {};
+    get_system_av_info_(&avInfo);
+    return avInfo.geometry.base_width;
+}
+
+int LibretroCore::obterAlturaNativa() {
+    if (!get_system_av_info_) return 240;
+    retro_system_av_info avInfo = {};
+    get_system_av_info_(&avInfo);
+    return avInfo.geometry.base_height;
+}
+
 double LibretroCore::obterSampleRate() {
     if (!get_system_av_info_) return 44100.0;
     retro_system_av_info avInfo = {};

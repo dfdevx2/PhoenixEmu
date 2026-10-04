@@ -24,6 +24,8 @@ class NucleoLibretro {
     private external fun nativeDefinirBotoes(porta: Int, mascara: Int)
     private external fun nativeDescarregar()
     private external fun nativeObterAspectRatio(): Float
+    private external fun nativeObterLarguraNativa(): Int
+    private external fun nativeObterAlturaNativa(): Int
     private external fun nativeReiniciar()
     private external fun nativePrecisaDeFullPath(): Boolean
     private external fun nativeCarregarSram(caminho: String)
@@ -60,6 +62,8 @@ class NucleoLibretro {
     fun descarregar() = nativeDescarregar()
 
     fun obterAspectRatio(): Float = nativeObterAspectRatio()
+    fun obterLarguraNativa(): Int = nativeObterLarguraNativa()
+    fun obterAlturaNativa(): Int = nativeObterAlturaNativa()
 
     fun reiniciar() = nativeReiniciar()
     

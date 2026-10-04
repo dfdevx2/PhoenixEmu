@@ -33,6 +33,8 @@ public:
     std::string obterInfo();
     double obterFps();
     float obterAspectRatio();
+    int obterLarguraNativa();
+    int obterAlturaNativa();
     double obterSampleRate();
 
     bool precisaDeFullPath();

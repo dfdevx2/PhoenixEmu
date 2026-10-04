@@ -105,6 +105,24 @@ fun esquemaDeAmostra(
     }
 }
 
+fun esquemaDeAmostraSemComposable(
+    tema: TemaApp,
+    context: android.content.Context,
+    darkTheme: Boolean
+): ColorScheme = when (tema) {
+    TemaApp.NES_US -> NesUsColorScheme
+    TemaApp.NES_JP -> FamicomColorScheme
+    TemaApp.SNES_US -> SnesUsColorScheme
+    TemaApp.SNES_JP -> SnesJpColorScheme
+    TemaApp.DINAMICO -> {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        } else {
+            if (darkTheme) DarkColorScheme else LightColorScheme
+        }
+    }
+}
+
 @Composable
 fun PhoenixEmuTheme(
     temaAtual: TemaApp,

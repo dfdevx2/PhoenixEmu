@@ -1,13 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
+<resources>
+    <string name="ajustes_aviso_sobrepor">Each game can have its own settings, chosen in the pause menu.</string>
+    <string name="ajustes_titulo_menu_estilo">Panel style</string>
+    <string name="ajustes_dica_menu_estilo">Visual style of the pause menu.</string>
+    <string name="ajustes_op_estilo_vidro">Glass</string>
+    <string name="ajustes_op_estilo_fosco">Opaque</string>
+    <string name="ajustes_titulo_menu_desfoque">Blur intensity</string>
+    <string name="ajustes_dica_menu_desfoque">Intensity of the background blur (only for Glass style).</string>
+    <string name="ajustes_titulo_menu_opacidade">Panel opacity</string>
+    <string name="ajustes_dica_menu_opacidade">Opacity of the pause menu panel.</string>
+    <string name="ajustes_titulo_menu_lado">Panel side</string>
+    <string name="ajustes_dica_menu_lado">Side of the screen where the panel appears.</string>
+    <string name="ajustes_op_lado_esquerda">Left</string>
+    <string name="ajustes_op_lado_direita">Right</string>
+    <string name="ajustes_titulo_menu_tema">Follow app theme</string>
+    <string name="ajustes_dica_menu_tema">Uses the app\'s theme colors in the pause menu instead of the default dark colors.</string>
+    <!--
   Default (fallback) locale: English.
   Portuguese lives in res/values-pt/strings.xml, which matches pt-BR and
   pt-PT alike. The old res/values-pt-rBR/ only matched pt-BR, so a phone set
   to Portuguese (Portugal) fell back to the default. Delete that folder.
 -->
-<resources>
     <string name="app_name">Phoenix Emu</string>
-
     <!-- Actions -->
     <string name="acao_ordenar">Sort</string>
     <string name="acao_alternar_modo">Switch view mode</string>
@@ -20,23 +34,19 @@
     <string name="acao_doar">Support on Ko-fi</string>
     <string name="acao_mostrar_senha">Show key</string>
     <string name="acao_ocultar_senha">Hide key</string>
-
     <!-- Navigation -->
     <string name="nav_conquistas">RetroAchievements</string>
     <string name="nav_sobre">About</string>
     <string name="titulo_configuracoes">Settings</string>
-
     <!-- Systems -->
     <string name="tab_nes">NES</string>
     <string name="tab_snes">SNES</string>
-
     <!-- Themes -->
     <string name="tema_dinamico">Material You (system)</string>
     <string name="tema_nes_us">NES (North America)</string>
     <string name="tema_nes_jp">Famicom (Japan)</string>
     <string name="tema_snes_us">Super Nintendo (North America)</string>
     <string name="tema_snes_jp">Super Famicom (Japan)</string>
-
     <!-- Library -->
     <string name="filtro_todos">All</string>
     <string name="filtro_recentes">Recent</string>
@@ -53,25 +63,21 @@
     <string name="cartao_nunca_jogado">Never played</string>
     <string name="cartao_tempo_jogado">%1$d min played</string>
     <string name="jogo_formato">Format: .%1$s</string>
-
     <!-- Scanning -->
     <string name="scan_titulo">Processing games</string>
     <string name="scan_lendo_pastas">Reading folders</string>
     <string name="scan_identificando">Identifying ROMs</string>
     <string name="scan_buscando_capas">Fetching covers</string>
     <string name="scan_percentual">%1$d%% done</string>
-
     <!-- Settings -->
     <string name="sec_jogo">GAME</string>
     <string name="config_autosalvar">Save on exit</string>
     <string name="config_autosalvar_desc">Automatically saves the game state when you leave it.</string>
     <string name="config_autocarregar">Resume on entry</string>
     <string name="config_autocarregar_desc">Opens the game where you left off. When off, the game starts from the beginning.</string>
-
     <string name="sec_navegacao">NAVIGATION</string>
     <string name="config_ombros_secao">Switch sections with L1/R1</string>
     <string name="config_ombros_secao_desc">With a gamepad, L1 and R1 move to the previous or next section of the navigation bar.</string>
-
     <string name="sec_personalizacao">VISUAL PERSONALIZATION</string>
     <string name="config_tema">Emulator theme</string>
     <string name="config_fundo">Library background</string>
@@ -91,7 +97,6 @@
     <string name="filtro_bilinear">Smooth bilinear</string>
     <string name="filtro_crt">CRT scanlines</string>
     <string name="config_aviso_video">These options only take effect once the emulation core lands in Phase 4.</string>
-
     <!-- About -->
     <string name="sobre_versao">Version %1$s</string>
     <string name="sobre_descricao">A NES and SNES emulator built from scratch, aiming for elegance, performance and modern conveniences.</string>
@@ -99,7 +104,6 @@
     <string name="sobre_autor">dfdx047</string>
     <string name="sobre_doacao_desc">Phoenix Emu is free and always will be. If it is useful to you, a coffee helps.</string>
     <string name="sobre_licenca_desc">Free software. The emulation cores are third-party projects under their own licenses.</string>
-
     <!-- RetroAchievements -->
     <string name="ra_vincular">Link account</string>
     <string name="ra_usuario">Username</string>
@@ -111,7 +115,6 @@
     <string name="ra_conquistas">%1$d of %2$d achievements</string>
     <string name="ra_platinado">Mastered</string>
     <string name="ra_aviso_mock">This screen still shows sample data. Real achievement tracking arrives with the rcheevos library in Phase 5.</string>
-
     <!-- Achievements — games -->
     <string name="ra_destaque_conquistas">Achievements</string>
     <string name="ra_recentes">Recently played</string>
@@ -121,7 +124,6 @@
     <string name="ra_pontos">%1$d points</string>
     <string name="ra_ex_titulo">Sample achievement %1$d</string>
     <string name="ra_ex_desc">Sample description. Real data will arrive with the RetroAchievements integration.</string>
-
     <!-- Per-game settings -->
     <string name="jogo_config_intro">You are editing rules that apply only to:</string>
     <string name="sec_overrides">OVERRIDES</string>
@@ -174,11 +176,9 @@
     <string name="aviso_sem_nucleo">Emulation is not in yet — the core arrives in Phase 4.</string>
     <string name="acao_favoritar">Add to favourites</string>
     <string name="acao_desfavoritar">Remove from favourites</string>
-
     <!-- navigation -->
     <string name="nav_controles">Controls</string>
     <string name="nav_controles_curto">Controls</string>
-
     <string name="controles_atalhos">Shortcuts</string>
     <string name="atalhos_botao_hotkey">Shortcut button (hotkey)</string>
     <string name="atalhos_nenhum">None</string>
@@ -186,7 +186,6 @@
     <string name="atalhos_limpar">Clear</string>
     <string name="atalhos_hotkey_descricao">Hold the shortcut button and press another key to activate combos.</string>
     <string name="atalhos_aviso">A shortcut assigned to a single key will take that key away from the game. To avoid losing buttons, enable "Use shortcut button".</string>
-
     <string name="atalhos_salvar_estado">Save state</string>
     <string name="atalhos_carregar_estado">Load state</string>
     <string name="atalhos_slot_anterior">Previous slot</string>
@@ -195,14 +194,12 @@
     <string name="atalhos_voltar_tempo">Rewind</string>
     <string name="atalhos_menu_pausa">Pause menu</string>
     <string name="atalhos_reiniciar">Restart game</string>
-
     <!-- controls: physical mapping -->
     <string name="controles_fisico">Gamepad</string>
     <string name="controles_tela">On-screen</string>
     <string name="controles_fisico_desc">Tap a button to reassign it. The list follows the SNES layout; NES simply ignores the buttons it does not have.</string>
     <string name="controles_pressione">Press the button you want to use for %1$s</string>
     <string name="acao_restaurar_padrao">Restore defaults</string>
-
     <!-- controls: virtual button names -->
     <string name="botao_cima">Up</string>
     <string name="botao_baixo">Down</string>
@@ -216,20 +213,17 @@
     <string name="botao_r">R</string>
     <string name="botao_start">Start</string>
     <string name="botao_select">Select</string>
-
     <!-- controls: on-screen overlay -->
     <string name="overlay_mostrar">Show on-screen controls</string>
     <string name="overlay_mostrar_desc">Useful without a gamepad. With one connected they can stay off.</string>
     <string name="overlay_arraste">Drag a button to move it. The layout is saved as you go.</string>
     <string name="overlay_opacidade">Opacity</string>
     <string name="overlay_tamanho">Size</string>
-
     <!-- language -->
     <string name="config_idioma">Language</string>
     <string name="idioma_sistema">System</string>
     <string name="idioma_portugues">Português</string>
     <string name="idioma_ingles">English</string>
-
     <!-- first run -->
     <string name="boasvindas_subtitulo">Three quick choices and you are in. All of them can be changed later in Settings.</string>
     <string name="boasvindas_idioma">Language</string>
@@ -244,7 +238,6 @@
     <string name="aba_navegacao">Navigation</string>
     <string name="aba_manutencao">Maintenance</string>
     <string name="acao_dica">Help</string>
-
     <string name="dica_tema">Changes the app colors. Each theme has its own palette; Dynamic uses your Android colors.</string>
     <string name="dica_amoled">Makes the background pure black on dark themes. On OLED screens this saves battery.</string>
     <string name="dica_acabamento">Picks the material of bars and cards: blurred glass or a simpler, lighter finish.</string>
@@ -259,31 +252,25 @@
     <string name="ajuste_som_capa_passa">Cover scroll sound</string>
     <string name="ajuste_som_capa_passa_desc">Plays a soft tick each time you move from one cover to the next.</string>
     <string name="dica_ajuste_som_capa_passa">Plays a soft tick each time you move from one cover to the next.</string>
-
     <string name="ajuste_som_troca_aba">Section switch sound</string>
     <string name="ajuste_som_troca_aba_desc">Plays a sound when you switch section (Library, Achievements…).</string>
     <string name="dica_ajuste_som_troca_aba">Plays a sound when you switch section (Library, Achievements…).</string>
-
     <string name="ajuste_som_boot">Startup sound</string>
     <string name="ajuste_som_boot_desc">Plays the intro sound when the app starts.</string>
     <string name="dica_ajuste_som_boot">Plays the intro sound when the app starts.</string>
-
     <string name="ajuste_som_entar_jogo">Game launch sound</string>
     <string name="ajuste_som_entar_jogo_desc">Plays a sound when you open a game.</string>
     <string name="dica_ajuste_som_entar_jogo">Plays a sound when you open a game.</string>
-
     <string name="dica_proporcao">How the game image fills the screen: 4:3 keeps the original shape, 16:9 fills more, Stretch fills everything.</string>
     <string name="dica_filtro_video">Smooths or stylizes the game image. None keeps pixels sharp.</string>
     <string name="dica_autosalvar">Saves the game state by itself when you leave. Does not use the 4 manual slots.</string>
     <string name="dica_autocarregar">When opening a game, continues from the last automatic state. When off, it starts from the beginning.</string>
     <string name="dica_ombros">With a gamepad, L1 and R1 move to the previous or next section of the navigation bar.</string>
     <string name="dica_hashes">Computes the ROM identifier (CRC32). Helps recognize the game and find the right cover.</string>
-
     <!-- Grid top bar behavior -->
     <string name="titulo_topo_fixo">Fixed top bar in grid view</string>
     <string name="desc_topo_fixo">Keeps search and filters pinned at the top.</string>
     <string name="dica_topo_fixo">On, search and filters stay pinned and the cover grid scrolls in its own area below them, never behind. Off, the bar hides while you scroll and returns when you scroll up.</string>
-
     <!-- Shadows -->
     <string name="titulo_sombras">Shadows</string>
     <string name="desc_sombras">Soft shadow under floating bars and buttons.</string>
@@ -292,7 +279,6 @@
     <string name="titulo_nav_oculta">Hide navigation when scrolling down</string>
     <string name="desc_nav_oculta">In grid view, the navigation bar hides while you move down the games.</string>
     <string name="dica_nav_oculta">While you move down the game grid, the navigation bar and the add-folder button get out of the way and return when you move up. L1 and R1 also bring the bar back.</string>
-
     <string name="jogo_menu_continuar">Continue</string>
     <string name="jogo_menu_salvar_estado">Save state</string>
     <string name="jogo_menu_carregar_estado">Load state</string>
@@ -304,7 +290,6 @@
     <string name="jogo_menu_vazio">Empty</string>
     <string name="jogo_menu_slot">Slot %1$d</string>
     <string name="jogo_menu_voltar">Back</string>
-
     <!-- Game alerts (show on screen) -->
     <string name="jogo_aviso_reiniciado">Restarted</string>
     <string name="jogo_aviso_slot">Slot %1$d</string>
@@ -314,68 +299,70 @@
     <string name="jogo_aviso_slot_vazio">Slot %1$d empty</string>
     <string name="jogo_aviso_falha_carregar">Load failed</string>
     <string name="jogo_aviso_jogo_retomado">Game resumed</string>
-
     <!-- Game error messages -->
     <string name="jogo_erro_nucleo_nao_encontrado">Core not found: %1$s</string>
     <string name="jogo_erro_falha_carregar_nucleo">Failed to load core.</string>
     <string name="jogo_erro_falha_ler_rom">Failed to read ROM.</string>
     <string name="jogo_erro_falha_carregar_jogo">Failed to load game.</string>
     <string name="jogo_erro_generico">Error: %1$s</string>
-
     <!-- Pause menu tabs -->
     <string name="pause_aba_jogo">Game</string>
     <string name="pause_aba_ajustes">Settings</string>
     <string name="pause_aba_controles">Controls</string>
     <string name="em_breve">Coming soon</string>
     <string name="jogo_menu_fechar">Close</string>
-
     <!-- Pause menu header -->
     <string name="jogo_menu_tempo_jogado">Game time: --</string>
     <string name="jogo_menu_tempo_sem_tempo">—</string>
     <string name="jogo_menu_tempo_formatado">%1$s · %2$s</string>
-
     <!-- Pause menu confirmation messages -->
     <string name="jogo_aviso_salvo">State saved!</string>
-
     <!-- Slot text for empty state -->
     <string name="jogo_slot_vazio_text">empty</string>
-
     <string name="ajustes_titulo_escala">Image scale</string>
     <string name="ajustes_dica_escala">Adjust the size of the image on the screen. \'Fit\' fills as much as possible preserving the aspect ratio. 1x, 2x, and 3x use exact multiples of the original resolution (sharp pixels).</string>
     <string name="ajustes_op_escala_ajustar">Fit</string>
     <string name="ajustes_op_escala_1x">1x</string>
     <string name="ajustes_op_escala_2x">2x</string>
     <string name="ajustes_op_escala_3x">3x</string>
-
     <string name="ajustes_titulo_proporcao">Aspect ratio</string>
     <string name="ajustes_dica_proporcao">Defines the screen format. \'Auto\' keeps the original console aspect. \'4:3\' forces classic TV format. \'Stretch\' fills the whole screen.</string>
     <string name="ajustes_op_proporcao_auto">Auto</string>
     <string name="ajustes_op_proporcao_4_3">4:3</string>
     <string name="ajustes_op_proporcao_esticar">Stretch</string>
-
     <string name="ajustes_titulo_mostrar_fps">Show FPS</string>
     <string name="ajustes_dica_mostrar_fps">Shows a frames-per-second counter at the top corner of the screen.</string>
-
     <string name="ajustes_titulo_volume">Game volume</string>
     <string name="ajustes_dica_volume">Adjusts the emulator audio volume.</string>
-
     <string name="ajustes_titulo_mudo">Mute</string>
     <string name="ajustes_dica_mudo">Mutes the audio entirely without losing the volume setting.</string>
-
     <string name="ajustes_titulo_velocidade_ff">Fast-forward speed</string>
     <string name="ajustes_dica_velocidade_ff">Speed used when holding the fast-forward button.</string>
     <string name="ajustes_op_ff_2x">2x</string>
     <string name="ajustes_op_ff_3x">3x</string>
     <string name="ajustes_op_ff_4x">4x</string>
-
     <string name="ajustes_aplicar_todos">All games</string>
     <string name="ajustes_aplicar_este">This game</string>
     <string name="ajustes_estado_todos">Using settings for all games</string>
     <string name="ajustes_estado_este">This game has custom settings</string>
     <string name="ajustes_botao_limpar">Use settings for all games in this game</string>
-
     <string name="ajustes_secao_video">VIDEO</string>
     <string name="ajustes_secao_audio">AUDIO</string>
     <string name="ajustes_secao_jogo">GAME</string>
-
+    <string name="ajustes_titulo_varredura">Scanlines</string>
+    <string name="ajustes_dica_varredura">Adds dark horizontal lines over the image to simulate classic CRT TVs.</string>
+    <string name="ajustes_titulo_suavizacao">Smoothing</string>
+    <string name="ajustes_dica_suavizacao">Smooths out the image pixels. \'Sharp\' uses nearest-neighbor scaling. \'Smooth\' applies bilinear filtering.</string>
+    <string name="ajustes_titulo_menu_alca">Open menu via side handle</string>
+    <string name="ajustes_dica_menu_alca">Shows a handle on the side of the screen to open the pause menu.</string>
+    <string name="ajustes_titulo_menu_voltar">Open menu with Back button</string>
+    <string name="ajustes_dica_menu_voltar">The Back button opens the pause menu instead of exiting the game.</string>
+    <string name="ajustes_titulo_menu_gesto">Open menu with edge gesture</string>
+    <string name="ajustes_dica_menu_gesto">Swiping from the edge of the screen opens the pause menu.</string>
+    <string name="ajustes_titulo_restaurar_globais">Restore default game settings</string>
+    <string name="ajustes_desc_restaurar_globais">Removes all global settings for video, audio and game, restoring defaults.</string>
+    <string name="ajustes_botao_restaurar">Restore defaults</string>
+    <string name="ajustes_titulo_apagar_jogos">Clear per-game settings</string>
+    <string name="ajustes_desc_apagar_jogos">Removes custom settings from all games, making them use global settings again.</string>
+    <string name="ajustes_botao_apagar_jogos">Clear settings</string>
 </resources>

@@ -15,6 +15,7 @@ import com.dfdx047.phoenixemu.emulator.AjustesDeJogo
 import com.dfdx047.phoenixemu.emulator.EscalaImagem
 import com.dfdx047.phoenixemu.emulator.ProporcaoImagem
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.first
 import android.util.Base64
 import org.json.JSONArray
 import org.json.JSONObject
@@ -106,6 +107,13 @@ object Emulador {
             )
         }
 
+        val darkTheme = (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val schemeBase = com.dfdx047.phoenixemu.ui.theme.esquemaDeAmostraSemComposable(prefs.tema.value, context, darkTheme)
+        
+        val corPrimaria = schemeBase.primary.value.toInt()
+        val corSuperficie = schemeBase.surface.value.toInt()
+        val corTexto = schemeBase.onSurface.value.toInt()
+
         val atalhos = prefs.atalhos.value
         val atalhosJson = JSONObject()
         AcaoAtalho.entries.forEach { acao ->
@@ -142,6 +150,17 @@ object Emulador {
         if (rom != null) intent.putExtra(EmulatorActivity.EXTRA_ROM, rom)
         if (!capa.isNullOrBlank()) intent.putExtra(EmulatorActivity.EXTRA_CAPA, capa)
         intent.putExtra(EmulatorActivity.EXTRA_TEMPO_JOGADO_MS, tempoJogadoMs)
+        intent.putExtra("phoenix.cor_primaria", corPrimaria)
+        intent.putExtra("phoenix.cor_superficie", corSuperficie)
+        intent.putExtra("phoenix.cor_texto", corTexto)
+        intent.putExtra("phoenix.menu_estilo", runBlocking { prefs.globalMenuEstilo.first() })
+        intent.putExtra("phoenix.menu_desfoque", runBlocking { prefs.globalMenuDesfoque.first() })
+        intent.putExtra("phoenix.menu_opacidade", runBlocking { prefs.globalMenuOpacidade.first() })
+        intent.putExtra("phoenix.menu_lado", runBlocking { prefs.globalMenuLado.first() })
+        intent.putExtra("phoenix.menu_tema", runBlocking { prefs.globalMenuTema.first() })
+        intent.putExtra("phoenix.menu_alca", runBlocking { prefs.globalMenuAlca.first() })
+        intent.putExtra("phoenix.menu_voltar", runBlocking { prefs.globalMenuVoltar.first() })
+        intent.putExtra("phoenix.menu_gesto", runBlocking { prefs.globalMenuGesto.first() })
         context.startActivity(intent)
     }
 

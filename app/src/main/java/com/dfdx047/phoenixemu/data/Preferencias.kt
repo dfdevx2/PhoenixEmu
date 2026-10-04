@@ -497,6 +497,23 @@ class Preferencias private constructor(context: Context) {
         }
     }
 
+    val globalEscalaImagem: StateFlow<String> = derivar("AJUSTAR") { it[stringPreferencesKey("aj_global_escala")] ?: "AJUSTAR" }
+    val globalProporcaoImagem: StateFlow<String> = derivar("AUTOMATICA") { it[stringPreferencesKey("aj_global_proporcao")] ?: "AUTOMATICA" }
+    val globalMostrarFps: StateFlow<Boolean> = derivar(false) { it[booleanPreferencesKey("aj_global_mostrarFps")] ?: false }
+    val globalVolume: StateFlow<Float> = derivar(1.0f) { it[floatPreferencesKey("aj_global_volume")] ?: 1.0f }
+    val globalMudo: StateFlow<Boolean> = derivar(false) { it[booleanPreferencesKey("aj_global_mudo")] ?: false }
+    val globalVelocidadeFF: StateFlow<Int> = derivar(2) { it[intPreferencesKey("aj_global_velocidadeFF")] ?: 2 }
+
+    val globalMenuEstilo: StateFlow<String> = derivar("VIDRO") { it[stringPreferencesKey("aj_global_menu_estilo")] ?: "VIDRO" }
+    val globalMenuDesfoque: StateFlow<Float> = derivar(20f) { it[floatPreferencesKey("aj_global_menu_desfoque")] ?: 20f }
+    val globalMenuOpacidade: StateFlow<Float> = derivar(1.0f) { it[floatPreferencesKey("aj_global_menu_opacidade")] ?: 1.0f }
+    val globalMenuLado: StateFlow<String> = derivar("ESQUERDA") { it[stringPreferencesKey("aj_global_menu_lado")] ?: "ESQUERDA" }
+    val globalMenuTema: StateFlow<Boolean> = derivar(true) { it[booleanPreferencesKey("aj_global_menu_tema")] ?: true }
+    
+    val globalMenuAlca: StateFlow<Boolean> = derivar(true) { it[booleanPreferencesKey("aj_global_menu_alca")] ?: true }
+    val globalMenuVoltar: StateFlow<Boolean> = derivar(true) { it[booleanPreferencesKey("aj_global_menu_voltar")] ?: true }
+    val globalMenuGesto: StateFlow<Boolean> = derivar(true) { it[booleanPreferencesKey("aj_global_menu_gesto")] ?: true }
+
     companion object {
         const val BGM_PADRAO = 0.25f
         const val SFX_PADRAO = 0.50f
