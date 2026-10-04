@@ -136,6 +136,7 @@ object Emulador {
             // org.json e nao precisa conhecer a classe ConfigDoOverlay.
             .putExtra(EmulatorActivity.EXTRA_OVERLAY, Gson().toJson(prefs.overlay.value))
             .putExtra(EmulatorActivity.EXTRA_ATALHOS, atalhosJson.toString())
+            .putExtra(EmulatorActivity.EXTRA_ATALHOS_CFG, Gson().toJson(prefs.atalhos.value))
             .putExtra(EmulatorActivity.EXTRA_AUTOSALVAR, prefs.autoSalvar.value)
             .putExtra(EmulatorActivity.EXTRA_AUTOCARREGAR, prefs.autoCarregar.value)
             .putExtra(EmulatorActivity.EXTRA_TEMA, prefs.tema.value.name)
