@@ -163,6 +163,7 @@ class EmulatorActivity : ComponentActivity() {
     private lateinit var motorDeAtalhos: MotorDeAtalhos
     private var atalhosCfg by mutableStateOf(ConfigDeAtalhos.padrao())
     private var capturaAtalho by mutableStateOf<String?>(null)
+    private var eixoPrecisaSoltar = false
     private var contextoLocalizado: Context? = null
 
     private var avisoTexto by mutableStateOf("")
@@ -236,6 +237,20 @@ class EmulatorActivity : ComponentActivity() {
         }
         sendBroadcast(intent)
         Log.d("PhoenixAjustes", "atalho ${acao.name} tecla=${atalhosCfg.combo(acao)} usarHotkey=$usar")
+    }
+
+    private fun concluirCapturaPorEixo(codigo: Int) {
+        val alvo = capturaAtalho ?: return
+        when {
+            alvo == "HOTKEY" -> definirHotkeyNoJogo(codigo)
+            alvo.startsWith("BTN_") -> runCatching { BotaoVirtual.valueOf(alvo.removePrefix("BTN_")) }
+                .onSuccess { definirBotaoNoJogo(it, codigo) }
+            else -> runCatching { AcaoAtalho.valueOf(alvo) }
+                .onSuccess { definirAtalhoNoJogo(it, codigo) }
+        }
+        capturaAtalho = null
+        eixoPrecisaSoltar = true
+        Log.d("PhoenixAjustes", "captura por eixo codigo=$codigo alvo=$alvo")
     }
 
     fun definirHotkeyNoJogo(tecla: Int) {
@@ -995,28 +1010,48 @@ class EmulatorActivity : ComponentActivity() {
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
-        // PASSO 3: modo captura para L2/R2 (gatilhos)
         if (capturaAtalho != null) {
-            if (event.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK
-                && event.action == MotionEvent.ACTION_MOVE) {
-                val ltrigger = event.getAxisValue(MotionEvent.AXIS_LTRIGGER)
-                val brake = event.getAxisValue(MotionEvent.AXIS_BRAKE)
-                if (ltrigger > 0.5f || brake > 0.5f) {
-                    definirHotkeyNoJogo(KeyEvent.KEYCODE_BUTTON_L2)
-                    capturaAtalho = null
-                    Log.d("PhoenixAjustes", "captura=$capturaAtalho")
-                    return true
+            if (event.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK &&
+                event.action == MotionEvent.ACTION_MOVE) {
+                val l2 = if (event.getAxisValue(MotionEvent.AXIS_LTRIGGER) > event.getAxisValue(MotionEvent.AXIS_BRAKE)) event.getAxisValue(MotionEvent.AXIS_LTRIGGER) else event.getAxisValue(MotionEvent.AXIS_BRAKE)
+                val r2 = if (event.getAxisValue(MotionEvent.AXIS_RTRIGGER) > event.getAxisValue(MotionEvent.AXIS_GAS)) event.getAxisValue(MotionEvent.AXIS_RTRIGGER) else event.getAxisValue(MotionEvent.AXIS_GAS)
+                val hx = event.getAxisValue(MotionEvent.AXIS_HAT_X)
+                val hy = event.getAxisValue(MotionEvent.AXIS_HAT_Y)
+                val codigo = when {
+                    l2 > 0.5f -> KeyEvent.KEYCODE_BUTTON_L2
+                    r2 > 0.5f -> KeyEvent.KEYCODE_BUTTON_R2
+                    hx < -0.5f -> KeyEvent.KEYCODE_DPAD_LEFT
+                    hx > 0.5f -> KeyEvent.KEYCODE_DPAD_RIGHT
+                    hy < -0.5f -> KeyEvent.KEYCODE_DPAD_UP
+                    hy > 0.5f -> KeyEvent.KEYCODE_DPAD_DOWN
+                    else -> 0
                 }
-                val rtrigger = event.getAxisValue(MotionEvent.AXIS_RTRIGGER)
-                val gas = event.getAxisValue(MotionEvent.AXIS_GAS)
-                if (rtrigger > 0.5f || gas > 0.5f) {
-                    definirHotkeyNoJogo(KeyEvent.KEYCODE_BUTTON_R2)
-                    capturaAtalho = null
-                    Log.d("PhoenixAjustes", "captura=$capturaAtalho")
-                    return true
-                }
+                if (codigo != 0) concluirCapturaPorEixo(codigo)
             }
             // enquanto capturar, não repasse eixos ao motor
+            return true
+        }
+
+        if (eixoPrecisaSoltar) {
+            if (event.source and InputDevice.SOURCE_JOYSTICK == InputDevice.SOURCE_JOYSTICK &&
+                event.action == MotionEvent.ACTION_MOVE) {
+                val a1 = if (event.getAxisValue(MotionEvent.AXIS_LTRIGGER) > event.getAxisValue(MotionEvent.AXIS_BRAKE)) event.getAxisValue(MotionEvent.AXIS_LTRIGGER) else event.getAxisValue(MotionEvent.AXIS_BRAKE)
+                val a2 = if (event.getAxisValue(MotionEvent.AXIS_RTRIGGER) > event.getAxisValue(MotionEvent.AXIS_GAS)) event.getAxisValue(MotionEvent.AXIS_RTRIGGER) else event.getAxisValue(MotionEvent.AXIS_GAS)
+                val a3 = Math.abs(event.getAxisValue(MotionEvent.AXIS_HAT_X))
+                val a4 = Math.abs(event.getAxisValue(MotionEvent.AXIS_HAT_Y))
+                val maxVal = if (a1 > a2) a1 else a2
+                val maxVal2 = if (maxVal > a3) maxVal else a3
+                val solto = (if (maxVal2 > a4) maxVal2 else a4) < 0.3f
+                if (solto) {
+                    eixoPrecisaSoltar = false
+                    motorDeAtalhos.leftTriggerPressed = false
+                    motorDeAtalhos.rightTriggerPressed = false
+                    motorDeAtalhos.dpadLeftPressed = false
+                    motorDeAtalhos.dpadRightPressed = false
+                    motorDeAtalhos.dpadUpPressed = false
+                    motorDeAtalhos.dpadDownPressed = false
+                }
+            }
             return true
         }
 
