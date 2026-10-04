@@ -61,6 +61,8 @@ import com.dfdx047.phoenixemu.Acabamento
 import com.dfdx047.phoenixemu.R
 import com.dfdx047.phoenixemu.TemaApp
 import com.dfdx047.phoenixemu.ui.theme.PhoenixEmuTheme
+import com.google.gson.Gson
+import android.content.Intent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -73,6 +75,7 @@ import android.content.Context
 import android.content.res.Configuration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.CompositionLocalProvider
 
 /**
@@ -109,6 +112,39 @@ class EmulatorActivity : ComponentActivity() {
     private var isJogoReal = false
     private var precisaAvisoAutoload = false
     private var autosavePendente = false
+    private var idDoJogoAtual = ""
+    private var ajustes by mutableStateOf(AjustesDeJogo())
+    
+    private fun aplicarAjustesNoEmulador() {
+        val volumeReal = if (ajustes.mudo) 0f else ajustes.volume
+        nucleo.definirVolume(volumeReal)
+        // O FF será usado quando for ativado;
+        // Escala e Proporção aplicamos na UI via Modifier;
+        // FPS ativado altera a UI
+    }
+    
+    private fun salvarAjuste(chave: String, valor: Any, tipo: String, limpar: Boolean = false) {
+        val escopo = if (ajustes.isSomenteEsteJogo()) "JOGO" else "GLOBAL"
+        val intent = Intent("com.dfdx047.phoenixemu.AJUSTE_MUDOU").apply {
+            setPackage(packageName)
+            putExtra("idDoJogo", idDoJogoAtual)
+            if (limpar) {
+                putExtra("acao", "limpar")
+            } else {
+                putExtra("escopo", escopo)
+                putExtra("chave", chave)
+                putExtra("tipo", tipo)
+                when (valor) {
+                    is String -> putExtra("valor", valor)
+                    is Int -> putExtra("valor", valor)
+                    is Float -> putExtra("valor", valor)
+                    is Boolean -> putExtra("valor", valor)
+                }
+            }
+        }
+        sendBroadcast(intent)
+        aplicarAjustesNoEmulador()
+    }
     
     private lateinit var motorDeAtalhos: MotorDeAtalhos
     private var contextoLocalizado: Context? = null
@@ -130,24 +166,9 @@ class EmulatorActivity : ComponentActivity() {
     private fun setFfActive(active: Boolean) {
         val shouldBeActive = active && !rewindActive
         if (shouldBeActive && ffSpeed == 1) {
-            ffSpeed = 2
-            nucleo.definirAvancoRapido(2)
-            ffJob?.cancel()
-            ffJob = lifecycleScope.launch {
-                delay(1500)
-                if (ffSpeed > 1) {
-                    ffSpeed = 4
-                    nucleo.definirAvancoRapido(4)
-                }
-                delay(1500)
-                if (ffSpeed > 1) {
-                    ffSpeed = 8
-                    nucleo.definirAvancoRapido(8)
-                }
-            }
+            ffSpeed = ajustes.velocidadeFF
+            nucleo.definirAvancoRapido(ffSpeed)
         } else if (!shouldBeActive && ffSpeed > 1) {
-            ffJob?.cancel()
-            ffJob = null
             ffSpeed = 1
             nucleo.definirAvancoRapido(1)
         }
@@ -349,6 +370,15 @@ class EmulatorActivity : ComponentActivity() {
         val capaLocal = intent.getStringExtra(EXTRA_CAPA)
         val tempoJogadoMs = intent.getLongExtra(EXTRA_TEMPO_JOGADO_MS, 0L)
         val plataforma = intent.getStringExtra(EXTRA_PLATAFORMA) ?: ""
+        
+        val ajustesStr = intent.getStringExtra("phoenix.ajustes")
+        if (!ajustesStr.isNullOrEmpty()) {
+            ajustes = Gson().fromJson(ajustesStr, AjustesDeJogo::class.java)
+            idDoJogoAtual = ajustes.idDoJogo
+        }
+        
+        aplicarAjustesNoEmulador()
+
         if (isJogoReal) {
             autosavePendente = true
         }
@@ -418,7 +448,45 @@ class EmulatorActivity : ComponentActivity() {
                                 })
                             }
                         },
-                        modifier = Modifier.aspectRatio(aspectRatio)
+                        modifier = Modifier.let {
+                            val h = 240
+                            
+                            val density = LocalDensity.current.density
+                            val screenW = LocalConfiguration.current.screenWidthDp * density
+                            val screenH = LocalConfiguration.current.screenHeightDp * density
+                            
+                            var escala = when (ajustes.escala) {
+                                EscalaImagem.X1 -> 1
+                                EscalaImagem.X2 -> 2
+                                EscalaImagem.X3 -> 3
+                                else -> 0
+                            }
+                            
+                            val modSize = if (escala > 0) {
+                                val ratio = if (ajustes.proporcao == ProporcaoImagem.RATIO_4_3) 4f/3f else if (ajustes.proporcao == ProporcaoImagem.ESTICAR) (screenW/screenH) else aspectRatio
+                                
+                                var displayH = h * escala
+                                var displayW = (displayH * ratio).toInt()
+                                
+                                while (escala > 1 && (displayH > screenH || displayW > screenW)) {
+                                    escala--
+                                    displayH = h * escala
+                                    displayW = (displayH * ratio).toInt()
+                                }
+                                
+                                it.size((displayW / density).dp, (displayH / density).dp)
+                            } else {
+                                it.fillMaxSize()
+                            }
+                            
+                            if (ajustes.proporcao == ProporcaoImagem.ESTICAR) {
+                                modSize
+                            } else if (ajustes.proporcao == ProporcaoImagem.RATIO_4_3) {
+                                modSize.aspectRatio(4f/3f)
+                            } else {
+                                modSize.aspectRatio(aspectRatio)
+                            }
+                        }
                     )
 
                     HudDoJogo(
@@ -426,7 +494,7 @@ class EmulatorActivity : ComponentActivity() {
                         rewindSegundos = rewindSecs,
                         velocidadeAvanco = ffSpeed,
                         statsTexto = statsText,
-                        mostrarStats = !isPaused && (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0,
+                        mostrarStats = !isPaused && ((applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0 || ajustes.mostrarFps),
                         avisoTexto = avisoTexto
                     )
 
@@ -483,6 +551,38 @@ class EmulatorActivity : ComponentActivity() {
                             aoSair = { finish() },
                             aoMudarSlot = { slot -> slotAtual = slot },
                             aoMudarAba = { aba -> abaAtual = aba },
+                            ajustes = ajustes,
+                            aoMudarAjuste = { chave, valor, tipo -> 
+                                if (chave == AjustesDeJogo.CHAVE_ESCALA && valor is String) {
+                                    ajustes = ajustes.copy(escala = runCatching { EscalaImagem.valueOf(valor) }.getOrDefault(EscalaImagem.AJUSTAR))
+                                } else if (chave == AjustesDeJogo.CHAVE_PROPORCAO && valor is String) {
+                                    ajustes = ajustes.copy(proporcao = runCatching { ProporcaoImagem.valueOf(valor) }.getOrDefault(ProporcaoImagem.AUTOMATICA))
+                                } else if (chave == AjustesDeJogo.CHAVE_MOSTRAR_FPS && valor is Boolean) {
+                                    ajustes = ajustes.copy(mostrarFps = valor)
+                                } else if (chave == AjustesDeJogo.CHAVE_VOLUME && valor is Float) {
+                                    ajustes = ajustes.copy(volume = valor)
+                                } else if (chave == AjustesDeJogo.CHAVE_MUDO && valor is Boolean) {
+                                    ajustes = ajustes.copy(mudo = valor)
+                                } else if (chave == AjustesDeJogo.CHAVE_VELOCIDADE_FF && valor is Int) {
+                                    ajustes = ajustes.copy(velocidadeFF = valor)
+                                } else if (chave == "escopo" && valor is Boolean) {
+                                    // valor == true significa "somente este jogo"
+                                    if (valor) {
+                                        ajustes = ajustes.copy(overrides = setOf(AjustesDeJogo.CHAVE_ESCALA)) // Apenas simula que há override para mudar o selector
+                                    } else {
+                                        ajustes = ajustes.copy(overrides = emptySet())
+                                    }
+                                    return@MenuDePausa
+                                }
+                                if (ajustes.isSomenteEsteJogo()) {
+                                    ajustes = ajustes.copy(overrides = ajustes.overrides + chave)
+                                }
+                                salvarAjuste(chave, valor, tipo, false)
+                            },
+                            aoLimparAjustesJogo = {
+                                ajustes = ajustes.copy(overrides = emptySet())
+                                salvarAjuste("", "", "", true)
+                            }
                         )
                     }
                 }
@@ -497,22 +597,21 @@ class EmulatorActivity : ComponentActivity() {
                     }
                 }
 
-                if ((applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
-                    LaunchedEffect(isPaused) {
-                        if (!isPaused) {
-                            while(true) {
-                                delay(500)
-                                val stats = nucleo.obterStats()
-                                if (stats.size >= 3) {
-                                    val fpsStr = String.format(Locale.US, "%.1f", stats[0])
-                                    val msStr = String.format(Locale.US, "%.1f", stats[1])
-                                    val maxStr = String.format(Locale.US, "%.1f", stats[2])
-                                    statsText = "$fpsStr fps | $msStr ms (max $maxStr)"
-                                }
+                val isDebug = (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
+                LaunchedEffect(isPaused, isDebug, ajustes.mostrarFps) {
+                    if (!isPaused && (isDebug || ajustes.mostrarFps)) {
+                        while(true) {
+                            delay(500)
+                            val stats = nucleo.obterStats()
+                            if (stats.size >= 3) {
+                                val fpsStr = String.format(Locale.US, "%.1f", stats[0])
+                                val msStr = String.format(Locale.US, "%.1f", stats[1])
+                                val maxStr = String.format(Locale.US, "%.1f", stats[2])
+                                statsText = if (isDebug) "$fpsStr fps | $msStr ms (max $maxStr)" else "$fpsStr FPS"
                             }
-                        } else {
-                            statsText = ""
                         }
+                    } else {
+                        statsText = ""
                     }
                 }
 

@@ -102,6 +102,9 @@ internal fun MenuDePausa(
     aoSair: () -> Unit,
     aoMudarSlot: (Int) -> Unit,
     aoMudarAba: (AbaDoMenu) -> Unit,
+    ajustes: AjustesDeJogo,
+    aoMudarAjuste: (String, Any, String) -> Unit,
+    aoLimparAjustesJogo: () -> Unit,
     capaLocalPath: String?,
     tempoJogadoMs: Long,
     plataforma: String,
@@ -133,6 +136,9 @@ internal fun MenuDePausa(
             aoSair = aoSair,
             aoMudarSlot = aoMudarSlot,
             aoMudarAba = aoMudarAba,
+            ajustes = ajustes,
+            aoMudarAjuste = aoMudarAjuste,
+            aoLimparAjustesJogo = aoLimparAjustesJogo,
             capaLocalPath = capaLocalPath,
             tempoJogadoMs = tempoJogadoMs,
             plataforma = plataforma,
@@ -156,6 +162,9 @@ private fun MenuDePausaInner(
     aoSair: () -> Unit,
     aoMudarSlot: (Int) -> Unit,
     aoMudarAba: (AbaDoMenu) -> Unit,
+    ajustes: AjustesDeJogo,
+    aoMudarAjuste: (String, Any, String) -> Unit,
+    aoLimparAjustesJogo: () -> Unit,
     capaLocalPath: String?,
     tempoJogadoMs: Long,
     plataforma: String,
@@ -237,7 +246,7 @@ private fun MenuDePausaInner(
                             Log.i("PhoenixMenu", "slot=$novoSlot") // TEMPORARIO: remover
                             aoMudarSlot(novoSlot)
                         })
-                        AbaDoMenu.AJUSTES -> TextoEmBreve()
+                        AbaDoMenu.AJUSTES -> ConteudoAbaAjustes(ajustes, aoMudarAjuste, aoLimparAjustesJogo)
                         AbaDoMenu.CONTROLES -> TextoEmBreve()
                         else -> ConteudoAbaJogo(slots, slotSelecionado, aoSalvarEstado, aoCarregarEstado, { novoSlot ->
                             slotSelecionado = novoSlot

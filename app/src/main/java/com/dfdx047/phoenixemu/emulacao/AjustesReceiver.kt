@@ -1,0 +1,55 @@
+package com.dfdx047.phoenixemu.emulacao
+
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.util.Log
+import com.dfdx047.phoenixemu.data.Preferencias
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
+class AjustesReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action != "com.dfdx047.phoenixemu.AJUSTE_MUDOU") return
+        val pendingResult = goAsync()
+        
+        val idDoJogo = intent.getStringExtra("idDoJogo") ?: ""
+        val escopo = intent.getStringExtra("escopo") ?: "GLOBAL" // "GLOBAL" ou "JOGO"
+        val acao = intent.getStringExtra("acao") // pode ser "limpar"
+        
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val prefs = Preferencias.obter(context.applicationContext)
+                
+                if (acao == "limpar" && idDoJogo.isNotEmpty()) {
+                    prefs.limparOverrides(listOf(
+                        "aj_jogo_${idDoJogo}_escala",
+                        "aj_jogo_${idDoJogo}_proporcao",
+                        "aj_jogo_${idDoJogo}_mostrarFps",
+                        "aj_jogo_${idDoJogo}_volume",
+                        "aj_jogo_${idDoJogo}_mudo",
+                        "aj_jogo_${idDoJogo}_velocidadeFF"
+                    ))
+                    Log.i("PhoenixAjustes", "Limpos overrides do jogo $idDoJogo")
+                } else {
+                    val chave = intent.getStringExtra("chave") ?: return@launch
+                    val tipo = intent.getStringExtra("tipo") ?: return@launch
+                    
+                    val prefixo = if (escopo == "JOGO" && idDoJogo.isNotEmpty()) "aj_jogo_${idDoJogo}_" else "aj_global_"
+                    val chaveCompleta = prefixo + chave
+                    
+                    when (tipo) {
+                        "string" -> prefs.setAjusteString(chaveCompleta, intent.getStringExtra("valor") ?: "")
+                        "int" -> prefs.setAjusteInt(chaveCompleta, intent.getIntExtra("valor", 0))
+                        "float" -> prefs.setAjusteFloat(chaveCompleta, intent.getFloatExtra("valor", 0f))
+                        "boolean" -> prefs.setAjusteBoolean(chaveCompleta, intent.getBooleanExtra("valor", false))
+                    }
+                    Log.i("PhoenixAjustes", "Gravado $chaveCompleta = ${intent.extras?.get("valor")}")
+                }
+            } finally {
+                pendingResult.finish()
+            }
+        }
+    }
+}

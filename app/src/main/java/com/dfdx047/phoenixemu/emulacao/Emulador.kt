@@ -11,6 +11,11 @@ import com.dfdx047.phoenixemu.data.Preferencias
 import com.dfdx047.phoenixemu.data.Idioma
 import com.dfdx047.phoenixemu.data.combo
 import com.dfdx047.phoenixemu.emulator.EmulatorActivity
+import com.dfdx047.phoenixemu.emulator.AjustesDeJogo
+import com.dfdx047.phoenixemu.emulator.EscalaImagem
+import com.dfdx047.phoenixemu.emulator.ProporcaoImagem
+import kotlinx.coroutines.runBlocking
+import android.util.Base64
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -71,6 +76,36 @@ object Emulador {
         tempoJogadoMs: Long = 0,
         plataforma: String = "",
     ) {
+        val idDoJogo = rom?.let { Base64.encodeToString(it.toByteArray(), Base64.NO_WRAP) } ?: ""
+
+        val ajustes = runBlocking {
+            val (escalaStr, eO) = prefs.getAjusteString("aj_global_${AjustesDeJogo.CHAVE_ESCALA}", idDoJogo.takeIf { it.isNotEmpty() }?.let { "aj_jogo_${it}_${AjustesDeJogo.CHAVE_ESCALA}" }, EscalaImagem.AJUSTAR.name)
+            val (proporcaoStr, pO) = prefs.getAjusteString("aj_global_${AjustesDeJogo.CHAVE_PROPORCAO}", idDoJogo.takeIf { it.isNotEmpty() }?.let { "aj_jogo_${it}_${AjustesDeJogo.CHAVE_PROPORCAO}" }, ProporcaoImagem.AUTOMATICA.name)
+            val (mostrarFps, fO) = prefs.getAjusteBoolean("aj_global_${AjustesDeJogo.CHAVE_MOSTRAR_FPS}", idDoJogo.takeIf { it.isNotEmpty() }?.let { "aj_jogo_${it}_${AjustesDeJogo.CHAVE_MOSTRAR_FPS}" }, false)
+            val (volume, vO) = prefs.getAjusteFloat("aj_global_${AjustesDeJogo.CHAVE_VOLUME}", idDoJogo.takeIf { it.isNotEmpty() }?.let { "aj_jogo_${it}_${AjustesDeJogo.CHAVE_VOLUME}" }, 1.0f)
+            val (mudo, mO) = prefs.getAjusteBoolean("aj_global_${AjustesDeJogo.CHAVE_MUDO}", idDoJogo.takeIf { it.isNotEmpty() }?.let { "aj_jogo_${it}_${AjustesDeJogo.CHAVE_MUDO}" }, false)
+            val (velocidadeFF, ffO) = prefs.getAjusteInt("aj_global_${AjustesDeJogo.CHAVE_VELOCIDADE_FF}", idDoJogo.takeIf { it.isNotEmpty() }?.let { "aj_jogo_${it}_${AjustesDeJogo.CHAVE_VELOCIDADE_FF}" }, 2)
+
+            val overrides = mutableSetOf<String>()
+            if (eO) overrides.add(AjustesDeJogo.CHAVE_ESCALA)
+            if (pO) overrides.add(AjustesDeJogo.CHAVE_PROPORCAO)
+            if (fO) overrides.add(AjustesDeJogo.CHAVE_MOSTRAR_FPS)
+            if (vO) overrides.add(AjustesDeJogo.CHAVE_VOLUME)
+            if (mO) overrides.add(AjustesDeJogo.CHAVE_MUDO)
+            if (ffO) overrides.add(AjustesDeJogo.CHAVE_VELOCIDADE_FF)
+
+            AjustesDeJogo(
+                escala = runCatching { EscalaImagem.valueOf(escalaStr) }.getOrDefault(EscalaImagem.AJUSTAR),
+                proporcao = runCatching { ProporcaoImagem.valueOf(proporcaoStr) }.getOrDefault(ProporcaoImagem.AUTOMATICA),
+                mostrarFps = mostrarFps,
+                volume = volume,
+                mudo = mudo,
+                velocidadeFF = velocidadeFF,
+                overrides = overrides,
+                idDoJogo = idDoJogo
+            )
+        }
+
         val atalhos = prefs.atalhos.value
         val atalhosJson = JSONObject()
         AcaoAtalho.entries.forEach { acao ->
@@ -102,6 +137,8 @@ object Emulador {
             .putExtra(EmulatorActivity.EXTRA_IDIOMA, Idioma.atual(context))
             .putExtra(EmulatorActivity.EXTRA_TITULO, titulo)
             .putExtra(EmulatorActivity.EXTRA_PLATAFORMA, plataforma)
+            .putExtra("phoenix.ajustes", Gson().toJson(ajustes))
+
         if (rom != null) intent.putExtra(EmulatorActivity.EXTRA_ROM, rom)
         if (!capa.isNullOrBlank()) intent.putExtra(EmulatorActivity.EXTRA_CAPA, capa)
         intent.putExtra(EmulatorActivity.EXTRA_TEMPO_JOGADO_MS, tempoJogadoMs)

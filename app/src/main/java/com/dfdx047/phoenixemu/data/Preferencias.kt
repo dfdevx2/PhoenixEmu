@@ -438,6 +438,65 @@ class Preferencias private constructor(context: Context) {
             .apply()
     }
 
+    // ----------------------------------------------------------- ajustes de jogo
+    suspend fun getAjusteString(chaveGlobal: String, chaveOverride: String?, padrao: String): Pair<String, Boolean> {
+        val prefs = fluxo.first()
+        if (chaveOverride != null) {
+            val vOverride = prefs[stringPreferencesKey(chaveOverride)]
+            if (vOverride != null) return vOverride to true
+        }
+        val vGlobal = prefs[stringPreferencesKey(chaveGlobal)]
+        if (vGlobal != null) return vGlobal to false
+        return padrao to false
+    }
+
+    suspend fun getAjusteInt(chaveGlobal: String, chaveOverride: String?, padrao: Int): Pair<Int, Boolean> {
+        val prefs = fluxo.first()
+        if (chaveOverride != null) {
+            val vOverride = prefs[intPreferencesKey(chaveOverride)]
+            if (vOverride != null) return vOverride to true
+        }
+        val vGlobal = prefs[intPreferencesKey(chaveGlobal)]
+        if (vGlobal != null) return vGlobal to false
+        return padrao to false
+    }
+
+    suspend fun getAjusteFloat(chaveGlobal: String, chaveOverride: String?, padrao: Float): Pair<Float, Boolean> {
+        val prefs = fluxo.first()
+        if (chaveOverride != null) {
+            val vOverride = prefs[floatPreferencesKey(chaveOverride)]
+            if (vOverride != null) return vOverride to true
+        }
+        val vGlobal = prefs[floatPreferencesKey(chaveGlobal)]
+        if (vGlobal != null) return vGlobal to false
+        return padrao to false
+    }
+
+    suspend fun getAjusteBoolean(chaveGlobal: String, chaveOverride: String?, padrao: Boolean): Pair<Boolean, Boolean> {
+        val prefs = fluxo.first()
+        if (chaveOverride != null) {
+            val vOverride = prefs[booleanPreferencesKey(chaveOverride)]
+            if (vOverride != null) return vOverride to true
+        }
+        val vGlobal = prefs[booleanPreferencesKey(chaveGlobal)]
+        if (vGlobal != null) return vGlobal to false
+        return padrao to false
+    }
+
+    fun setAjusteString(chave: String, valor: String) = editar { it[stringPreferencesKey(chave)] = valor }
+    fun setAjusteInt(chave: String, valor: Int) = editar { it[intPreferencesKey(chave)] = valor }
+    fun setAjusteFloat(chave: String, valor: Float) = editar { it[floatPreferencesKey(chave)] = valor }
+    fun setAjusteBoolean(chave: String, valor: Boolean) = editar { it[booleanPreferencesKey(chave)] = valor }
+
+    fun limparOverrides(chaves: List<String>) = editar { prefs ->
+        chaves.forEach { 
+            prefs.remove(stringPreferencesKey(it))
+            prefs.remove(intPreferencesKey(it))
+            prefs.remove(floatPreferencesKey(it))
+            prefs.remove(booleanPreferencesKey(it))
+        }
+    }
+
     companion object {
         const val BGM_PADRAO = 0.25f
         const val SFX_PADRAO = 0.50f

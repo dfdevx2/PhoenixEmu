@@ -40,6 +40,7 @@ class NucleoLibretro {
     private external fun nativePedirEstado(tipo: Int, caminho: String): Boolean
     private external fun nativeResultadoEstado(): Int
     private external fun nativeDefinirPausa(pausado: Boolean)
+    private external fun nativeDefinirVolume(volume: Float)
 
     fun definirPastas(sistema: String, saves: String) = nativeDefinirPastas(sistema, saves)
     
@@ -91,6 +92,7 @@ class NucleoLibretro {
     fun pedirEstado(tipo: Int, caminho: String): Boolean = nativePedirEstado(tipo, caminho)
     fun resultadoEstado(): Int = nativeResultadoEstado()
     fun definirPausa(pausado: Boolean) = nativeDefinirPausa(pausado)
+    fun definirVolume(volume: Float) = nativeDefinirVolume(volume)
 
     /** Bits do RETRO_DEVICE_ID_JOYPAD, na ordem da API libretro. */
     object Botao {

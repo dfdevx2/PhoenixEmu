@@ -15,6 +15,8 @@ namespace {
     size_t g_capacity = 0;
     size_t g_frames_per_video_frame = 0;
 
+    std::atomic<float> g_volume{1.0f};
+
     double g_sample_rate_saved = 44100.0;
 
     std::shared_ptr<oboe::AudioStream> g_stream;
@@ -74,6 +76,17 @@ namespace {
                     std::memcpy(dst, &g_ring[tail * 2], part1 * 2 * sizeof(int16_t));
                     std::memcpy(dst + part1 * 2, &g_ring[0], part2 * 2 * sizeof(int16_t));
                 }
+
+                float vol = g_volume.load(std::memory_order_relaxed);
+                if (vol != 1.0f) {
+                    for (size_t i = 0; i < to_read * 2; ++i) {
+                        float sample = dst[i] * vol;
+                        if (sample > 32767.0f) sample = 32767.0f;
+                        else if (sample < -32768.0f) sample = -32768.0f;
+                        dst[i] = static_cast<int16_t>(sample);
+                    }
+                }
+
                 g_tail.store((tail + to_read) % g_capacity, std::memory_order_release);
                 audio_saude_consumiu(numFrames, to_read);
             } else {
@@ -414,6 +427,10 @@ void phoenix_audio_reset_falhas_consumo_normal() {
         g_falhas_consecutivas.store(0, std::memory_order_release);
         g_falhas_ultimo_delta = frames_atual;
     }
+}
+
+void phoenix_audio_definir_volume(float volume) {
+    g_volume.store(volume, std::memory_order_relaxed);
 }
 
 } // extern "C"

@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,14 +46,19 @@ import kotlin.math.roundToInt
     }
 
     if (statsTexto.isNotEmpty() && mostrarStats) {
-        BasicText(
-            text = statsTexto,
-            style = TextStyle(color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp),
+        Box(
             modifier = Modifier
-                .align(Alignment.TopStart)
+                .align(Alignment.TopEnd)
                 .windowInsetsPadding(WindowInsets.systemBars)
                 .padding(16.dp)
-        )
+                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                .padding(horizontal = 6.dp, vertical = 2.dp)
+        ) {
+            BasicText(
+                text = statsTexto,
+                style = TextStyle(color = Color.White.copy(alpha = 0.9f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            )
+        }
     }
 
     if (avisoTexto.isNotEmpty()) {

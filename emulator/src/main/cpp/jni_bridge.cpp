@@ -617,4 +617,9 @@ Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeResultadoEstado(
     return g_pedido_estado_resultado.exchange(0, std::memory_order_relaxed);
 }
 
+JNIEXPORT void JNICALL
+Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeDefinirVolume(JNIEnv *env, jobject thiz, jfloat volume) {
+    phoenix_audio_definir_volume(volume);
+}
+
 } // extern "C"

@@ -20,4 +20,5 @@ extern "C" {
     bool phoenix_audio_verificar_recuperacao();
     void phoenix_audio_reset_falhas_consumo_normal();
     bool phoenix_audio_tentar_reabrir_se_morto();
+    void phoenix_audio_definir_volume(float volume);
 }

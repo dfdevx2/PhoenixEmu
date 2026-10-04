@@ -340,4 +340,42 @@
     <!-- Slot text for empty state -->
     <string name="jogo_slot_vazio_text">empty</string>
 
+    <string name="ajustes_titulo_escala">Image scale</string>
+    <string name="ajustes_dica_escala">Adjust the size of the image on the screen. \'Fit\' fills as much as possible preserving the aspect ratio. 1x, 2x, and 3x use exact multiples of the original resolution (sharp pixels).</string>
+    <string name="ajustes_op_escala_ajustar">Fit</string>
+    <string name="ajustes_op_escala_1x">1x</string>
+    <string name="ajustes_op_escala_2x">2x</string>
+    <string name="ajustes_op_escala_3x">3x</string>
+
+    <string name="ajustes_titulo_proporcao">Aspect ratio</string>
+    <string name="ajustes_dica_proporcao">Defines the screen format. \'Auto\' keeps the original console aspect. \'4:3\' forces classic TV format. \'Stretch\' fills the whole screen.</string>
+    <string name="ajustes_op_proporcao_auto">Auto</string>
+    <string name="ajustes_op_proporcao_4_3">4:3</string>
+    <string name="ajustes_op_proporcao_esticar">Stretch</string>
+
+    <string name="ajustes_titulo_mostrar_fps">Show FPS</string>
+    <string name="ajustes_dica_mostrar_fps">Shows a frames-per-second counter at the top corner of the screen.</string>
+
+    <string name="ajustes_titulo_volume">Game volume</string>
+    <string name="ajustes_dica_volume">Adjusts the emulator audio volume.</string>
+
+    <string name="ajustes_titulo_mudo">Mute</string>
+    <string name="ajustes_dica_mudo">Mutes the audio entirely without losing the volume setting.</string>
+
+    <string name="ajustes_titulo_velocidade_ff">Fast-forward speed</string>
+    <string name="ajustes_dica_velocidade_ff">Speed used when holding the fast-forward button.</string>
+    <string name="ajustes_op_ff_2x">2x</string>
+    <string name="ajustes_op_ff_3x">3x</string>
+    <string name="ajustes_op_ff_4x">4x</string>
+
+    <string name="ajustes_aplicar_todos">All games</string>
+    <string name="ajustes_aplicar_este">This game</string>
+    <string name="ajustes_estado_todos">Using settings for all games</string>
+    <string name="ajustes_estado_este">This game has custom settings</string>
+    <string name="ajustes_botao_limpar">Use settings for all games in this game</string>
+
+    <string name="ajustes_secao_video">VIDEO</string>
+    <string name="ajustes_secao_audio">AUDIO</string>
+    <string name="ajustes_secao_jogo">GAME</string>
+
 </resources>

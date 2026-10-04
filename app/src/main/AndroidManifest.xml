@@ -42,6 +42,12 @@
             android:launchMode="singleTask"
             android:process=":emu"
             android:screenOrientation="sensorLandscape" />
+
+        <receiver android:name=".emulacao.AjustesReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="com.dfdx047.phoenixemu.AJUSTE_MUDOU" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>
