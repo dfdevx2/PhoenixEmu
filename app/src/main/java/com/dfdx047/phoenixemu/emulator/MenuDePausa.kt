@@ -8,13 +8,11 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -57,7 +55,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.blur
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.asImageBitmap
@@ -66,7 +63,6 @@ import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -99,62 +95,76 @@ internal data class PaletaMenu(
  * Deriva a paleta final do menu a partir das cores brutas recebidas via Intent.
  *
  * Regras:
- *  - superficie: cor de superfície com alpha = max(opacidade, 0.55) no estilo Vidro,
- *    ou alpha = opacidade no estilo Fosco.
- *  - texto: se contraste texto/superficie < 4.5:1, usa branco (painel escuro) ou preto (painel claro).
- *  - destaque: se contraste destaque/superficie < 3:1, ajusta (clareia com branco em painel escuro,
- *    escurece com preto em painel claro) em passos de 10%. Se alpha=0 ou muito próximo da superfície,
- *    usa o destaque fixo antigo (#AA00FF).
+ *  - base do painel:
+ *      VIDRO  → lerp(Black, primária, 0.12)  [escuro] / lerp(White, primária, 0.12) [claro]
+ *      SÓLIDO → lerp(superfície, primária, 0.14)
+ *      AMOLED + escuro → base = Black
+ *  - fundoPainel = base com alpha = opacidade (clamp 0.30..1.00).
+ *  - texto: se contraste texto/base < 4.5:1, usa branco (painel escuro) ou
+ *    preto (painel claro).
+ *  - destaque: se contraste destaque/base < 3:1, ajusta (clareia com branco
+ *    em painel escuro, escurece com preto em painel claro) em passos de 10%.
+ *    Se alpha=0 ou muito próximo da base, usa o destaque fixo antigo (#AA00FF).
  *  - contorno: texto com alpha 0.25; fundo botao: texto com alpha 0.08.
  */
 private fun derivarPaletaFinal(
     temaCorPrimaria: Int,
     temaCorSuperficie: Int,
     temaCorTexto: Int,
-    menuEstilo: String,
+    acabamento: String, // "VIDRO" ou "SOLIDO"
     menuOpacidade: Float,
+    amoled: Boolean,
+    ehPainelEscuro: Boolean,
 ): PaletaMenu {
     val corPrimaria = Color(temaCorPrimaria)
     val corSuperficieRaw = Color(temaCorSuperficie)
     val corTextoRaw = Color(temaCorTexto)
 
-    // --- Superfície ---
-    val alphaSuperficie = if (menuEstilo == "VIDRO") {
-        max(corSuperficieRaw.alpha, 0.55f)
+    // --- base do painel (opaca, alpha=1) ---
+    val base: Color
+    if (amoled && ehPainelEscuro) {
+        base = Color.Black
     } else {
-        menuOpacidade.coerceIn(0f, 1f)
+        base = when (acabamento.uppercase()) {
+            "SOLIDO" -> corSuperficieRaw.copy(alpha = 1f).mixWith(corPrimaria.copy(alpha = 1f), 0.14f)
+            else /* VIDRO */ -> {
+                if (ehPainelEscuro) {
+                    Color.Black.copy(alpha = 1f).mixWith(corPrimaria.copy(alpha = 1f), 0.12f)
+                } else {
+                    Color.White.copy(alpha = 1f).mixWith(corPrimaria.copy(alpha = 1f), 0.12f)
+                }
+            }
+        }
     }
-    val superficie = corSuperficieRaw.copy(alpha = alphaSuperficie)
-    val superficieLuminancia = superficie.luminance()
-    val ehPainelEscuro = superficieLuminancia < 0.5f
 
-    // --- Texto ---
-    val contrasteTexto = contrasteEntre(corTextoRaw, superficie)
+    // --- fundo do painel (com opacidade) ---
+    val fundoPainel = base.copy(alpha = menuOpacidade.coerceIn(0.30f, 1.0f))
+
+    // --- Texto (contraste ≥ 4.5:1 contra base opaca) ---
+    val contrasteTexto = contrasteEntre(corTextoRaw, fundoPainel)
     val texto = if (contrasteTexto >= 4.5f) {
         corTextoRaw
     } else {
         if (ehPainelEscuro) Color.White else Color.Black
     }
 
-    // --- Destaque (primária) ---
+    // --- Destaque (contraste ≥ 3:1 contra base opaca) ---
     val destaque: Color
-    if (corPrimaria.alpha == 0f || contrasteEntre(corPrimaria, superficie) < 1.05f) {
-        // Transparente ou muito próxima da superfície → usar destaque fixo antigo
+    if (corPrimaria.alpha == 0f || contrasteEntre(corPrimaria, fundoPainel) < 1.05f) {
         destaque = Color(0xFFAA00FF)
     } else {
         var d = corPrimaria
         val maxIteracoes = 20
         for (i in 1..maxIteracoes) {
-            val c = contrasteEntre(d, superficie)
+            val c = contrasteEntre(d, fundoPainel)
             if (c >= 3.0f) break
-            // Ajusta: clareia em painel escuro, escurece em painel claro
             d = if (ehPainelEscuro) {
                 d.mixWith(Color.White, 0.1f)
             } else {
                 d.mixWith(Color.Black, 0.1f)
             }
         }
-        if (contrasteEntre(d, superficie) < 3.0f) {
+        if (contrasteEntre(d, fundoPainel) < 3.0f) {
             destaque = Color(0xFFAA00FF)
         } else {
             destaque = d
@@ -165,9 +175,6 @@ private fun derivarPaletaFinal(
     val contorno = texto.copy(alpha = 0.25f)
     val fundoBotao = texto.copy(alpha = 0.08f)
     val textoSecundario = texto.copy(alpha = 0.7f)
-
-    // --- Fundo do painel (para MaterialTheme) ---
-    val fundoPainel = superficie
 
     return PaletaMenu(
         texto = texto,
@@ -252,7 +259,6 @@ internal fun MenuDePausa(
     capaLocalPath: String?,
     tempoJogadoMs: Long,
     plataforma: String,
-    menuEstilo: String,
     menuDesfoque: Float,
     menuOpacidade: Float,
     menuLado: String,
@@ -260,6 +266,9 @@ internal fun MenuDePausa(
     temaCorPrimaria: Int,
     temaCorSuperficie: Int,
     temaCorTexto: Int,
+    amoled: Boolean,
+    acabamento: String,
+    reduzirEfeitos: Boolean,
 ) {
     AnimatedVisibility(
         visible = visivel,
@@ -294,7 +303,6 @@ internal fun MenuDePausa(
             capaLocalPath = capaLocalPath,
             tempoJogadoMs = tempoJogadoMs,
             plataforma = plataforma,
-            menuEstilo = menuEstilo,
             menuDesfoque = menuDesfoque,
             menuOpacidade = menuOpacidade,
             menuLado = menuLado,
@@ -302,6 +310,9 @@ internal fun MenuDePausa(
             temaCorPrimaria = temaCorPrimaria,
             temaCorSuperficie = temaCorSuperficie,
             temaCorTexto = temaCorTexto,
+            amoled = amoled,
+            acabamento = acabamento,
+            reduzirEfeitos = reduzirEfeitos,
         )
     }
 }
@@ -328,7 +339,6 @@ private fun MenuDePausaInner(
     capaLocalPath: String?,
     tempoJogadoMs: Long,
     plataforma: String,
-    menuEstilo: String,
     menuDesfoque: Float,
     menuOpacidade: Float,
     menuLado: String,
@@ -336,15 +346,20 @@ private fun MenuDePausaInner(
     temaCorPrimaria: Int,
     temaCorSuperficie: Int,
     temaCorTexto: Int,
+    amoled: Boolean,
+    acabamento: String,
+    reduzirEfeitos: Boolean,
 ) {
-    // Log temporário para conferição das cores recebidas
-    val paletaBruta = remember(temaCorPrimaria, temaCorSuperficie, temaCorTexto, menuTema, menuEstilo, menuOpacidade) {
-        "primaria=0x${temaCorPrimaria.toString(16).padStart(8, '0').uppercase()}, superficie=0x${temaCorSuperficie.toString(16).padStart(8, '0').uppercase()}, texto=0x${temaCorTexto.toString(16).padStart(8, '0').uppercase()}, menuTema=$menuTema, menuEstilo=$menuEstilo, menuOpacidade=$menuOpacidade"
-    }
-    android.util.Log.d("PhoenixAjustes", "MenuDePausa cores: $paletaBruta")
+    val corPrimaria = Color(temaCorPrimaria)
+    val corSuperficie = Color(temaCorSuperficie)
+    val corTexto = Color(temaCorTexto)
+    val superficieLuminancia = corSuperficie.luminance()
+    val ehPainelEscuro = superficieLuminancia < 0.5f
+
+    Log.d("PhoenixMenu", "abriu acabamento=$acabamento opacidade=$menuOpacidade desfoque=$menuDesfoque reduzirEfeitos=$reduzirEfeitos amoled=$amoled escuro=$ehPainelEscuro superficie=0x${corSuperficie.value.toString(16).padStart(8, '0').uppercase()} destaque=0x${corPrimaria.value.toString(16).padStart(8, '0').uppercase()}")
 
     val paleta = if (menuTema) {
-        derivarPaletaFinal(temaCorPrimaria, temaCorSuperficie, temaCorTexto, menuEstilo, menuOpacidade)
+        derivarPaletaFinal(temaCorPrimaria, temaCorSuperficie, temaCorTexto, acabamento, menuOpacidade, amoled, ehPainelEscuro)
     } else {
         // Paleta antiga (cores fixas) quando "Seguir o tema" está desligado
         PaletaMenu(
@@ -357,6 +372,13 @@ private fun MenuDePausaInner(
         )
     }
 
+    // Log do design para debug
+    val modo = if (acabamento.uppercase() == "SOLIDO") "SOLIDO" else "VIDRO"
+    val baseHex = String.format("#%08X", (0L or paleta.fundoPainel.value.toLong()).and(0xFFFFFFFFL))
+    val destaqueHex = String.format("#%08X", paleta.destaque.value.toLong().and(0xFFFFFFFFL))
+    val alpha = menuOpacidade.coerceIn(0.30f, 1.0f)
+    Log.d("PhoenixAjustes", "design=$modo base=$baseHex destaque=$destaqueHex alpha=$alpha")
+
     val config = LocalConfiguration.current
     val telaLarguraDp = config.screenWidthDp.dp
     val painelLarguraDp = (telaLarguraDp * 0.42f).coerceIn(340.dp, 420.dp)
@@ -364,15 +386,15 @@ private fun MenuDePausaInner(
     // Estado local único e mutável para o slot selecionado
     var slotSelecionado by remember { mutableIntStateOf(slotSelecionadoInicial.coerceIn(1, 4)) }
 
-    val isVidro = menuEstilo == "VIDRO"
+    val isVidro = acabamento == "VIDRO"
     val isEsquerda = menuLado == "ESQUERDA"
     val corPainel = paleta.fundoPainel
     val alignPainel = if (isEsquerda) Alignment.CenterStart else Alignment.CenterEnd
     val shapePainel = if (isEsquerda) RoundedCornerShape(topEnd = 28.dp, bottomEnd = 28.dp) else RoundedCornerShape(topStart = 28.dp, bottomStart = 28.dp)
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Fundo desfocado
-        if (fundo != null && isVidro) {
+        // Fundo — snapshot congelado
+        if (fundo != null) {
             Box(modifier = Modifier.fillMaxSize()) {
                 Image(
                     bitmap = fundo.asImageBitmap(),
@@ -380,30 +402,42 @@ private fun MenuDePausaInner(
                     modifier = Modifier
                         .fillMaxSize()
                         .let {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && menuDesfoque > 0f) it.blur(menuDesfoque.dp) else it
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && menuDesfoque > 0f && !reduzirEfeitos) {
+                                it.blur(menuDesfoque.dp)
+                            } else it
                         },
                     contentScale = ContentScale.Crop,
                 )
+                // Overlay escuro — 25% SÓLIDO, 35% VIDRO
+                val overlayAlpha = if (acabamento.uppercase() == "SOLIDO") 0.25f else 0.35f
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.35f))
+                        .background(Color.Black.copy(alpha = overlayAlpha))
                 ) {
                     Box(modifier = Modifier.fillMaxSize().clickable(onClick = aoFechar)) {}
                 }
             }
         } else {
-            Box(modifier = Modifier.fillMaxSize().background(if (isVidro) Color.Black.copy(alpha = 0.85f) else Color.Black.copy(alpha = 0.5f))) {
+            Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.85f))) {
                 Box(modifier = Modifier.fillMaxSize().clickable(onClick = aoFechar)) {}
             }
         }
 
         // Painel lateral
         Surface(
-            modifier = Modifier
-                .width(painelLarguraDp)
-                .fillMaxHeight()
-                .align(alignPainel),
+            modifier = if (amoled && ehPainelEscuro && acabamento == "SOLIDO") {
+                Modifier
+                    .width(painelLarguraDp)
+                    .fillMaxHeight()
+                    .align(alignPainel)
+                    .border(1.dp, paleta.destaque.copy(alpha = 0.5f), shape = shapePainel)
+            } else {
+                Modifier
+                    .width(painelLarguraDp)
+                    .fillMaxHeight()
+                    .align(alignPainel)
+            },
             shape = shapePainel,
             color = corPainel,
         ) {
@@ -427,14 +461,11 @@ private fun MenuDePausaInner(
                     )
 
                     // — Barra de abas fixa —
-                    BarraDeAbas(abaAtual, aoMudarAba, paleta = paleta)
-
-                    // Divisor sob a barra de abas
-                    Spacer(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .background(paleta.texto.copy(alpha = 0.08f))
+                    BarraDeAbas(
+                        abaAtual = abaAtual,
+                        aoMudarAba = aoMudarAba,
+                        paleta = paleta,
+                        acabamento = acabamento,
                     )
 
                     // — Área rolável com peso —
@@ -456,12 +487,15 @@ private fun MenuDePausaInner(
                                     aoMudarSlot(novoSlot)
                                 },
                                 paleta = paleta,
+                                acabamento = acabamento,
+                                reduzirEfeitos = reduzirEfeitos,
                             )
                             AbaDoMenu.AJUSTES -> ConteudoAbaAjustes(
                                 ajustes = ajustes,
                                 aoMudarAjuste = aoMudarAjuste,
                                 aoLimparAjustesJogo = aoLimparAjustesJogo,
                                 paleta = paleta,
+                                acabamento = acabamento,
                             )
                             AbaDoMenu.CONTROLES -> TextoEmBreve(paleta = paleta)
                             else -> ConteudoAbaJogo(
@@ -474,6 +508,8 @@ private fun MenuDePausaInner(
                                     aoMudarSlot(novoSlot)
                                 },
                                 paleta = paleta,
+                                acabamento = acabamento,
+                                reduzirEfeitos = reduzirEfeitos,
                             )
                         }
                     }
@@ -484,6 +520,7 @@ private fun MenuDePausaInner(
                         aoReiniciar = aoReiniciar,
                         aoSair = aoSair,
                         paleta = paleta,
+                        acabamento = acabamento,
                     )
                 }
             }
@@ -648,7 +685,7 @@ private fun rememberNomeAmigavel(raw: String): String {
 }
 
 // =====================================================================
-// Barra de abas — estilo flat com linha deslizante
+// Barra de abas — ícone + texto, seleção com fundo e barra inferior
 // =====================================================================
 
 private data class TabItem(
@@ -662,6 +699,7 @@ private fun BarraDeAbas(
     abaAtual: AbaDoMenu,
     aoMudarAba: (AbaDoMenu) -> Unit,
     paleta: PaletaMenu,
+    acabamento: String,
 ) {
     val ctx = LocalContext.current
     val abas = listOf(
@@ -671,84 +709,76 @@ private fun BarraDeAbas(
     )
 
     var abaIndex by remember { mutableIntStateOf(abas.indexOfFirst { it.aba == abaAtual }.takeIf { it >= 0 } ?: 0) }
-    var larguraTab by remember { mutableStateOf(0f) }
+
+    val corTexto = paleta.texto
+    val corDestaque = paleta.destaque
+    val cantos = RoundedCornerShape(16.dp)
 
     Box(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(44.dp)
+                .height(52.dp)
                 .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             abas.forEachIndexed { index, item ->
                 val isSelected = index == abaIndex
-                val corTexto = if (isSelected) paleta.texto else paleta.texto.copy(alpha = 0.6f)
+                val bgAnim by animateColorAsState(
+                    targetValue = if (isSelected) corDestaque.copy(alpha = 0.22f) else Color.Transparent,
+                    label = "tabBg_$index",
+                )
+                val textAnim by animateColorAsState(
+                    targetValue = if (isSelected) corTexto else corTexto.copy(alpha = 0.75f),
+                    label = "tabText_$index",
+                )
+                val fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isSelected) paleta.destaque.copy(alpha = 0.14f) else Color.Transparent)
-                        .clickable(onClick = { aoMudarAba(item.aba) })
-                        .onSizeChanged { size ->
-                            if (larguraTab == 0f) larguraTab = size.width.toFloat()
-                        },
+                        .clip(cantos)
+                        .background(bgAnim)
+                        .clickable(onClick = {
+                            abaIndex = index
+                            aoMudarAba(item.aba)
+                            Log.d("PhoenixAjustes", "aba=$abaIndex")
+                        }),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        imageVector = item.iconVector,
-                        contentDescription = ctx.getString(item.labelRes),
-                        tint = corTexto,
-                        modifier = Modifier.size(20.dp),
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = item.iconVector,
+                            contentDescription = ctx.getString(item.labelRes),
+                            tint = textAnim,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Text(
+                            text = ctx.getString(item.labelRes),
+                            fontSize = 14.sp,
+                            fontWeight = fontWeight,
+                            color = textAnim,
+                        )
+                    }
+
+                    // Barra inferior 3dp (60% largura) — só na aba selecionada
+                    if (isSelected) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .fillMaxWidth(0.6f)
+                                .height(3.dp)
+                                .background(corDestaque, RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp, bottomStart = 0.dp, bottomEnd = 0.dp)),
+                        )
+                    }
                 }
             }
         }
-        // Sublinhado deslizante
-        val larguraDp = with(LocalDensity.current) { larguraTab.dp }
-        val targetX = remember(abaIndex, larguraTab) {
-            16.dp + ((larguraDp + 8.dp) * abaIndex.toFloat())
-        }
-        val animX by animateDpAsState(
-            targetValue = targetX,
-            animationSpec = spring(stiffness = Spring.StiffnessMedium),
-            label = "tabUnderlineX",
-        )
-        Box(
-            modifier = Modifier
-                .offset(x = animX)
-                .width(larguraDp)
-                .height(2.dp)
-                .background(paleta.destaque, RoundedCornerShape(topStart = 2.dp, topEnd = 2.dp, bottomStart = 0.dp, bottomEnd = 0.dp)),
-        )
-    }
-}
-
-@Composable
-private fun TabConteudo(
-    item: TabItem,
-    corTexto: Color,
-    ativa: Boolean,
-    ctx: android.content.Context,
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Image(
-            painter = rememberVectorPainter(image = item.iconVector),
-            contentDescription = null,
-            modifier = Modifier.size(14.dp),
-            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(corTexto),
-        )
-        Text(
-            text = ctx.getString(item.labelRes),
-            fontSize = 12.sp,
-            fontWeight = if (ativa) FontWeight.SemiBold else FontWeight.Normal,
-            color = corTexto,
-        )
     }
 }
 
@@ -764,11 +794,13 @@ private fun ConteudoAbaJogo(
     aoCarregarEstado: (Int) -> Unit,
     aoMudarSlot: (Int) -> Unit,
     paleta: PaletaMenu,
+    acabamento: String,
+    reduzirEfeitos: Boolean,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
         // 1 — Botões Salvar / Carregar
-        LinhaSalvarCarregarVidro(
+        LinhaSalvarCarregar(
             aoSalvar = { aoSalvarEstado(slotSelecionado) },
             aoCarregar = {
                 if (slots.getOrNull(slotSelecionado - 1)?.exists == true) {
@@ -778,17 +810,18 @@ private fun ConteudoAbaJogo(
             slotVazio = slots.getOrNull(slotSelecionado - 1)?.exists != true,
             numeroSlot = slotSelecionado,
             paleta = paleta,
+            acabamento = acabamento,
         )
 
         // 2 — Rótulo SLOTS
         RótuloSeção(texto = "SLOTS", paleta = paleta)
 
         // 3 — Linha dos 4 slots
-        LinhaSlots(slots, slotSelecionado, aoSelecionar = { aoMudarSlot(it) }, paleta = paleta)
+        LinhaSlots(slots, slotSelecionado, aoSelecionar = { aoMudarSlot(it) }, paleta = paleta, acabamento = acabamento)
     }
 }
 
-// ---- Botões de vidro (sem preenchimento sólido) ----
+// ---- Botões Salvar/Carregar — VIDRO ou SÓLIDO conforme acabamento ----
 
 @Composable
 private fun BotaoVidro(
@@ -799,17 +832,31 @@ private fun BotaoVidro(
     labelRes: Int,
     ctx: android.content.Context = androidx.compose.ui.platform.LocalContext.current,
     paleta: PaletaMenu,
+    acabamento: String,
 ) {
     val corDestaque = paleta.destaque
     val alphaEnabled = if (enabled) 1f else 0.4f
+    val isSolido = acabamento.uppercase() == "SOLIDO"
+    val cantos = RoundedCornerShape(16.dp)
+
+    val fundoBotao = if (isSolido) {
+        // SÓLIDO: fundo destaque alpha 0.16
+        corDestaque.copy(alpha = 0.16f)
+    } else {
+        // VIDRO: fundo mais escuro que o painel, alpha 0.85
+        val baseSemAlpha = paleta.fundoPainel.copy(alpha = 1f)
+        val escurecido = baseSemAlpha.mixWith(Color.Black, 0.35f)
+        escurecido.copy(alpha = 0.85f)
+    }
+
     Box(
         modifier = modifier
             .border(
-                width = 1.dp,
-                color = corDestaque.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(12.dp),
+                width = if (isSolido) 1.dp else 1.5.dp,
+                color = corDestaque.copy(alpha = if (isSolido) 0.45f else 0.7f),
+                shape = cantos,
             )
-            .background(paleta.fundoBotao, RoundedCornerShape(12.dp))
+            .background(fundoBotao, cantos)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center,
@@ -849,12 +896,13 @@ private fun RótuloSeção(texto: String, paleta: PaletaMenu) {
 }
 
 @Composable
-private fun LinhaSalvarCarregarVidro(
+private fun LinhaSalvarCarregar(
     aoSalvar: () -> Unit,
     aoCarregar: () -> Unit,
     slotVazio: Boolean,
     numeroSlot: Int,
     paleta: PaletaMenu,
+    acabamento: String,
 ) {
     val ctx = LocalContext.current
     Row(
@@ -869,6 +917,7 @@ private fun LinhaSalvarCarregarVidro(
             labelRes = R.string.jogo_menu_salvar_estado,
             ctx = ctx,
             paleta = paleta,
+            acabamento = acabamento,
         )
         BotaoVidro(
             onClick = aoCarregar,
@@ -878,6 +927,7 @@ private fun LinhaSalvarCarregarVidro(
             labelRes = R.string.jogo_menu_carregar_estado,
             ctx = ctx,
             paleta = paleta,
+            acabamento = acabamento,
         )
     }
 }
@@ -903,6 +953,7 @@ private fun LinhaSlots(
     slotSelecionado: Int,
     aoSelecionar: (Int) -> Unit,
     paleta: PaletaMenu,
+    acabamento: String,
 ) {
     BoxWithConstraints(
         modifier = Modifier
@@ -926,6 +977,7 @@ private fun LinhaSlots(
                     onClick = { aoSelecionar(numeroSlot) },
                     cardWidth = cardW,
                     paleta = paleta,
+                    acabamento = acabamento,
                 )
             }
         }
@@ -940,9 +992,14 @@ private fun SlotCardMini(
     onClick: () -> Unit,
     cardWidth: androidx.compose.ui.unit.Dp,
     paleta: PaletaMenu,
+    acabamento: String,
 ) {
     val ctx = LocalContext.current
     val corDestaque = paleta.destaque
+    val isSolido = acabamento.uppercase() == "SOLIDO"
+
+    // VIDRO: cantos 8dp, SÓLIDO: cantos 10dp
+    val cantos = if (isSolido) 10.dp else 8.dp
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -954,15 +1011,15 @@ private fun SlotCardMini(
             modifier = Modifier
                 .width(cardWidth)
                 .height(cardWidth * 3f / 4f)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(cantos))
                 .border(
                     width = if (selecionado) 2.dp else 1.dp,
-                    color = if (selecionado) corDestaque else paleta.texto.copy(alpha = 0.15f),
-                    shape = RoundedCornerShape(8.dp),
+                    color = if (selecionado) corDestaque else paleta.texto.copy(alpha = if (isSolido) 0.3f else 0.3f),
+                    shape = RoundedCornerShape(cantos),
                 )
                 .background(
                     if (slot.exists && slot.bitmap != null) Color.Transparent else Color.DarkGray.copy(alpha = 0.5f),
-                    RoundedCornerShape(8.dp),
+                    RoundedCornerShape(cantos),
                 )
                 .clickable(onClick = onClick),
         ) {
@@ -1039,7 +1096,7 @@ private fun SlotCardMini(
 }
 
 // =====================================================================
-// Rodapé fixo — 3 botões com estilo vidro
+// Rodapé fixo — botões VIDRO ou SÓLIDO conforme acabamento
 // =====================================================================
 
 @Composable
@@ -1048,9 +1105,11 @@ private fun RodapeFixo(
     aoReiniciar: () -> Unit,
     aoSair: () -> Unit,
     paleta: PaletaMenu,
+    acabamento: String,
 ) {
     val ctx = LocalContext.current
     val corDestaque = paleta.destaque
+    val isSolido = acabamento.uppercase() == "SOLIDO"
 
     Column {
         // Divisor de 1dp no topo (alpha 0.12)
@@ -1073,27 +1132,30 @@ private fun RodapeFixo(
                 onClick = aoContinuar,
                 labelRes = R.string.jogo_menu_continuar,
                 cor = corDestaque,
-                alphaFundo = 0.24f,
                 ctx = ctx,
                 paleta = paleta,
+                acabamento = acabamento,
+                isBotaoDestaque = true,
             )
             RodapeBotao(
                 modifier = Modifier.weight(1f),
                 onClick = aoReiniciar,
                 labelRes = R.string.jogo_menu_reiniciar,
                 cor = corDestaque,
-                alphaFundo = 0.12f,
                 ctx = ctx,
                 paleta = paleta,
+                acabamento = acabamento,
+                isBotaoDestaque = false,
             )
             RodapeBotao(
                 modifier = Modifier.weight(1f),
                 onClick = aoSair,
                 labelRes = R.string.jogo_menu_sair,
                 cor = corDestaque,
-                alphaFundo = 0.12f,
                 ctx = ctx,
                 paleta = paleta,
+                acabamento = acabamento,
+                isBotaoDestaque = false,
             )
         }
     }
@@ -1105,19 +1167,33 @@ private fun RodapeBotao(
     onClick: () -> Unit,
     labelRes: Int,
     cor: Color,
-    alphaFundo: Float,
     ctx: android.content.Context,
     paleta: PaletaMenu,
+    acabamento: String,
+    isBotaoDestaque: Boolean,
 ) {
+    val isSolido = acabamento.uppercase() == "SOLIDO"
+    val cantos = RoundedCornerShape(16.dp)
+
+    val fundoBotao = if (isSolido) {
+        // SÓLIDO: fundo destaque alpha 0.16
+        cor.copy(alpha = 0.16f)
+    } else {
+        // VIDRO: fundo mais escuro que o painel, alpha 0.85
+        val baseSemAlpha = paleta.fundoPainel.copy(alpha = 1f)
+        val escurecido = baseSemAlpha.mixWith(Color.Black, 0.35f)
+        escurecido.copy(alpha = 0.85f)
+    }
+
     Box(
         modifier = modifier
             .height(48.dp)
             .border(
-                width = 1.dp,
-                color = cor.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(12.dp),
+                width = if (isSolido) 1.dp else 1.5.dp,
+                color = if (isSolido) cor.copy(alpha = 0.45f) else cor.copy(alpha = 0.7f),
+                shape = cantos,
             )
-            .background(cor.copy(alpha = alphaFundo), RoundedCornerShape(12.dp))
+            .background(fundoBotao, cantos)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {

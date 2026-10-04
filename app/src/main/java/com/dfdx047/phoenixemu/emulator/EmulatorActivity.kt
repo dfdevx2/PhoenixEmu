@@ -582,7 +582,6 @@ class EmulatorActivity : ComponentActivity() {
                             capaLocalPath = capaLocal,
                             tempoJogadoMs = tempoJogadoMs,
                             plataforma = plataforma,
-                            menuEstilo = menuEstilo,
                             menuDesfoque = menuDesfoque,
                             menuOpacidade = menuOpacidade,
                             menuLado = menuLado,
@@ -590,6 +589,9 @@ class EmulatorActivity : ComponentActivity() {
                             temaCorPrimaria = temaCorPrimaria,
                             temaCorSuperficie = temaCorSuperficie,
                             temaCorTexto = temaCorTexto,
+                            amoled = amoled,
+                            acabamento = acabamento.name,
+                            reduzirEfeitos = reduzirEfeitos,
                             aoFechar = {
                                 mensagemFeedback = ""
                                 isPaused = false

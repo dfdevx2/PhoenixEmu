@@ -7,8 +7,10 @@
     <string name="ajustes_op_estilo_fosco">Fosco</string>
     <string name="ajustes_titulo_menu_desfoque">Intensidade do desfoque</string>
     <string name="ajustes_dica_menu_desfoque">Intensidade do desfoque de fundo (apenas estilo Vidro).</string>
+    <string name="ajustes_dica_menu_desfoque_fosco">O desfoque só vale no estilo Vidro.</string>
     <string name="ajustes_titulo_menu_opacidade">Opacidade do painel</string>
     <string name="ajustes_dica_menu_opacidade">Opacidade do painel do menu de pausa.</string>
+    <string name="ajustes_dica_menu_opacidade_fosco">A opacidade só vale no estilo Vidro.</string>
     <string name="ajustes_titulo_menu_lado">Lado do painel</string>
     <string name="ajustes_dica_menu_lado">Lado da tela onde o painel aparece.</string>
     <string name="ajustes_op_lado_esquerda">Esquerda</string>
@@ -163,6 +165,9 @@
     <string name="config_acabamento">Acabamento das superfícies</string>
     <string name="config_acabamento_desc">O vidro fosco desfoca o que está atrás dos painéis. O sólido usa as mesmas cores sem o desfoque.</string>
     <string name="config_amoled">Preto absoluto (AMOLED)</string>
+    <string name="menu_overlay_titulo">Menu de pausa (overlay)</string>
+    <string name="menu_overlay_dica">O estilo (vidro fosco ou sólido) segue o Acabamento da superfície acima e as cores seguem o tema. Aqui você ajusta o desfoque do jogo ao fundo e a opacidade do painel.</string>
+    <string name="menu_desfoque_reduzindo_aviso">Reduzir efeitos está ligado: o desfoque não será aplicado</string>
     <string name="config_amoled_desc">Deixa o fundo preto puro em qualquer tema escuro. Economiza bateria em telas OLED.</string>
     <string name="acao_escolher_tema">Trocar tema</string>
     <string name="titulo_escolher_tema">Escolha um tema</string>

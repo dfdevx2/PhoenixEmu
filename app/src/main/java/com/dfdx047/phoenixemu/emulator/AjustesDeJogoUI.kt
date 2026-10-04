@@ -29,7 +29,8 @@ internal fun ConteudoAbaAjustes(
     ajustes: AjustesDeJogo,
     aoMudarAjuste: (String, Any, String) -> Unit,
     aoLimparAjustesJogo: () -> Unit,
-    paleta: PaletaMenu
+    paleta: PaletaMenu,
+    acabamento: String,
 ) {
     var isSomenteEsteJogo by remember(ajustes.overrides) { mutableStateOf(ajustes.isSomenteEsteJogo()) }
 
@@ -42,22 +43,34 @@ internal fun ConteudoAbaAjustes(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
-                    modifier = Modifier.weight(1f).fillMaxHeight().background(if (!isSomenteEsteJogo) paleta.destaque.copy(alpha = 0.4f) else Color.Transparent).clickable { 
-                        isSomenteEsteJogo = false
-                        aoMudarAjuste("escopo", false, "boolean")
-                    },
+                    modifier = Modifier
+                        .weight(1f).fillMaxHeight()
+                        .let { m ->
+                            if (!isSomenteEsteJogo) m.border(1.5.dp, paleta.destaque, RoundedCornerShape(8.dp)) else m
+                        }
+                        .background(if (!isSomenteEsteJogo) paleta.destaque.copy(alpha = 0.38f) else Color.Transparent)
+                        .clickable {
+                            isSomenteEsteJogo = false
+                            aoMudarAjuste("escopo", false, "boolean")
+                        },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = stringResource(R.string.ajustes_aplicar_todos), fontSize = 13.sp, fontWeight = if (!isSomenteEsteJogo) FontWeight.Bold else FontWeight.Normal, color = paleta.texto)
+                    Text(text = stringResource(R.string.ajustes_aplicar_todos), fontSize = 13.sp, fontWeight = if (!isSomenteEsteJogo) FontWeight.Bold else FontWeight.Normal, color = if (!isSomenteEsteJogo) paleta.destaque else paleta.texto)
                 }
                 Box(
-                    modifier = Modifier.weight(1f).fillMaxHeight().background(if (isSomenteEsteJogo) paleta.destaque.copy(alpha = 0.4f) else Color.Transparent).clickable { 
-                        isSomenteEsteJogo = true
-                        aoMudarAjuste("escopo", true, "boolean")
-                    },
+                    modifier = Modifier
+                        .weight(1f).fillMaxHeight()
+                        .let { m ->
+                            if (isSomenteEsteJogo) m.border(1.5.dp, paleta.destaque, RoundedCornerShape(8.dp)) else m
+                        }
+                        .background(if (isSomenteEsteJogo) paleta.destaque.copy(alpha = 0.38f) else Color.Transparent)
+                        .clickable {
+                            isSomenteEsteJogo = true
+                            aoMudarAjuste("escopo", true, "boolean")
+                        },
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = stringResource(R.string.ajustes_aplicar_este), fontSize = 13.sp, fontWeight = if (isSomenteEsteJogo) FontWeight.Bold else FontWeight.Normal, color = paleta.texto)
+                    Text(text = stringResource(R.string.ajustes_aplicar_este), fontSize = 13.sp, fontWeight = if (isSomenteEsteJogo) FontWeight.Bold else FontWeight.Normal, color = if (isSomenteEsteJogo) paleta.destaque else paleta.texto)
                 }
             }
             Text(
@@ -176,10 +189,18 @@ private fun LinhaSegmentada(
                 opcoes.forEach { (rotulo, valor) ->
                     val isSelected = selecionado == valor
                     Box(
-                        modifier = Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(8.dp)).background(if (isSelected) paleta.destaque.copy(alpha = 0.4f) else Color.Transparent).clickable { onSelect(valor) },
-                        contentAlignment = Alignment.Center
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .let { m ->
+                                if (isSelected) m.border(1.5.dp, paleta.destaque, RoundedCornerShape(8.dp)) else m
+                            }
+                            .background(if (isSelected) paleta.destaque.copy(alpha = 0.38f) else Color.Transparent)
+                            .clickable { onSelect(valor) },
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Text(text = rotulo, fontSize = 12.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, color = paleta.texto)
+                        Text(text = rotulo, fontSize = 12.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, color = if (isSelected) paleta.destaque else paleta.texto)
                     }
                 }
             }

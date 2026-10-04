@@ -459,35 +459,33 @@ fun TelaConfiguracoes(prefs: Preferencias) {
 
                     HorizontalDivider()
 
-                    RotuloComDica(R.string.ajustes_titulo_menu_estilo, R.string.ajustes_dica_menu_estilo)
-                    val menuEstiloOpcoes = listOf(
-                        "VIDRO" to stringResource(R.string.ajustes_op_estilo_vidro),
-                        "FOSCO" to stringResource(R.string.ajustes_op_estilo_fosco)
+                    // Menu do jogo (overlay) — segue o acabamento global
+                    RotuloComDica(R.string.menu_overlay_titulo, R.string.menu_overlay_dica)
+
+                    HorizontalDivider()
+
+                    // Desfoque e Opacidade — SEMPRE visíveis (independente do acabamento)
+                    RotuloComDica(R.string.ajustes_titulo_menu_desfoque, R.string.ajustes_dica_menu_desfoque)
+                    Slider(
+                        value = desfoqueArrastadoMenu,
+                        onValueChange = { desfoqueArrastadoMenu = it },
+                        onValueChangeFinished = { prefs.setAjusteFloat("aj_global_menu_desfoque", desfoqueArrastadoMenu) },
+                        valueRange = 0f..40f
                     )
-                    menuEstiloOpcoes.forEach { (nome, rotulo) ->
-                        LinhaDeOpcaoString(
-                            rotulo = rotulo,
-                            selecionado = globalMenuEstilo == nome,
-                            onSelecionar = { prefs.setAjusteString("aj_global_menu_estilo", nome) }
+                    if (reduzirEfeitos) {
+                        Text(
+                            stringResource(R.string.menu_desfoque_reduzindo_aviso),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
-                    if (globalMenuEstilo == "VIDRO") {
-                        RotuloComDica(R.string.ajustes_titulo_menu_desfoque, R.string.ajustes_dica_menu_desfoque)
-                        Slider(
-                            value = desfoqueArrastadoMenu,
-                            onValueChange = { desfoqueArrastadoMenu = it },
-                            onValueChangeFinished = { prefs.setAjusteFloat("aj_global_menu_desfoque", desfoqueArrastadoMenu) },
-                            valueRange = 0f..40f
-                        )
-                    }
-                    
                     RotuloComDica(R.string.ajustes_titulo_menu_opacidade, R.string.ajustes_dica_menu_opacidade)
                     Slider(
                         value = opacidadeArrastadaMenu,
                         onValueChange = { opacidadeArrastadaMenu = it },
                         onValueChangeFinished = { prefs.setAjusteFloat("aj_global_menu_opacidade", opacidadeArrastadaMenu) },
-                        valueRange = 0.40f..1f
+                        valueRange = 0.30f..1f
                     )
 
                     HorizontalDivider()

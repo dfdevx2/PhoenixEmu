@@ -7,8 +7,10 @@
     <string name="ajustes_op_estilo_fosco">Opaque</string>
     <string name="ajustes_titulo_menu_desfoque">Blur intensity</string>
     <string name="ajustes_dica_menu_desfoque">Intensity of the background blur (only for Glass style).</string>
+    <string name="ajustes_dica_menu_desfoque_fosco">Blur only applies to Glass style.</string>
     <string name="ajustes_titulo_menu_opacidade">Panel opacity</string>
     <string name="ajustes_dica_menu_opacidade">Opacity of the pause menu panel.</string>
+    <string name="ajustes_dica_menu_opacidade_fosco">Opacity only applies to Glass style.</string>
     <string name="ajustes_titulo_menu_lado">Panel side</string>
     <string name="ajustes_dica_menu_lado">Side of the screen where the panel appears.</string>
     <string name="ajustes_op_lado_esquerda">Left</string>
@@ -163,6 +165,10 @@
     <string name="acabamento_solido">Solid</string>
     <string name="config_acabamento">Surface finish</string>
     <string name="config_acabamento_desc">Frosted glass blurs what is behind the panels. Solid uses the same colours without the blur.</string>
+    <string name="config_menu_pausa_segue_acabamento">The pause menu follows the global surface finish above.</string>
+    <string name="menu_overlay_titulo">Pause menu (overlay)</string>
+    <string name="menu_overlay_dica">The style (frosted glass or solid) follows the Surface finish above and the colours follow the theme. Here you adjust how blurred the game is behind it and how opaque the panel is.</string>
+    <string name="menu_desfoque_reduzindo_aviso">Reduce effects is on: blur will not be applied</string>
     <string name="config_amoled">Absolute black (AMOLED)</string>
     <string name="config_amoled_desc">Turns the background pure black on any dark theme. Saves battery on OLED screens.</string>
     <string name="acao_escolher_tema">Change theme</string>
