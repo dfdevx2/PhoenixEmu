@@ -83,15 +83,6 @@ internal fun ConteudoAbaAjustes(
         Text(text = stringResource(R.string.ajustes_secao_video), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = paleta.destaque.copy(alpha = 0.6f), letterSpacing = 2.sp)
         
         LinhaSegmentada(
-            titulo = stringResource(R.string.ajustes_titulo_escala),
-            dica = stringResource(R.string.ajustes_dica_escala),
-            opcoes = listOf(stringResource(R.string.ajustes_op_escala_ajustar) to EscalaImagem.AJUSTAR.name, stringResource(R.string.ajustes_op_escala_1x) to EscalaImagem.X1.name, stringResource(R.string.ajustes_op_escala_2x) to EscalaImagem.X2.name, stringResource(R.string.ajustes_op_escala_3x) to EscalaImagem.X3.name),
-            selecionado = ajustes.escala.name,
-            onSelect = { aoMudarAjuste(AjustesDeJogo.CHAVE_ESCALA, it, "string") },
-            paleta = paleta
-        )
-
-        LinhaSegmentada(
             titulo = stringResource(R.string.ajustes_titulo_proporcao),
             dica = stringResource(R.string.ajustes_dica_proporcao),
             opcoes = listOf(

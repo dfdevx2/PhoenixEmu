@@ -561,61 +561,20 @@ class EmulatorActivity : ComponentActivity() {
                         modifier = Modifier.let {
                             val wNat = nucleo.obterLarguraNativa().toFloat()
                             val hNat = nucleo.obterAlturaNativa().toFloat()
-                            
-                            val density = LocalDensity.current.density
-                            val screenW = LocalConfiguration.current.screenWidthDp * density
-                            val screenH = LocalConfiguration.current.screenHeightDp * density
-                            
-                            val aspectRatioNat = wNat / hNat
-                            
-                            var escala = when (ajustes.escala) {
-                                EscalaImagem.X1 -> 1
-                                EscalaImagem.X2 -> 2
-                                EscalaImagem.X3 -> 3
-                                else -> 0
-                            }
-                            
-                            val ratio = when (ajustes.proporcao) {
-                                ProporcaoImagem.AUTOMATICA -> aspectRatio
-                                ProporcaoImagem.PIXELS_QUADRADOS -> aspectRatioNat
-                                ProporcaoImagem.RATIO_4_3 -> 4f / 3f
-                                ProporcaoImagem.RATIO_16_9 -> 16f / 9f
-                                ProporcaoImagem.ESTICAR -> (screenW / screenH)
-                            }
-                            
+                            val aspectRatioNat = if (hNat > 0f) wNat / hNat else aspectRatio
                             if (ajustes.proporcao == ProporcaoImagem.ESTICAR) {
-                                Log.i("PhoenixAjustes", "area=${screenW.toInt()}x${screenH.toInt()} px, tamanho=$escala, proporcao=${ajustes.proporcao}, destino=${screenW.toInt()}x${screenH.toInt()} px")
-                                return@let it.fillMaxSize()
-                            }
-                            
-                            if (escala > 0) {
-                                var displayH = hNat * escala
-                                var displayW = displayH * ratio
-                                
-                                while (escala > 1 && (displayH > screenH || displayW > screenW)) {
-                                    escala--
-                                    displayH = hNat * escala
-                                    displayW = displayH * ratio
-                                }
-                                
-                                if (displayH <= screenH && displayW <= screenW) {
-                                    Log.i("PhoenixAjustes", "area=${screenW.toInt()}x${screenH.toInt()} px, tamanho=$escala, proporcao=${ajustes.proporcao}, destino=${displayW.toInt()}x${displayH.toInt()} px")
-                                    return@let it.size((displayW / density).dp, (displayH / density).dp)
-                                }
-                            }
-                            
-                            val fitW = screenH * ratio
-                            val displayW: Float
-                            val displayH: Float
-                            if (fitW > screenW) {
-                                displayW = screenW
-                                displayH = screenW / ratio
+                                it.fillMaxSize()
                             } else {
-                                displayW = fitW
-                                displayH = screenH
+                                val ratio = when (ajustes.proporcao) {
+                                    ProporcaoImagem.AUTOMATICA -> aspectRatio
+                                    ProporcaoImagem.PIXELS_QUADRADOS -> aspectRatioNat
+                                    ProporcaoImagem.RATIO_4_3 -> 4f / 3f
+                                    ProporcaoImagem.RATIO_16_9 -> 16f / 9f
+                                    else -> aspectRatio
+                                }
+                                Log.i("PhoenixAjustes", "proporcao=${ajustes.proporcao} ratio=$ratio")
+                                it.aspectRatio(ratio.coerceAtLeast(0.1f))
                             }
-                            Log.i("PhoenixAjustes", "area=${screenW.toInt()}x${screenH.toInt()} px, tamanho=0, proporcao=${ajustes.proporcao}, destino=${displayW.toInt()}x${displayH.toInt()} px")
-                            it.fillMaxSize().aspectRatio(ratio)
                         }
                     )
 
