@@ -218,8 +218,6 @@
     <string name="botao_start">Start</string>
     <string name="botao_select">Select</string>
     <!-- controls: on-screen overlay -->
-    <string name="overlay_mostrar">Show on-screen controls</string>
-    <string name="overlay_mostrar_desc">Useful without a gamepad. With one connected they can stay off.</string>
     <string name="overlay_arraste">Drag a button to move it. The layout is saved as you go.</string>
     <string name="overlay_opacidade">Opacity</string>
     <string name="overlay_tamanho">Size</string>
@@ -400,5 +398,57 @@
     <string name="atalhos_restaurado">Shortcuts restored to defaults</string>
     <string name="controles_rotulo_atual">Current</string>
     <string name="controles_rotulo_remapear">Remap</string>
+
+    <string name="overlay_mostrar">Visibility mode</string>
+
+    <string name="overlay_mostrar_desc">When to show the on-screen controls.</string>
+
+    <string name="overlay_modo_sempre">Always</string>
+
+    <string name="overlay_modo_auto">Auto-hide on gamepad input</string>
+
+    <string name="overlay_modo_nunca">Never</string>
+
+    <string name="overlay_opacidade_ociosa">Idle opacity</string>
+
+    <string name="overlay_opacidade_pressionado">Pressed opacity</string>
+
+    <string name="overlay_tamanho_global">Global scale</string>
+
+    <string name="overlay_margem_segura">Safe margin</string>
+
+    <string name="overlay_skin">Controller skin</string>
+
+    <string name="overlay_skin_8bit">Classic 8-bit</string>
+
+    <string name="overlay_skin_16bit">Classic 16-bit</string>
+
+    <string name="overlay_skin_moderno">Modern</string>
+
+    <string name="overlay_haptico">Haptic feedback</string>
+
+    <string name="overlay_haptico_desc">Vibrate when a button is pressed.</string>
+
+    <string name="overlay_mostrar_rotulos">Show labels</string>
+
+    <string name="overlay_mostrar_rotulos_desc">Show A, B, X, Y letters on buttons.</string>
+
+    <string name="overlay_zona_morta">D-pad deadzone</string>
+
+    <string name="overlay_diagonais">Allow diagonals on D-pad</string>
+
+    <string name="overlay_deslizar">Allow sliding between buttons</string>
+
+    <string name="overlay_ocultar_menu">Hide in pause menu</string>
+
+    <string name="overlay_esquema_cor">Color scheme</string>
+
+    <string name="overlay_esquema_mono">Monochrome (Theme)</string>
+
+    <string name="overlay_esquema_sfc">Super Famicom (Colors)</string>
+
+    <string name="overlay_restaurar">Restore defaults</string>
+
+    <string name="ajustes_secao_controles_tela">ON-SCREEN CONTROLS</string>
 
 </resources>

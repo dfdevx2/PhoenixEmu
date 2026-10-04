@@ -548,6 +548,8 @@ private fun MenuDePausaInner(
                                 aoAlternarHotkey = aoAlternarHotkey,
                                 aoRestaurar = aoRestaurarAtalhos,
                                 aoRestaurarBotoes = aoRestaurarBotoes,
+                                ajustes = ajustes,
+                                aoMudarAjuste = aoMudarAjuste
                             )
                             else -> ConteudoAbaJogo(
                                 slots = slots,

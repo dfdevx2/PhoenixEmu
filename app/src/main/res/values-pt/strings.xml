@@ -216,10 +216,6 @@
     <string name="botao_start">Start</string>
     <string name="botao_select">Select</string>
     <!-- controles: overlay de toque -->
-    <string name="overlay_mostrar">Mostrar controles na tela</string>
-    <string name="overlay_mostrar_desc">Úteis sem controle físico. Com um conectado, podem ficar desligados.</string>
-    <string name="overlay_arraste">Arraste um botão para movê-lo. O layout é salvo na hora.</string>
-    <string name="overlay_opacidade">Opacidade</string>
     <string name="overlay_tamanho">Tamanho</string>
     <!-- idioma -->
     <string name="config_idioma">Idioma</string>
@@ -396,5 +392,57 @@
     <string name="atalhos_restaurado">Atalhos restaurados para o padrão</string>
     <string name="controles_rotulo_atual">Atual</string>
     <string name="controles_rotulo_remapear">Remapear</string>
+
+    <string name="overlay_mostrar">Modo de visibilidade</string>
+
+    <string name="overlay_mostrar_desc">Quando mostrar os controles na tela.</string>
+
+    <string name="overlay_modo_sempre">Sempre</string>
+
+    <string name="overlay_modo_auto">Esconder ao usar controle</string>
+
+    <string name="overlay_modo_nunca">Nunca</string>
+
+    <string name="overlay_opacidade_ociosa">Opacidade ociosa</string>
+
+    <string name="overlay_opacidade_pressionado">Opacidade pressionado</string>
+
+    <string name="overlay_tamanho_global">Tamanho global</string>
+
+    <string name="overlay_margem_segura">Margem segura</string>
+
+    <string name="overlay_skin">Aparência do controle (Skin)</string>
+
+    <string name="overlay_skin_8bit">Clássico 8-bit</string>
+
+    <string name="overlay_skin_16bit">Clássico 16-bit</string>
+
+    <string name="overlay_skin_moderno">Moderno</string>
+
+    <string name="overlay_haptico">Retorno tátil (vibração)</string>
+
+    <string name="overlay_haptico_desc">Vibrar ao pressionar os botões na tela.</string>
+
+    <string name="overlay_mostrar_rotulos">Mostrar rótulos</string>
+
+    <string name="overlay_mostrar_rotulos_desc">Mostra as letras A, B, X, Y nos botões.</string>
+
+    <string name="overlay_zona_morta">Zona morta do D-pad</string>
+
+    <string name="overlay_diagonais">Permitir diagonais no D-pad</string>
+
+    <string name="overlay_deslizar">Deslizar entre botões</string>
+
+    <string name="overlay_ocultar_menu">Ocultar no menu de pausa</string>
+
+    <string name="overlay_esquema_cor">Esquema de cores</string>
+
+    <string name="overlay_esquema_mono">Monocromático (Tema)</string>
+
+    <string name="overlay_esquema_sfc">Super Famicom (Colorido)</string>
+
+    <string name="overlay_restaurar">Restaurar padrões</string>
+
+    <string name="ajustes_secao_controles_tela">CONTROLES NA TELA</string>
 
 </resources>

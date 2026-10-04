@@ -1,22 +1,28 @@
 package com.dfdx047.phoenixemu.emulator
 
-import android.view.KeyEvent
+import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
-import com.dfdx047.phoenixemu.data.OverlayConfigNova
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.sp
 import com.dfdx047.phoenixemu.data.BotaoVirtual
+import com.dfdx047.phoenixemu.data.OverlayConfigNova
 import com.dfdx047.phoenixemu.data.TipoControleNaTela
 import kotlin.math.atan2
 import kotlin.math.hypot
@@ -27,15 +33,32 @@ fun OverlayDeToque(
     visivel: Boolean,
     corPrimaria: Color,
     corAcento: Color,
-    aoMudarToque: (Int) -> Unit
+    aoMudarToque: (Int) -> Unit,
+    plataforma: String = "SNES"
 ) {
+    var touchMaskAtual by remember { mutableIntStateOf(0) }
+    val view = LocalView.current
+    val textMeasurer = rememberTextMeasurer()
+    val textStyle = TextStyle(
+        fontWeight = FontWeight.Bold,
+        fontSize = 16.sp
+    )
+
+    DisposableEffect(visivel) {
+        onDispose {
+            if (touchMaskAtual != 0) {
+                touchMaskAtual = 0
+                aoMudarToque(0)
+            }
+        }
+    }
+
     if (!visivel || config.visivelModo == com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.NUNCA) return
 
-    val skin = SkinClassicaSnes // Usaremos a clássica por enquanto
-    
-    // Estado interno para rastrear ponteiros e botões pressionados
-    var botoesPressionados by remember { mutableStateOf(setOf<BotaoVirtual>()) }
-    var direcoesDpad by remember { mutableStateOf(setOf<BotaoVirtual>()) }
+    val skinId = config.skinId
+    val skin = if (skinId == "classico_8bit") SkinClassica8Bit 
+               else if (skinId == "moderno") SkinModerna 
+               else SkinClassica16Bit
 
     Box(
         modifier = Modifier
@@ -45,99 +68,138 @@ fun OverlayDeToque(
                 awaitPointerEventScope {
                     while (true) {
                         val evento = awaitPointerEvent()
-                        val posicoes = evento.changes.map { it.position }
+                        var novaMascara = 0
                         
-                        val novosBotoes = mutableSetOf<BotaoVirtual>()
-                        val novasDirecoes = mutableSetOf<BotaoVirtual>()
-                        
-                        for (pos in posicoes) {
-                            // Converter coords 0..1
-                            val px = pos.x / size.width
-                            val py = pos.y / size.height
-                            
-                            // Verificar colisão
-                            for (controle in config.controles) {
-                                val dx = px - controle.x
-                                val dy = py - controle.y
+                        val w = size.width.toFloat()
+                        val h = size.height.toFloat()
+                        val rRef = Math.min(w, h) * 0.08f * config.escalaGlobal
+
+                        val changes = evento.changes
+                        for (i in changes.indices) {
+                            val pointer = changes[i]
+                            if (!pointer.pressed) continue
+
+                            val px = pointer.position.x
+                            val py = pointer.position.y
+
+                            var distMin = Float.MAX_VALUE
+                            var botaoProximo: BotaoVirtual? = null
+
+                            for (j in config.controles.indices) {
+                                val c = config.controles[j]
+                                val cx = c.x * w
+                                val cy = c.y * h
+                                val dx = px - cx
+                                val dy = py - cy
                                 val dist = hypot(dx.toDouble(), dy.toDouble()).toFloat()
-                                
-                                val raioBase = 0.08f * config.escalaGlobal * controle.tamanhoBase
-                                
-                                if (controle.tipo == TipoControleNaTela.DPAD) {
-                                    if (dist < raioBase * 2.5f && dist > config.zonaMortaDpad * raioBase) {
-                                        val angulo = atan2(dy.toDouble(), dx.toDouble()) * 180 / Math.PI
-                                        // Mapear angulo para cima, baixo, esq, dir
-                                        // -45 a 45: Direita
-                                        // 45 a 135: Baixo
-                                        // 135 a -135: Esquerda
-                                        // -135 a -45: Cima
-                                        if (angulo > -67.5 && angulo < 67.5) novasDirecoes.add(BotaoVirtual.DIREITA)
-                                        if (angulo > 22.5 && angulo < 157.5) novasDirecoes.add(BotaoVirtual.BAIXO)
-                                        if (angulo < -22.5 && angulo > -157.5) novasDirecoes.add(BotaoVirtual.CIMA)
-                                        if (angulo > 112.5 || angulo < -112.5) novasDirecoes.add(BotaoVirtual.ESQUERDA)
+                                val raio = rRef * c.tamanhoBase
+
+                                if (c.tipo == TipoControleNaTela.DPAD) {
+                                    val raioDpadToque = raio * 1.5f
+                                    if (dist < raioDpadToque && dist > config.zonaMortaDpad * raioDpadToque) {
+                                        val ang = atan2(dy.toDouble(), dx.toDouble()) * 180 / Math.PI
+                                        if (ang > -67.5 && ang < 67.5) novaMascara = novaMascara or (1 shl 7) // DIR
+                                        if (ang > 22.5 && ang < 157.5) novaMascara = novaMascara or (1 shl 5) // BAIXO
+                                        if (ang < -22.5 && ang > -157.5) novaMascara = novaMascara or (1 shl 4) // CIMA
+                                        if (ang > 112.5 || ang < -112.5) novaMascara = novaMascara or (1 shl 6) // ESQ
                                     }
-                                } else if (dist < raioBase * 1.5f) {
-                                    controle.acao?.botaoVirtual?.let { novosBotoes.add(it) }
+                                } else {
+                                    val raioToque = if (c.formato == "PILULA") raio * 2.0f else raio * 1.5f
+                                    if (dist < raioToque && dist < distMin) {
+                                        distMin = dist
+                                        botaoProximo = c.acao?.botaoVirtual
+                                    }
                                 }
                             }
-                        }
-                        
-                        if (novosBotoes != botoesPressionados || novasDirecoes != direcoesDpad) {
-                            botoesPressionados = novosBotoes
-                            direcoesDpad = novasDirecoes
-                            
-                            var mascara = 0
-                            val combinados = novosBotoes + novasDirecoes
-                            
-                            // Mapear para keycodes ou bits diretamente
-                            // Para facilitar com o motor existente, simulamos keycodes
-                            val bitMap = mapOf(
-                                BotaoVirtual.CIMA to (1 shl 4),
-                                BotaoVirtual.BAIXO to (1 shl 5),
-                                BotaoVirtual.ESQUERDA to (1 shl 6),
-                                BotaoVirtual.DIREITA to (1 shl 7),
-                                BotaoVirtual.A to (1 shl 8),
-                                BotaoVirtual.B to (1 shl 0),
-                                BotaoVirtual.X to (1 shl 9),
-                                BotaoVirtual.Y to (1 shl 1),
-                                BotaoVirtual.L to (1 shl 10),
-                                BotaoVirtual.R to (1 shl 11),
-                                BotaoVirtual.SELECT to (1 shl 2),
-                                BotaoVirtual.START to (1 shl 3)
-                            )
-                            
-                            for (b in combinados) {
-                                bitMap[b]?.let { mascara = mascara or it }
+
+                            if (botaoProximo != null) {
+                                val bit = when(botaoProximo) {
+                                    BotaoVirtual.CIMA -> (1 shl 4)
+                                    BotaoVirtual.BAIXO -> (1 shl 5)
+                                    BotaoVirtual.ESQUERDA -> (1 shl 6)
+                                    BotaoVirtual.DIREITA -> (1 shl 7)
+                                    BotaoVirtual.A -> (1 shl 8)
+                                    BotaoVirtual.B -> (1 shl 0)
+                                    BotaoVirtual.X -> (1 shl 9)
+                                    BotaoVirtual.Y -> (1 shl 1)
+                                    BotaoVirtual.L -> (1 shl 10)
+                                    BotaoVirtual.R -> (1 shl 11)
+                                    BotaoVirtual.SELECT -> (1 shl 2)
+                                    BotaoVirtual.START -> (1 shl 3)
+                                }
+                                novaMascara = novaMascara or bit
                             }
-                            aoMudarToque(mascara)
+                        }
+
+                        val novosPressionados = novaMascara and touchMaskAtual.inv()
+                        if (novosPressionados != 0 && config.hapticoAtivo) {
+                            view.performHapticFeedback(
+                                if (config.hapticoIntensidade > 1) HapticFeedbackConstants.KEYBOARD_PRESS else HapticFeedbackConstants.VIRTUAL_KEY,
+                                HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+                            )
+                        }
+
+                        if (novaMascara != touchMaskAtual) {
+                            touchMaskAtual = novaMascara
+                            aoMudarToque(novaMascara)
                         }
                     }
                 }
             }
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            for (controle in config.controles) {
-                val cx = controle.x * size.width
-                val cy = controle.y * size.height
-                val raio = 0.08f * config.escalaGlobal * controle.tamanhoBase * Math.min(size.width, size.height)
-                
-                val pressionado = if (controle.tipo == TipoControleNaTela.DPAD) {
-                    direcoesDpad.isNotEmpty()
+            val w = size.width
+            val h = size.height
+            val rRef = Math.min(w, h) * 0.08f * config.escalaGlobal
+
+            for (i in config.controles.indices) {
+                val c = config.controles[i]
+                val cx = c.x * w
+                val cy = c.y * h
+                val raio = rRef * c.tamanhoBase
+
+                val bit = if (c.tipo == TipoControleNaTela.DPAD) {
+                    0 // dpad handles its own press state inside skin drawing by receiving the whole mask
                 } else {
-                    botoesPressionados.contains(controle.acao?.botaoVirtual)
+                    when(c.acao?.botaoVirtual) {
+                        BotaoVirtual.CIMA -> (1 shl 4)
+                        BotaoVirtual.BAIXO -> (1 shl 5)
+                        BotaoVirtual.ESQUERDA -> (1 shl 6)
+                        BotaoVirtual.DIREITA -> (1 shl 7)
+                        BotaoVirtual.A -> (1 shl 8)
+                        BotaoVirtual.B -> (1 shl 0)
+                        BotaoVirtual.X -> (1 shl 9)
+                        BotaoVirtual.Y -> (1 shl 1)
+                        BotaoVirtual.L -> (1 shl 10)
+                        BotaoVirtual.R -> (1 shl 11)
+                        BotaoVirtual.SELECT -> (1 shl 2)
+                        BotaoVirtual.START -> (1 shl 3)
+                        else -> 0
+                    }
                 }
-                
+
+                val pressionado = if (c.tipo == TipoControleNaTela.DPAD) {
+                    // if any dpad direction is pressed
+                    (touchMaskAtual and ((1 shl 4) or (1 shl 5) or (1 shl 6) or (1 shl 7))) != 0
+                } else {
+                    (touchMaskAtual and bit) != 0
+                }
+
                 val opacidade = if (pressionado) config.opacidadePressionado else config.opacidadeOciosa
-                
+
                 skin.desenharControle(
                     escopoCanvas = this,
-                    controle = controle,
+                    controle = c,
                     centro = Offset(cx, cy),
                     raioOuTamanho = raio,
                     pressionado = pressionado,
                     corBase = corPrimaria,
                     corAcento = corAcento,
-                    opacidade = opacidade
+                    opacidade = opacidade,
+                    mask = touchMaskAtual,
+                    mostrarRotulos = config.mostrarRotulos,
+                    textMeasurer = textMeasurer,
+                    textStyle = textStyle
                 )
             }
         }
