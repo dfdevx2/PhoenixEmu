@@ -527,4 +527,10 @@
     <string name="ra_erro_usuario">Usuário não encontrado.</string>
     <string name="ra_erro_generico">Não foi possível falar com o RetroAchievements. Tente de novo.</string>
     <string name="ra_chave_dica">Use a sua Web API Key (retroachievements.org &gt; Settings &gt; Keys), não a senha da conta.</string>
+    <string name="ra_carregando">Carregando conquistas…</string>
+    <string name="ra_identificando">Identificando o jogo…</string>
+    <string name="ra_sem_suporte">Este jogo não tem conquistas no RetroAchievements.</string>
+    <string name="ra_tentar_novamente">Tentar de novo</string>
+    <string name="ra_mostrar_todas">Mostrar todas (%1$d)</string>
+    <string name="ra_mostrar_menos">Mostrar menos</string>
 </resources>

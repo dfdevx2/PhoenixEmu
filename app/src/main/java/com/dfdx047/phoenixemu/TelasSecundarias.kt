@@ -1,5 +1,11 @@
 package com.dfdx047.phoenixemu
 
+import com.dfdx047.phoenixemu.ra.RaConquista
+import com.dfdx047.phoenixemu.ra.RaCredenciais
+import com.dfdx047.phoenixemu.ra.RaErro
+import com.dfdx047.phoenixemu.ra.RaJogoProgresso
+import com.dfdx047.phoenixemu.ra.RaRepositorio
+import com.dfdx047.phoenixemu.ra.RaResultado
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -1288,6 +1294,45 @@ fun TelaRetroAchievements(jogos: List<Jogo>) {
     val lazyListState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
+    val repoRa = remember { RaRepositorio(context) }
+    var estadoRa by remember { mutableStateOf<EstadoRa>(EstadoRa.Carregando) }
+    var recarregar by remember { mutableIntStateOf(0) }
+    androidx.compose.runtime.LaunchedEffect(logado, jogoDestaque?.id, jogoDestaque?.hashRa, recarregar) {
+        val j = jogoDestaque
+        if (!logado || j == null) return@LaunchedEffect
+        var hash = j.hashRa
+        if (hash.isNullOrBlank()) {
+            // Sem hash ainda: calcula so deste jogo, na hora, e salva no banco.
+            estadoRa = EstadoRa.SemHash
+            val identidade = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching {
+                    com.dfdx047.phoenixemu.data.RomHasher.calcular(context, j.uri, j.extensao, j.sistema)
+                }.getOrNull()
+            }
+            if (identidade == null) {
+                estadoRa = EstadoRa.SemSuporte
+                return@LaunchedEffect
+            }
+            runCatching {
+                com.dfdx047.phoenixemu.data.BibliotecaStore.obter(context)
+                    .definirIdentidade(j.id, identidade.crc32, identidade.hashRa)
+            }
+            hash = identidade.hashRa
+        }
+        estadoRa = EstadoRa.Carregando
+        val user = RaCredenciais.usuario(context)
+        val key = RaCredenciais.chave(context)
+        estadoRa = when (val id = repoRa.idDoJogo(hash)) {
+            is RaResultado.Erro ->
+                if (id.tipo == RaErro.JOGO_SEM_SUPORTE) EstadoRa.SemSuporte else EstadoRa.Falha(id.tipo)
+            is RaResultado.Ok ->
+                when (val p = repoRa.progresso(user, key, id.valor, forcar = recarregar > 0)) {
+                    is RaResultado.Erro -> EstadoRa.Falha(p.tipo)
+                    is RaResultado.Ok -> EstadoRa.Pronto(p.valor, p.doCache)
+                }
+        }
+    }
+
     if (!logado) {
         Box(Modifier.fillMaxSize().padding(top = 88.dp, bottom = 96.dp), contentAlignment = Alignment.Center) {
             Box(
@@ -1466,10 +1511,11 @@ fun TelaRetroAchievements(jogos: List<Jogo>) {
                 // b) DESTAQUE — jogo selecionado
                 item {
                     if (jogoDestaque != null) {
-                        val total = conquistasDeExemplo(jogoDestaque).first
-                        val desbloqueadas = conquistasDeExemplo(jogoDestaque).second
-                        val pontos = 5 * desbloqueadas
-                        val fracao = if (total > 0) desbloqueadas.toFloat() / total else 0f
+                        val prog = (estadoRa as? EstadoRa.Pronto)?.progresso
+                        val total = prog?.totalConquistas ?: 0
+                        val desbloqueadas = prog?.desbloqueadas ?: 0
+                        val pontos = prog?.pontosGanhos ?: 0
+                        val fracao = prog?.fracao ?: 0f
                         val percentual = (fracao * 100).toInt()
 
                         CartaoDeVidro {
@@ -1579,43 +1625,89 @@ fun TelaRetroAchievements(jogos: List<Jogo>) {
                                         )
                                         Spacer(Modifier.height(8.dp))
 
-                                        // 4 linhas de exemplo
-                                        val conquistasTotal = kotlin.math.min(4, total)
-                                        for (i in 1..conquistasTotal) {
-                                            Row(
-                                                verticalAlignment = Alignment.Top,
+                                        when (val e = estadoRa) {
+                                            EstadoRa.Carregando -> Row(
+                                                verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
-                                                Icon(
-                                                    Icons.Default.WorkspacePremium,
-                                                    null,
-                                                    modifier = Modifier.size(20.dp),
-                                                    tint = if (i <= desbloqueadas) MaterialTheme.colorScheme.primary
-                                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                                androidx.compose.material3.CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                                                Text(stringResource(R.string.ra_carregando), style = MaterialTheme.typography.bodySmall)
+                                            }
+                                            EstadoRa.SemHash -> Text(
+                                                stringResource(R.string.ra_identificando),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            EstadoRa.SemSuporte -> Text(
+                                                stringResource(R.string.ra_sem_suporte),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            is EstadoRa.Falha -> {
+                                                Text(
+                                                    stringResource(
+                                                        when (e.tipo) {
+                                                            RaErro.CHAVE_INVALIDA -> R.string.ra_erro_chave
+                                                            RaErro.SEM_REDE -> R.string.ra_erro_rede
+                                                            else -> R.string.ra_erro_generico
+                                                        }
+                                                    ),
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.error
                                                 )
-                                                Column(modifier = Modifier.weight(1f)) {
-                                                    Text(
-                                                        stringResource(R.string.ra_ex_titulo, i),
-                                                        style = MaterialTheme.typography.bodyMedium,
-                                                        color = if (i <= desbloqueadas) MaterialTheme.colorScheme.onSurface
-                                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                                        fontWeight = FontWeight.Bold
-                                                    )
-                                                    Text(
-                                                        stringResource(R.string.ra_ex_desc),
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        color = if (i <= desbloqueadas) MaterialTheme.colorScheme.onSurfaceVariant
-                                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                                TextButton(onClick = { recarregar++ }) { Text(stringResource(R.string.ra_tentar_novamente)) }
+                                            }
+                                            is EstadoRa.Pronto -> {
+                                                var todas by remember { mutableStateOf(false) }
+                                                val ordenadas = remember(e.progresso) {
+                                                    e.progresso.conquistas.sortedWith(
+                                                        compareByDescending<RaConquista> { it.desbloqueada }
+                                                            .thenByDescending { it.dataDesbloqueio ?: "" }
+                                                            .thenBy { it.ordem }
                                                     )
                                                 }
-                                                Text(
-                                                    stringResource(R.string.ra_pontos, 5 * i),
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = if (i <= desbloqueadas) MaterialTheme.colorScheme.primary
-                                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                                )
+                                                val visiveis = if (todas) ordenadas else ordenadas.take(6)
+                                                visiveis.forEach { c ->
+                                                    Row(
+                                                        verticalAlignment = Alignment.Top,
+                                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                    ) {
+                                                        AsyncImage(
+                                                            model = c.urlIcone,
+                                                            contentDescription = null,
+                                                            modifier = Modifier.size(40.dp).clip(RoundedCornerShape(6.dp))
+                                                        )
+                                                        Column(modifier = Modifier.weight(1f)) {
+                                                            Text(
+                                                                c.titulo,
+                                                                style = MaterialTheme.typography.bodyMedium,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = if (c.desbloqueada) MaterialTheme.colorScheme.onSurface
+                                                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                                            )
+                                                            Text(
+                                                                c.descricao,
+                                                                style = MaterialTheme.typography.bodySmall,
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                            )
+                                                        }
+                                                        Text(
+                                                            stringResource(R.string.ra_pontos, c.pontos),
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = if (c.desbloqueada) MaterialTheme.colorScheme.primary
+                                                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                                        )
+                                                    }
+                                                }
+                                                if (ordenadas.size > 6) {
+                                                    TextButton(onClick = { todas = !todas }) {
+                                                        Text(
+                                                            if (todas) stringResource(R.string.ra_mostrar_menos)
+                                                            else stringResource(R.string.ra_mostrar_todas, ordenadas.size)
+                                                        )
+                                                    }
+                                                }
                                             }
-                                            if (i < conquistasTotal) Spacer(Modifier.height(4.dp))
                                         }
                                     }
                                 }
@@ -1714,6 +1806,14 @@ fun TelaRetroAchievements(jogos: List<Jogo>) {
 // =====================================================================
 // Funções auxiliares e composables da tela
 // =====================================================================
+
+private sealed interface EstadoRa {
+    data object Carregando : EstadoRa
+    data object SemHash : EstadoRa
+    data object SemSuporte : EstadoRa
+    data class Falha(val tipo: RaErro) : EstadoRa
+    data class Pronto(val progresso: RaJogoProgresso, val doCache: Boolean) : EstadoRa
+}
 
 private fun conquistasDeExemplo(jogo: Jogo): Pair<Int, Int> {
     val total = 12 + kotlin.math.abs(jogo.id.hashCode()) % 40

@@ -533,4 +533,10 @@
     <string name="ra_erro_usuario">User not found.</string>
     <string name="ra_erro_generico">Could not reach RetroAchievements. Try again.</string>
     <string name="ra_chave_dica">Use your Web API Key (retroachievements.org &gt; Settings &gt; Keys), not your password.</string>
+    <string name="ra_carregando">Loading achievements…</string>
+    <string name="ra_identificando">Identifying game…</string>
+    <string name="ra_sem_suporte">This game has no achievements on RetroAchievements.</string>
+    <string name="ra_tentar_novamente">Try again</string>
+    <string name="ra_mostrar_todas">Show all (%1$d)</string>
+    <string name="ra_mostrar_menos">Show less</string>
 </resources>
