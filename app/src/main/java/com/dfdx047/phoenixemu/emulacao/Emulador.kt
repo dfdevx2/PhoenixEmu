@@ -140,7 +140,7 @@ object Emulador {
             } else {
                 overlayConfigEfetivo
             }
-            Gson().toJson(overlayFinal)
+            Gson().toJson(overlayFinal.copy(skinsRapidas = prefs.overlay.first().skinsRapidas))
         }
 
         val darkTheme = (context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
