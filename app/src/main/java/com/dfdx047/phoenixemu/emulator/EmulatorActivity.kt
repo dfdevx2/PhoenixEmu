@@ -194,7 +194,7 @@ class EmulatorActivity : ComponentActivity() {
     private var statsText by mutableStateOf("")
 
     private var rewindJob: kotlinx.coroutines.Job? = null
-    private var rewindActive = false
+    private var rewindActive by mutableStateOf(false)
     private var rewindSecs by mutableStateOf(0f)
     var mapeamentoAtual by mutableStateOf(IntArray(12))
     
@@ -213,7 +213,7 @@ class EmulatorActivity : ComponentActivity() {
         }
     }
 
-    private fun setRewindActive(active: Boolean) {
+    private fun alternarRewind(active: Boolean) {
         if (hardcoreAtivo && active) return
         if (active && !rewindActive) {
             rewindActive = true
@@ -383,7 +383,7 @@ class EmulatorActivity : ComponentActivity() {
     private fun atalhoDaTela(acao: AcaoAtalho, pressionado: Boolean) {
         when (acao) {
             AcaoAtalho.AVANCAR -> setFfActive(pressionado)
-            AcaoAtalho.VOLTAR -> setRewindActive(pressionado)
+            AcaoAtalho.VOLTAR -> alternarRewind(pressionado)
             AcaoAtalho.SALVAR_ESTADO -> if (pressionado) executarAcao(Acao.SALVAR_ESTADO)
             AcaoAtalho.CARREGAR_ESTADO -> if (pressionado) executarAcao(Acao.CARREGAR_ESTADO)
             AcaoAtalho.SLOT_ANTERIOR -> if (pressionado) executarAcao(Acao.SLOT_ANTERIOR)
@@ -513,7 +513,7 @@ class EmulatorActivity : ComponentActivity() {
             estaPausado = { isPaused },
             aoExecutarAcao = ::executarAcao,
             aoMudarAvanco = ::setFfActive,
-            aoMudarRewind = ::setRewindActive,
+            aoMudarRewind = ::alternarRewind,
             aoMudarBotoes = { mascara -> nucleo.definirBotoes(0, mascara) }
         )
 
@@ -900,6 +900,9 @@ class EmulatorActivity : ComponentActivity() {
                                 val ctx = contextoLocalizado ?: this@EmulatorActivity
                                 nucleo.reiniciar()
                                 mostrarAviso(ctx.getString(R.string.jogo_aviso_reiniciado))
+                                mensagemFeedback = ""
+                                isPaused = false
+                                fundoDoMenu = null
                             },
                             aoSair = { finish() },
                             aoMudarSlot = { slot -> slotAtual = slot },

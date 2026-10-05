@@ -65,7 +65,7 @@ data class OverlayConfigNova(
 ) {
     companion object {
         fun layoutNes(): List<ControleNaTela> = listOf(
-            ControleNaTela("dpad", TipoControleNaTela.DPAD, 0.12f, 0.72f, formato = "CRUZ"),
+            ControleNaTela("dpad", TipoControleNaTela.DPAD, 0.14f, 0.68f, tamanhoBase = 1.4f, formato = "CRUZ"),
             ControleNaTela("b", TipoControleNaTela.BOTAO, 0.78f, 0.72f, acao = AcaoDoControle(botaoVirtual = BotaoVirtual.B)),
             ControleNaTela("a", TipoControleNaTela.BOTAO, 0.88f, 0.72f, acao = AcaoDoControle(botaoVirtual = BotaoVirtual.A)),
             ControleNaTela("select", TipoControleNaTela.BOTAO, 0.42f, 0.90f, formato = "PILULA", rotulo = "SELECT", acao = AcaoDoControle(botaoVirtual = BotaoVirtual.SELECT)),
@@ -73,7 +73,7 @@ data class OverlayConfigNova(
         )
         
         fun layoutSnes(): List<ControleNaTela> = listOf(
-            ControleNaTela("dpad", TipoControleNaTela.DPAD, 0.12f, 0.72f, formato = "CRUZ"),
+            ControleNaTela("dpad", TipoControleNaTela.DPAD, 0.14f, 0.68f, tamanhoBase = 1.4f, formato = "CRUZ"),
             ControleNaTela("y", TipoControleNaTela.BOTAO, 0.76f, 0.72f, formato = "LOSANGO", acao = AcaoDoControle(botaoVirtual = BotaoVirtual.Y)),
             ControleNaTela("x", TipoControleNaTela.BOTAO, 0.84f, 0.58f, formato = "LOSANGO", acao = AcaoDoControle(botaoVirtual = BotaoVirtual.X)),
             ControleNaTela("b", TipoControleNaTela.BOTAO, 0.84f, 0.86f, formato = "LOSANGO", acao = AcaoDoControle(botaoVirtual = BotaoVirtual.B)),
