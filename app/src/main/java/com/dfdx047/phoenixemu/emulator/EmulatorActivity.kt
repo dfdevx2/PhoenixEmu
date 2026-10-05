@@ -738,12 +738,6 @@ class EmulatorActivity : ComponentActivity() {
 
                     val filaConquistas = filaConquistasAct
                     PopupDeConquista(fila = filaConquistas, corPrimaria = Color(temaCorPrimaria), config = conqConfig)
-                    if ((applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
-                        LaunchedEffect(Unit) {
-                            kotlinx.coroutines.delay(4000)
-                            filaConquistas.add(ConquistaAviso("Conquista de teste", "Pop-up de teste (so no build debug)", 10))
-                        }
-                    }
 
                     if (!isPaused && menuAlca) {
                         Box(

@@ -206,6 +206,7 @@ object Emulador {
         intent.putExtra("phoenix.ra_token", com.dfdx047.phoenixemu.ra.RaCredenciais.token(context) ?: "")
         intent.putExtra("phoenix.ra_hash", raHash)
         intent.putExtra("phoenix.ra_console", raConsole)
+        runCatching { com.dfdx047.phoenixemu.ra.RaRepositorio(context).limparCache() }
         context.startActivity(intent)
     }
 
