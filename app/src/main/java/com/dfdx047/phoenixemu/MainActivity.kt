@@ -15,6 +15,8 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -163,6 +165,7 @@ import com.dfdx047.phoenixemu.ui.design.fracaoSuavizada
 import com.dfdx047.phoenixemu.ui.design.halo
 import com.dfdx047.phoenixemu.ui.design.lembrarEstadoDoChrome
 import com.dfdx047.phoenixemu.ui.design.EstadoDoChrome
+import com.dfdx047.phoenixemu.ui.design.LocalReduzirEfeitos
 import com.dfdx047.phoenixemu.ui.design.TipoDeControle
 import com.dfdx047.phoenixemu.ui.design.lembrarTipoDeControle
 import com.dfdx047.phoenixemu.ui.design.ItemDeNavegacao
@@ -1589,8 +1592,18 @@ fun CartaoDeJogo(
 
     val alphaOpcionais by animateFloatAsState(if (selecionado) 1f else 0f, label = "alphaOpcionais")
 
+    val reduzirEfeitos = LocalReduzirEfeitos.current
+
     SuperficieDeVidro(
         modifier = modifier
+            .zIndex(brilho)
+            .graphicsLayer {
+                if (!reduzirEfeitos) {
+                    val escala = 1f + 0.04f * brilho
+                    scaleX = escala
+                    scaleY = escala
+                }
+            }
             .then(modifierComBorda)
             .height(altura)
             .alpha(if (jogo.ausente) 0.45f else 1f)
