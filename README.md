@@ -35,7 +35,7 @@
 ## Features
 
 ### Emulation
-- **NES** and **SNES** through [libretro](https://www.libretro.com/) cores (Mesen for NES, bsnes for SNES), running in a dedicated process so the UI never competes with the emulation loop.
+- **NES** and **SNES** through [libretro](https://www.libretro.com/) cores (Mesen for NES, Snes9x for SNES), running in a dedicated process so the UI never competes with the emulation loop.
 - Low-latency audio through [Oboe](https://github.com/google/oboe); the emulation loop is driven by the audio clock.
 - **Save states** with 4 slots per game and a thumbnail for each slot.
 - **Auto-save on exit / auto-load on start** (each one can be switched off).
@@ -62,6 +62,14 @@
 - Physical gamepad remapping.
 - On-screen controller with an editor: drag every button, adjust opacity and size.
 - Shortcuts tab with a configurable hotkey.
+- **Controller skins**: three built-in styles plus community skins. Import a `.zip`, or browse and install them from the in-app **Download skins** library, which reads the [phoenix-emu-skins](https://github.com/dfdx047/phoenix-emu-skins) catalog (anyone can contribute with a Pull Request). Choose up to 3 skins to keep in the in-game quick menu.
+- Auto-hide the on-screen controls when a gamepad is used; touch the screen and they come back.
+
+### RetroAchievements
+- Sign in with your RetroAchievements account; the app identifies your games by ROM hash.
+- **Live unlocks while you play**, through the official `rcheevos` library (NES and SNES), with a pop-up and sound at the moment of the unlock.
+- Pop-up options: on/off, sound, vibration, volume, duration and six screen positions, following the app's glass or solid look.
+- A dedicated screen with your last played game, recents and the full list with progress.
 
 ---
 
@@ -76,7 +84,7 @@ Planned work, roughly in order:
 | **Core options** | All options exposed by each core, shown automatically, with layers: core default, global and per-game. Controller types per port, 2 players, multitap, mouse, Super Scope, Zapper, cheats, overscan, volume, turbo. |
 | **OpenGL ES video** | GLES renderer with integer scaling, aspect ratios, overscan crop, plus GLSL filters (sharp-bilinear, scanlines, CRT, LCD grid, xBR/HQ2x-like, NTSC) with adjustable parameters, global and per game. Run-ahead for near-zero latency. |
 | **On-screen controls & skins** | Pixel-faithful NES/SNES layouts, community skins (`.zip`, imported through the system file picker), a full editor with new buttons: combo, turbo, save/load state, fast-forward, rewind, pause, menu, reset. Haptics, auto-hide when a gamepad is connected. |
-| **RetroAchievements** | Login, ROM hashing, achievement list, progress, in-game pop-ups and sounds, hardcore mode. A dedicated screen with the last played game, recents and the full list by console. |
+| **RetroAchievements** | Hardcore mode, a game-start notice ("0/27 achievements"), and the achievement list inside the in-game pause menu. |
 | **Quality & release** | Emulator-thread affinity fix, power target of about 2 W on a Snapdragon 8 Elite, GPL licences screen with source offer for the cores, save backup/export, adaptive icon, privacy policy, Play Store. Evaluation of Mesen2 as an alternative NES core. |
 
 ---
@@ -132,11 +140,11 @@ Phoenix Emu is free. A Ko-fi donation link will be added here and in the app for
 ## Credits
 
 - [libretro](https://www.libretro.com/) API and community
-- [Mesen](https://github.com/SourMesen/Mesen) (NES) and [bsnes](https://github.com/bsnes-emu/bsnes) (SNES) emulation cores
+- [Mesen](https://github.com/SourMesen/Mesen) (NES) and [Snes9x](https://github.com/snes9xgit/snes9x) (SNES) emulation cores
 - [Oboe](https://github.com/google/oboe) low-latency audio
 - [RAWG](https://rawg.io/) game metadata and cover art
-- [RetroAchievements](https://retroachievements.org/) and `rcheevos` (planned)
+- [RetroAchievements](https://retroachievements.org/) and [rcheevos](https://github.com/RetroAchievements/rcheevos) (MIT)
 
 ## License
 
-Phoenix Emu is licensed under the **GNU General Public License v3.0**. See [LICENSE](LICENSE). The bundled libretro cores are also GPL-licensed.
+Phoenix Emu is licensed under the **GNU General Public License v3.0**. See [LICENSE](LICENSE). The bundled Mesen core is GPL-licensed. The bundled Snes9x core is distributed under the [Snes9x license](https://github.com/snes9xgit/snes9x/blob/master/LICENSE), which allows free redistribution but **not commercial use**; for that reason Phoenix Emu is free and must stay non-commercial while it ships that core. `rcheevos` is MIT-licensed.

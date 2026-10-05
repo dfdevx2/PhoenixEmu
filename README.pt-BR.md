@@ -35,7 +35,7 @@
 ## Recursos
 
 ### Emulação
-- **NES** e **SNES** por núcleos [libretro](https://www.libretro.com/) (Mesen para NES, bsnes para SNES), rodando em um processo separado para que a interface nunca dispute tempo com o laço de emulação.
+- **NES** e **SNES** por núcleos [libretro](https://www.libretro.com/) (Mesen para NES, Snes9x para SNES), rodando em um processo separado para que a interface nunca dispute tempo com o laço de emulação.
 - Áudio de baixa latência com [Oboe](https://github.com/google/oboe); o laço de emulação é guiado pelo relógio do áudio.
 - **Save states** com 4 slots por jogo e miniatura em cada slot.
 - **Auto-save ao sair / auto-load ao entrar** (cada um pode ser desligado).
@@ -63,6 +63,15 @@
 - Controle na tela com editor: arraste cada botão, ajuste opacidade e tamanho.
 - Aba de atalhos com botão de atalho configurável.
 
+- **Skins de controle**: três estilos embutidos e skins da comunidade. Importe um `.zip` ou navegue e instale pela biblioteca **Baixar skins** dentro do app, que lê o catálogo [phoenix-emu-skins](https://github.com/dfdx047/phoenix-emu-skins) (qualquer pessoa contribui com um Pull Request). Escolha até 3 skins para ficarem no menu rápido do jogo.
+- Esconde os controles na tela quando um gamepad é usado; toque na tela e eles voltam.
+
+### RetroAchievements
+- Entre com sua conta do RetroAchievements; o app identifica seus jogos pelo hash da ROM.
+- **Conquistas ao vivo enquanto você joga**, pela biblioteca oficial `rcheevos` (NES e SNES), com pop-up e som no momento do desbloqueio.
+- Opções do pop-up: ligar/desligar, som, vibração, volume, duração e seis posições na tela, seguindo o visual de vidro ou sólido do app.
+- Uma tela própria com o último jogo, recentes e a lista completa com progresso.
+
 ---
 
 ## Roteiro
@@ -76,7 +85,7 @@ Trabalho planejado, mais ou menos nesta ordem:
 | **Opções dos núcleos** | Todas as opções que cada núcleo declara, montadas automaticamente, em camadas: padrão do núcleo, global e por jogo. Tipos de controle por porta, 2 jogadores, multitap, mouse, Super Scope, Zapper, cheats, overscan, volume, turbo. |
 | **Vídeo em OpenGL ES** | Renderizador GLES com escala inteira, proporções, corte de overscan e filtros GLSL (sharp-bilinear, scanlines, CRT, grade LCD, estilo xBR/HQ2x, NTSC) com parâmetros ajustáveis, globais e por jogo. Run-ahead para latência quase zero. |
 | **Controles na tela e skins** | Layouts fiéis ao NES/SNES, skins da comunidade (`.zip`, importadas pelo seletor de arquivos do sistema), editor completo com botões novos: combo, turbo, salvar/carregar estado, avançar, voltar, pausar, menu, reiniciar. Vibração, ocultar quando houver gamepad conectado. |
-| **RetroAchievements** | Login, hash da ROM, lista de conquistas, progresso, avisos e sons durante o jogo, modo hardcore. Tela dedicada com o último jogo, recentes e a lista completa por console. |
+| **RetroAchievements** | Modo hardcore, aviso ao iniciar o jogo ("0/27 conquistas") e a lista de conquistas dentro do menu de pausa. |
 | **Qualidade e lançamento** | Correção da afinidade de thread do emulador, meta de cerca de 2 W em um Snapdragon 8 Elite, tela de licenças GPL com oferta do código-fonte dos núcleos, backup/exportação de saves, ícone adaptativo, política de privacidade, Play Store. Avaliação do Mesen2 como núcleo alternativo de NES. |
 
 ---
@@ -132,11 +141,11 @@ O Phoenix Emu é gratuito. O link de doação do Ko-fi será colocado aqui e no 
 ## Créditos
 
 - API e comunidade [libretro](https://www.libretro.com/)
-- Núcleos [Mesen](https://github.com/SourMesen/Mesen) (NES) e [bsnes](https://github.com/bsnes-emu/bsnes) (SNES)
+- Núcleos [Mesen](https://github.com/SourMesen/Mesen) (NES) e [Snes9x](https://github.com/snes9xgit/snes9x) (SNES)
 - [Oboe](https://github.com/google/oboe), áudio de baixa latência
 - [RAWG](https://rawg.io/), dados e capas dos jogos
-- [RetroAchievements](https://retroachievements.org/) e `rcheevos` (planejado)
+- [RetroAchievements](https://retroachievements.org/) e [rcheevos](https://github.com/RetroAchievements/rcheevos) (MIT)
 
 ## Licença
 
-O Phoenix Emu é licenciado sob a **GNU General Public License v3.0**. Veja [LICENSE](LICENSE). Os núcleos libretro incluídos também são GPL.
+O Phoenix Emu é licenciado sob a **GNU General Public License v3.0**. Veja [LICENSE](LICENSE). O núcleo Mesen incluído é GPL. O núcleo Snes9x incluído é distribuído sob a [licença do Snes9x](https://github.com/snes9xgit/snes9x/blob/master/LICENSE), que permite redistribuição gratuita mas **não o uso comercial**; por isso o Phoenix Emu é gratuito e deve permanecer não comercial enquanto incluir esse núcleo. O `rcheevos` é licenciado sob MIT.
