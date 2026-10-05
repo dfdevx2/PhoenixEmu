@@ -214,6 +214,7 @@ class EmulatorActivity : ComponentActivity() {
     }
 
     private fun setRewindActive(active: Boolean) {
+        if (hardcoreAtivo && active) return
         if (active && !rewindActive) {
             rewindActive = true
             nucleo.definirRewind(true)
@@ -405,7 +406,7 @@ class EmulatorActivity : ComponentActivity() {
                 }
             }
             Acao.CARREGAR_ESTADO -> {
-                gerenciadorDeEstados?.carregar(slotAtual) { res ->
+                if (hardcoreAtivo) mostrarAviso(getString(R.string.conq_hardcore_bloqueado)) else gerenciadorDeEstados?.carregar(slotAtual) { res ->
                     when (res) {
                         ResultadoDoEstado.OK -> mostrarAviso(ctx.getString(R.string.jogo_aviso_estado_carregado, slotAtual))
                         ResultadoDoEstado.VAZIO -> mostrarAviso(ctx.getString(R.string.jogo_aviso_slot_vazio, slotAtual))
@@ -577,7 +578,7 @@ class EmulatorActivity : ComponentActivity() {
             nomeDoNucleo = nucleoName,
             romUri = romUriString,
             nomeSave = nomeSave,
-            autoCarregar = intent.getBooleanExtra(EXTRA_AUTOCARREGAR, false)
+            autoCarregar = intent.getBooleanExtra(EXTRA_AUTOCARREGAR, false) && !hardcoreAtivo
         )
 
         var infoMessage = resultado.info
@@ -863,7 +864,9 @@ class EmulatorActivity : ComponentActivity() {
                                 }
                             },
                             aoCarregarEstado = { slot ->
-                                gerenciadorDeEstados?.carregar(slot) { res ->
+                                if (hardcoreAtivo) {
+                                    mensagemFeedback = getString(R.string.conq_hardcore_bloqueado)
+                                } else gerenciadorDeEstados?.carregar(slot) { res ->
                                     val ctx = contextoLocalizado ?: this@EmulatorActivity
                                     if (res == ResultadoDoEstado.OK) {
                                         mensagemFeedback = ""
@@ -1043,6 +1046,14 @@ class EmulatorActivity : ComponentActivity() {
         }
     }
 
+    private val hardcoreAtivo: Boolean by lazy {
+        intent.getBooleanExtra("phoenix.ra_hardcore", false) &&
+            !intent.getStringExtra("phoenix.ra_usuario").isNullOrBlank() &&
+            !intent.getStringExtra("phoenix.ra_token").isNullOrBlank() &&
+            !intent.getStringExtra("phoenix.ra_hash").isNullOrBlank() &&
+            intent.getIntExtra("phoenix.ra_console", 0) != 0
+    }
+
     private val filaConquistasAct = androidx.compose.runtime.mutableStateListOf<ConquistaAviso>()
 
     private fun iniciarRetroAchievements(carregou: Boolean) {
@@ -1070,7 +1081,8 @@ class EmulatorActivity : ComponentActivity() {
                         filaConquistasAct.add(
                             ConquistaAviso(
                                 titulo,
-                                getString(R.string.conq_aviso_inicio_texto, desbloqueadas, total, pontosGanhos, pontosTotal),
+                                getString(R.string.conq_aviso_inicio_texto, desbloqueadas, total, pontosGanhos, pontosTotal) +
+                                    (if (hardcoreAtivo) " · " + getString(R.string.conq_hardcore_nome) else ""),
                                 0, RaNativo.capa().ifBlank { null }, informativo = true
                             )
                         )
@@ -1084,12 +1096,27 @@ class EmulatorActivity : ComponentActivity() {
                 }
             }
         }
-        RaNativo.iniciar(usuario, token, hash, consoleId, false)
+        EstadoRaJogo.configurado = true
+        EstadoRaJogo.hardcoreJogo = intent.getStringExtra("phoenix.ra_hardcore_jogo") ?: "PADRAO"
+        EstadoRaJogo.aoEscolherHardcore = { v ->
+            val i = Intent("com.dfdx047.phoenixemu.AJUSTE_MUDOU").apply {
+                setPackage(packageName)
+                putExtra("escopo", "JOGO")
+                putExtra("idDoJogo", idDoJogoAtual)
+                putExtra("chave", "ra_hardcore")
+                putExtra("tipo", "string")
+                putExtra("valor", v)
+            }
+            sendBroadcast(i)
+        }
+        EstadoRaJogo.hardcore = hardcoreAtivo
+        RaNativo.iniciar(usuario, token, hash, consoleId, hardcoreAtivo)
     }
 
     override fun onDestroy() {
         super.onDestroy()
         nucleo.parar()
+        EstadoRaJogo.reiniciar()
         RaNativo.ouvinte = null
         RaNativo.parar()
         motorDeAtalhos.resetar()

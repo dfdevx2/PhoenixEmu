@@ -590,5 +590,22 @@
     <string name="conq_aviso_cabecalho">Conquistas</string>
     <string name="conq_aviso_inicio_texto">%1$d de %2$d conquistas · %3$d/%4$d pts</string>
     <string name="conq_erro_login">Seu login do RetroAchievements expirou. Entre de novo no app.</string>
-    <string name="conq_menu_vazio">Nenhuma conquista carregada ainda.</string>
+    <string name="conq_menu_vazio">As conquistas carregam um instante depois que o jogo começa. Continue o jogo por alguns segundos e abra o menu de novo. Se nada aparecer, este jogo não tem conquistas no RetroAchievements.</string>
+    <string name="conq_hardcore">Modo hardcore</string>
+    <string name="conq_hardcore_dica">Joga pelas regras hardcore do RetroAchievements: carregar estado e rewind ficam desativados durante o jogo. Vale na próxima vez que você abrir um jogo. As conquistas hardcore só contam depois que o RetroAchievements aprovar o Phoenix Emu; até lá você verá um aviso de \"Unknown Emulator\".</string>
+    <string name="conq_hardcore_nome">Hardcore</string>
+    <string name="conq_hardcore_bloqueado">Desativado no modo hardcore</string>
+    <string name="conq_hardcore_padrao">Hardcore por padrão</string>
+    <string name="conq_hardcore_padrao_dica">Vale quando nem o jogo nem o console têm escolha própria. Ligue para jogar todos os jogos em modo hardcore.</string>
+    <string name="conq_hardcore_nes">Hardcore no NES</string>
+    <string name="conq_hardcore_snes">Hardcore no SNES</string>
+    <string name="conq_hardcore_console_dica">Escolha para todo o console: Padrão segue a opção acima, Ligado ou Desligado a substitui. A escolha feita para um jogo específico vale mais do que esta.</string>
+    <string name="conq_opcao_padrao">Padrão</string>
+    <string name="conq_opcao_ligado">Ligado</string>
+    <string name="conq_opcao_desligado">Desligado</string>
+    <string name="conq_hardcore_jogo">Hardcore neste jogo</string>
+    <string name="conq_hardcore_jogo_dica">Substitui a escolha do console e a padrão. Vale na próxima vez que você abrir o jogo.</string>
+    <string name="conq_hardcore_sessao_on">Nesta sessão: hardcore ligado</string>
+    <string name="conq_hardcore_sessao_off">Nesta sessão: hardcore desligado</string>
+    <string name="conq_hardcore_salvo">Salvo. Vale na próxima vez que você abrir o jogo.</string>
 </resources>

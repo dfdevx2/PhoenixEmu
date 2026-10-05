@@ -35,6 +35,7 @@ object RaNativo {
     private external fun nativeRaParar()
     private external fun nativeRaLista(): ByteArray?
     private external fun nativeRaCapa(): ByteArray?
+    private external fun nativeRaUserAgent(): ByteArray?
     private external fun nativeRaResposta(id: Long, status: Int, corpo: ByteArray?)
 
     /** Chamar DEPOIS de o jogo estar carregado no nucleo. consoleId: NES = 7, SNES = 3. */
@@ -58,6 +59,13 @@ object RaNativo {
         return String(b, Charsets.UTF_8)
     }
 
+    const val VERSAO_APP = "0.1.0"
+
+    private fun agenteUsuario(): String {
+        val clausula = runCatching { nativeRaUserAgent()?.let { String(it, Charsets.UTF_8) } }.getOrNull().orEmpty()
+        return ("PhoenixEmu/" + VERSAO_APP + " (Android) " + clausula).trim()
+    }
+
     fun parar() = nativeRaParar()
 
     private fun texto(b: ByteArray?): String = if (b == null) "" else String(b, Charsets.UTF_8)
@@ -75,7 +83,7 @@ object RaNativo {
                 con = c
                 c.connectTimeout = 10_000
                 c.readTimeout = 20_000
-                c.setRequestProperty("User-Agent", "PhoenixEmu/1.0 (Android)")
+                c.setRequestProperty("User-Agent", agenteUsuario())
                 if (post != null) {
                     c.requestMethod = "POST"
                     c.doOutput = true

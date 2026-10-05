@@ -548,12 +548,18 @@ class Preferencias private constructor(context: Context) {
     val conqAvisos: StateFlow<Boolean> = derivar(true) { it[booleanPreferencesKey("conq_avisos")] ?: true }
     val conqSom: StateFlow<Boolean> = derivar(true) { it[booleanPreferencesKey("conq_som")] ?: true }
     val conqVibrar: StateFlow<Boolean> = derivar(true) { it[booleanPreferencesKey("conq_vibrar")] ?: true }
+    val conqHardcore: StateFlow<Boolean> = derivar(false) { it[booleanPreferencesKey("conq_hardcore")] ?: false }
+    val raHardcoreNes: StateFlow<String> = derivar("PADRAO") { it[stringPreferencesKey("ra_hardcore_nes")] ?: "PADRAO" }
+    val raHardcoreSnes: StateFlow<String> = derivar("PADRAO") { it[stringPreferencesKey("ra_hardcore_snes")] ?: "PADRAO" }
     val conqPosicao: StateFlow<String> = derivar("TOPO_CENTRO") { it[stringPreferencesKey("conq_posicao")] ?: "TOPO_CENTRO" }
     val conqDuracao: StateFlow<Int> = derivar(4) { it[intPreferencesKey("conq_duracao")] ?: 4 }
     val conqVolume: StateFlow<Float> = derivar(1.0f) { it[floatPreferencesKey("conq_volume")] ?: 1.0f }
     fun definirConqAvisos(v: Boolean) = editar { it[booleanPreferencesKey("conq_avisos")] = v }
     fun definirConqSom(v: Boolean) = editar { it[booleanPreferencesKey("conq_som")] = v }
     fun definirConqVibrar(v: Boolean) = editar { it[booleanPreferencesKey("conq_vibrar")] = v }
+    fun definirConqHardcore(v: Boolean) = editar { it[booleanPreferencesKey("conq_hardcore")] = v }
+    fun definirRaHardcoreNes(v: String) = editar { it[stringPreferencesKey("ra_hardcore_nes")] = v }
+    fun definirRaHardcoreSnes(v: String) = editar { it[stringPreferencesKey("ra_hardcore_snes")] = v }
     fun definirConqPosicao(v: String) = editar { it[stringPreferencesKey("conq_posicao")] = v }
     fun definirConqDuracao(v: Int) = editar { it[intPreferencesKey("conq_duracao")] = v }
     fun definirConqVolume(v: Float) = editar { it[floatPreferencesKey("conq_volume")] = v }

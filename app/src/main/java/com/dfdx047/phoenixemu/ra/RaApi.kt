@@ -81,7 +81,7 @@ private fun JsonObject.int(k: String, def: Int = 0): Int = str(k)?.toDoubleOrNul
 object RaApi {
     private const val BASE = "https://retroachievements.org"
     private const val MIDIA = "https://media.retroachievements.org"
-    private const val UA = "PhoenixEmu/1.0 (Android)"
+    private const val UA = "PhoenixEmu/0.1.0 (Android)"
 
     fun urlImagem(caminho: String?): String? {
         if (caminho.isNullOrBlank()) return null

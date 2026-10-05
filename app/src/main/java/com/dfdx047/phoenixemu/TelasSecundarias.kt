@@ -1593,6 +1593,31 @@ fun TelaRetroAchievements(jogos: List<Jogo>) {
                 }
             }
 
+            item {
+                val prefsHc = remember { com.dfdx047.phoenixemu.data.Preferencias.obter(context.applicationContext) }
+                val hcPadrao by prefsHc.conqHardcore.collectAsStateWithLifecycle()
+                val hcNes by prefsHc.raHardcoreNes.collectAsStateWithLifecycle()
+                val hcSnes by prefsHc.raHardcoreSnes.collectAsStateWithLifecycle()
+                CartaoDeVidro {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        RotuloComDica(R.string.conq_hardcore, R.string.conq_hardcore_dica)
+                        LinhaDeInterruptor(
+                            rotulo = R.string.conq_hardcore_padrao,
+                            dica = R.string.conq_hardcore_padrao_dica,
+                            marcado = hcPadrao,
+                            onMudar = { audio.playClick(); prefsHc.definirConqHardcore(it) }
+                        )
+                        RotuloComDica(R.string.conq_hardcore_nes, R.string.conq_hardcore_console_dica)
+                        SeletorTresEstados(valor = hcNes, onMudar = { audio.playClick(); prefsHc.definirRaHardcoreNes(it) })
+                        RotuloComDica(R.string.conq_hardcore_snes, R.string.conq_hardcore_console_dica)
+                        SeletorTresEstados(valor = hcSnes, onMudar = { audio.playClick(); prefsHc.definirRaHardcoreSnes(it) })
+                    }
+                }
+            }
+
             if (jogosAbertos.isEmpty()) {
                 // Estado vazio
                 item {

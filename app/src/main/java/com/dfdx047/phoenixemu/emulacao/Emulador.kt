@@ -199,6 +199,16 @@ object Emulador {
         intent.putExtra("phoenix.conq_avisos", runBlocking { prefs.conqAvisos.first() })
         intent.putExtra("phoenix.conq_som", runBlocking { prefs.conqSom.first() })
         intent.putExtra("phoenix.conq_vibrar", runBlocking { prefs.conqVibrar.first() })
+        val hcJogo = runBlocking { prefs.getAjusteString("dummy", idDoJogo.takeIf { it.isNotEmpty() }?.let { "aj_jogo_${it}_ra_hardcore" }, "PADRAO").first }
+        val hcConsole = runBlocking { if (raConsole == 3) prefs.raHardcoreSnes.first() else prefs.raHardcoreNes.first() }
+        val hcPadrao = runBlocking { prefs.conqHardcore.first() }
+        val hardcoreFinal = when (if (hcJogo != "PADRAO") hcJogo else hcConsole) {
+            "LIGADO" -> true
+            "DESLIGADO" -> false
+            else -> hcPadrao
+        }
+        intent.putExtra("phoenix.ra_hardcore", hardcoreFinal)
+        intent.putExtra("phoenix.ra_hardcore_jogo", hcJogo)
         intent.putExtra("phoenix.conq_posicao", runBlocking { prefs.conqPosicao.first() })
         intent.putExtra("phoenix.conq_duracao", runBlocking { prefs.conqDuracao.first() })
         intent.putExtra("phoenix.conq_volume", runBlocking { prefs.conqVolume.first() })

@@ -596,5 +596,22 @@
     <string name="conq_aviso_cabecalho">Achievements</string>
     <string name="conq_aviso_inicio_texto">%1$d of %2$d achievements · %3$d/%4$d pts</string>
     <string name="conq_erro_login">Your RetroAchievements sign-in expired. Sign in again in the app.</string>
-    <string name="conq_menu_vazio">No achievements loaded yet.</string>
+    <string name="conq_menu_vazio">Achievements load a moment after the game starts. Resume the game for a few seconds and open the menu again. If nothing shows up, this game has none on RetroAchievements.</string>
+    <string name="conq_hardcore">Hardcore mode</string>
+    <string name="conq_hardcore_dica">Plays by the RetroAchievements hardcore rules: loading save states and rewind are disabled while you play. Takes effect the next time you open a game. Hardcore unlocks only count once RetroAchievements approves Phoenix Emu; until then you will see an \"Unknown Emulator\" warning.</string>
+    <string name="conq_hardcore_nome">Hardcore</string>
+    <string name="conq_hardcore_bloqueado">Disabled in hardcore mode</string>
+    <string name="conq_hardcore_padrao">Hardcore by default</string>
+    <string name="conq_hardcore_padrao_dica">Used when neither the game nor its console has its own choice. Turn it on to play every game in hardcore mode.</string>
+    <string name="conq_hardcore_nes">Hardcore on NES</string>
+    <string name="conq_hardcore_snes">Hardcore on SNES</string>
+    <string name="conq_hardcore_console_dica">Choose for this whole console: Default follows the setting above, On or Off overrides it. A choice made for a single game wins over this one.</string>
+    <string name="conq_opcao_padrao">Default</string>
+    <string name="conq_opcao_ligado">On</string>
+    <string name="conq_opcao_desligado">Off</string>
+    <string name="conq_hardcore_jogo">Hardcore for this game</string>
+    <string name="conq_hardcore_jogo_dica">Overrides the console and default settings. Takes effect the next time you open the game.</string>
+    <string name="conq_hardcore_sessao_on">This session: hardcore is ON</string>
+    <string name="conq_hardcore_sessao_off">This session: hardcore is OFF</string>
+    <string name="conq_hardcore_salvo">Saved. Applies the next time you open the game.</string>
 </resources>

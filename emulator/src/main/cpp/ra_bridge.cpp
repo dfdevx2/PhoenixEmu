@@ -262,7 +262,7 @@ void phoenix_ra_definir_mapa(const struct retro_memory_map *mapa) {
 void phoenix_ra_depois_do_quadro() {
     if (!g_ativo.load(std::memory_order_relaxed) || g_client == nullptr) return;
     if (g_adiar.load(std::memory_order_acquire)) {
-        if (++g_quadros < 90) return;
+        if (++g_quadros < 15) return;
         g_adiar.store(false, std::memory_order_release);
         if (g_regioes_ok) rc_libretro_memory_destroy(&g_regioes);
         memset(&g_regioes, 0, sizeof(g_regioes));
@@ -337,6 +337,17 @@ extern "C" {
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *) {
     g_vm = vm;
     return JNI_VERSION_1_6;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_dfdx047_phoenixemu_emulator_RaNativo_nativeRaUserAgent(JNIEnv *env, jobject) {
+    char buf[128] = {0};
+    rc_client_t *cli = g_client;
+    if (cli != nullptr) rc_client_get_user_agent_clause(cli, buf, sizeof(buf));
+    size_t n = strlen(buf);
+    jbyteArray r = env->NewByteArray(static_cast<jsize>(n));
+    if (r != nullptr && n > 0) env->SetByteArrayRegion(r, 0, static_cast<jsize>(n), reinterpret_cast<const jbyte *>(buf));
+    return r;
 }
 
 JNIEXPORT jbyteArray JNICALL
