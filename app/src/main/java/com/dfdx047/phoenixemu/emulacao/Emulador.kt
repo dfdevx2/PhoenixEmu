@@ -14,6 +14,7 @@ import com.dfdx047.phoenixemu.data.combo
 import com.dfdx047.phoenixemu.emulator.EmulatorActivity
 import com.dfdx047.phoenixemu.emulator.AjustesDeJogo
 import com.dfdx047.phoenixemu.emulator.EscalaImagem
+import com.dfdx047.phoenixemu.emulator.FiltroImagem
 import com.dfdx047.phoenixemu.emulator.ProporcaoImagem
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.first
@@ -83,6 +84,7 @@ object Emulador {
         val ajustes = runBlocking {
             val (escalaStr, eO) = prefs.getAjusteString("aj_global_${AjustesDeJogo.CHAVE_ESCALA}", idDoJogo.takeIf { it.isNotEmpty() }?.let { "aj_jogo_${it}_${AjustesDeJogo.CHAVE_ESCALA}" }, EscalaImagem.AJUSTAR.name)
             val (proporcaoStr, pO) = prefs.getAjusteString("aj_global_${AjustesDeJogo.CHAVE_PROPORCAO}", idDoJogo.takeIf { it.isNotEmpty() }?.let { "aj_jogo_${it}_${AjustesDeJogo.CHAVE_PROPORCAO}" }, ProporcaoImagem.AUTOMATICA.name)
+            val (filtroStr, filO) = prefs.getAjusteString("aj_global_${AjustesDeJogo.CHAVE_FILTRO}", idDoJogo.takeIf { it.isNotEmpty() }?.let { "aj_jogo_${it}_${AjustesDeJogo.CHAVE_FILTRO}" }, FiltroImagem.NITIDO.name)
             val (mostrarFps, fO) = prefs.getAjusteBoolean("aj_global_${AjustesDeJogo.CHAVE_MOSTRAR_FPS}", idDoJogo.takeIf { it.isNotEmpty() }?.let { "aj_jogo_${it}_${AjustesDeJogo.CHAVE_MOSTRAR_FPS}" }, false)
             val (volume, vO) = prefs.getAjusteFloat("aj_global_${AjustesDeJogo.CHAVE_VOLUME}", idDoJogo.takeIf { it.isNotEmpty() }?.let { "aj_jogo_${it}_${AjustesDeJogo.CHAVE_VOLUME}" }, 1.0f)
             val (mudo, mO) = prefs.getAjusteBoolean("aj_global_${AjustesDeJogo.CHAVE_MUDO}", idDoJogo.takeIf { it.isNotEmpty() }?.let { "aj_jogo_${it}_${AjustesDeJogo.CHAVE_MUDO}" }, false)
@@ -91,6 +93,7 @@ object Emulador {
             val overrides = mutableSetOf<String>()
             if (eO) overrides.add(AjustesDeJogo.CHAVE_ESCALA)
             if (pO) overrides.add(AjustesDeJogo.CHAVE_PROPORCAO)
+            if (filO) overrides.add(AjustesDeJogo.CHAVE_FILTRO)
             if (fO) overrides.add(AjustesDeJogo.CHAVE_MOSTRAR_FPS)
             if (vO) overrides.add(AjustesDeJogo.CHAVE_VOLUME)
             if (mO) overrides.add(AjustesDeJogo.CHAVE_MUDO)
@@ -102,6 +105,7 @@ object Emulador {
             AjustesDeJogo(
                 escala = runCatching { EscalaImagem.valueOf(escalaStr) }.getOrDefault(EscalaImagem.AJUSTAR),
                 proporcao = runCatching { ProporcaoImagem.valueOf(proporcaoStr) }.getOrDefault(ProporcaoImagem.AUTOMATICA),
+                filtro = runCatching { FiltroImagem.valueOf(filtroStr) }.getOrDefault(FiltroImagem.NITIDO),
                 mostrarFps = mostrarFps,
                 volume = volume,
                 mudo = mudo,

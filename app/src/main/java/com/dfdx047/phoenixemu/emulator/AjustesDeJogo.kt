@@ -3,9 +3,13 @@ package com.dfdx047.phoenixemu.emulator
 enum class EscalaImagem { AJUSTAR, X1, X2, X3 }
 enum class ProporcaoImagem { AUTOMATICA, PIXELS_QUADRADOS, RATIO_4_3, RATIO_16_9, ESTICAR }
 
+/** Filtro do renderizador GLES. `modo` e o valor enviado ao shader. */
+enum class FiltroImagem(val modo: Int) { NITIDO(2), LINEAR(1), SCANLINES(3), CRT(4), VIZINHO(0) }
+
 data class AjustesDeJogo(
     val escala: EscalaImagem = EscalaImagem.AJUSTAR,
     val proporcao: ProporcaoImagem = ProporcaoImagem.AUTOMATICA,
+    val filtro: FiltroImagem = FiltroImagem.NITIDO,
     val mostrarFps: Boolean = false,
     val volume: Float = 1.0f,
     val mudo: Boolean = false,
@@ -18,6 +22,7 @@ data class AjustesDeJogo(
     companion object {
         const val CHAVE_ESCALA = "escala"
         const val CHAVE_PROPORCAO = "proporcao"
+        const val CHAVE_FILTRO = "filtro"
         const val CHAVE_MOSTRAR_FPS = "mostrarFps"
         const val CHAVE_VOLUME = "volume"
         const val CHAVE_MUDO = "mudo"

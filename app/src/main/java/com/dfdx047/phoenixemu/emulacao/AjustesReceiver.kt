@@ -88,6 +88,7 @@ class AjustesReceiver : BroadcastReceiver() {
                             prefs.limparOverrides(listOf(
                                 "aj_jogo_${idDoJogo}_escala",
                                 "aj_jogo_${idDoJogo}_proporcao",
+                                "aj_jogo_${idDoJogo}_filtro",
                                 "aj_jogo_${idDoJogo}_mostrarFps",
                                 "aj_jogo_${idDoJogo}_volume",
                                 "aj_jogo_${idDoJogo}_mudo",

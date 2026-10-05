@@ -528,6 +528,7 @@ class Preferencias private constructor(context: Context) {
 
     val globalEscalaImagem: StateFlow<String> = derivar("AJUSTAR") { it[stringPreferencesKey("aj_global_escala")] ?: "AJUSTAR" }
     val globalProporcaoImagem: StateFlow<String> = derivar("AUTOMATICA") { it[stringPreferencesKey("aj_global_proporcao")] ?: "AUTOMATICA" }
+    val globalFiltroImagem: StateFlow<String> = derivar("NITIDO") { it[stringPreferencesKey("aj_global_filtro")] ?: "NITIDO" }
     val globalMostrarFps: StateFlow<Boolean> = derivar(false) { it[booleanPreferencesKey("aj_global_mostrarFps")] ?: false }
     val globalVolume: StateFlow<Float> = derivar(1.0f) { it[floatPreferencesKey("aj_global_volume")] ?: 1.0f }
     val globalMudo: StateFlow<Boolean> = derivar(false) { it[booleanPreferencesKey("aj_global_mudo")] ?: false }

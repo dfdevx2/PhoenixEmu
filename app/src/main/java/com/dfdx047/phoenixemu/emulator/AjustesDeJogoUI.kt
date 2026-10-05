@@ -83,6 +83,20 @@ internal fun ConteudoAbaAjustes(
         Text(text = stringResource(R.string.ajustes_secao_video), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = paleta.destaque.copy(alpha = 0.6f), letterSpacing = 2.sp)
         
         LinhaSegmentada(
+            titulo = stringResource(R.string.ajustes_titulo_escala),
+            dica = stringResource(R.string.ajustes_dica_escala),
+            opcoes = listOf(
+                stringResource(R.string.ajustes_op_escala_ajustar) to EscalaImagem.AJUSTAR.name,
+                stringResource(R.string.ajustes_op_escala_1x) to EscalaImagem.X1.name,
+                stringResource(R.string.ajustes_op_escala_2x) to EscalaImagem.X2.name,
+                stringResource(R.string.ajustes_op_escala_3x) to EscalaImagem.X3.name
+            ),
+            selecionado = ajustes.escala.name,
+            onSelect = { aoMudarAjuste(AjustesDeJogo.CHAVE_ESCALA, it, "string") },
+            paleta = paleta
+        )
+
+        LinhaSegmentada(
             titulo = stringResource(R.string.ajustes_titulo_proporcao),
             dica = stringResource(R.string.ajustes_dica_proporcao),
             opcoes = listOf(
@@ -94,6 +108,21 @@ internal fun ConteudoAbaAjustes(
             ),
             selecionado = ajustes.proporcao.name,
             onSelect = { aoMudarAjuste(AjustesDeJogo.CHAVE_PROPORCAO, it, "string") },
+            paleta = paleta
+        )
+
+        LinhaSegmentada(
+            titulo = stringResource(R.string.ajustes_titulo_filtro),
+            dica = stringResource(R.string.ajustes_dica_filtro),
+            opcoes = listOf(
+                stringResource(R.string.ajustes_op_filtro_nitido) to FiltroImagem.NITIDO.name,
+                stringResource(R.string.ajustes_op_filtro_linear) to FiltroImagem.LINEAR.name,
+                stringResource(R.string.ajustes_op_filtro_scanlines) to FiltroImagem.SCANLINES.name,
+                stringResource(R.string.ajustes_op_filtro_crt) to FiltroImagem.CRT.name,
+                stringResource(R.string.ajustes_op_filtro_vizinho) to FiltroImagem.VIZINHO.name
+            ),
+            selecionado = ajustes.filtro.name,
+            onSelect = { aoMudarAjuste(AjustesDeJogo.CHAVE_FILTRO, it, "string") },
             paleta = paleta
         )
 

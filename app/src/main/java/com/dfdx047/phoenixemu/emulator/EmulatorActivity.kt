@@ -14,6 +14,8 @@ import android.view.MotionEvent
 import android.view.PixelCopy
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.layout.layout
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
@@ -641,6 +643,7 @@ class EmulatorActivity : ComponentActivity() {
                                 holder.addCallback(object : SurfaceHolder.Callback {
                                     override fun surfaceCreated(holder: SurfaceHolder) {
                                         activeSurfaceHolder = holder
+                                        nucleo.definirFiltroVideo(ajustes.filtro.modo)
                                         nucleo.iniciar(holder.surface)
                                     }
 
@@ -669,7 +672,34 @@ class EmulatorActivity : ComponentActivity() {
                                     else -> aspectRatio
                                 }
                                 Log.i("PhoenixAjustes", "proporcao=${ajustes.proporcao} ratio=$ratio")
-                                it.aspectRatio(ratio.coerceAtLeast(0.1f))
+                                val ratioFinal = ratio.coerceAtLeast(0.1f)
+                                val nEscala = when (ajustes.escala) {
+                                    EscalaImagem.X1 -> 1
+                                    EscalaImagem.X2 -> 2
+                                    EscalaImagem.X3 -> 3
+                                    else -> 0
+                                }
+                                if (nEscala == 0 || hNat <= 0f) {
+                                    it.aspectRatio(ratioFinal)
+                                } else {
+                                    // Escala inteira: multiplo exato da altura nativa; se nao couber, cai para "ajustar".
+                                    it.layout { measurable, constraints ->
+                                        val maxW = constraints.maxWidth.toFloat()
+                                        val maxH = constraints.maxHeight.toFloat()
+                                        var h = minOf(maxH, maxW / ratioFinal)
+                                        var w = h * ratioFinal
+                                        val hInt = hNat * nEscala
+                                        val wInt = hInt * ratioFinal
+                                        if (wInt <= maxW && hInt <= maxH) {
+                                            w = wInt
+                                            h = hInt
+                                        }
+                                        val colocavel = measurable.measure(
+                                            Constraints.fixed(w.roundToInt().coerceAtLeast(1), h.roundToInt().coerceAtLeast(1))
+                                        )
+                                        layout(colocavel.width, colocavel.height) { colocavel.place(0, 0) }
+                                    }
+                                }
                             }
                         }
                     )
@@ -841,6 +871,9 @@ class EmulatorActivity : ComponentActivity() {
                                     ajustes = ajustes.copy(escala = runCatching { EscalaImagem.valueOf(valor) }.getOrDefault(EscalaImagem.AJUSTAR))
                                 } else if (chave == AjustesDeJogo.CHAVE_PROPORCAO && valor is String) {
                                     ajustes = ajustes.copy(proporcao = runCatching { ProporcaoImagem.valueOf(valor) }.getOrDefault(ProporcaoImagem.AUTOMATICA))
+                                } else if (chave == AjustesDeJogo.CHAVE_FILTRO && valor is String) {
+                                    ajustes = ajustes.copy(filtro = runCatching { FiltroImagem.valueOf(valor) }.getOrDefault(FiltroImagem.NITIDO))
+                                    nucleo.definirFiltroVideo(ajustes.filtro.modo)
                                 } else if (chave == AjustesDeJogo.CHAVE_MOSTRAR_FPS && valor is Boolean) {
                                     ajustes = ajustes.copy(mostrarFps = valor)
                                 } else if (chave == AjustesDeJogo.CHAVE_VOLUME && valor is Float) {

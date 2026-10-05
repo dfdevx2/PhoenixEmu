@@ -634,4 +634,9 @@ Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeDefinirVolume(JNIEnv *
     phoenix_audio_definir_volume(volume);
 }
 
+JNIEXPORT void JNICALL
+Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeDefinirFiltroVideo(JNIEnv * /*env*/, jobject /*thiz*/, jint modo) {
+    phoenix_video_definir_filtro(modo);
+}
+
 } // extern "C"

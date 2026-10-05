@@ -519,4 +519,11 @@
     <string name="editor_overlay_ocultar_no_menu">Hide in pause menu</string>
     <string name="editor_overlay_exportar_json">Export JSON</string>
     <string name="editor_overlay_importar_json">Import JSON</string>
+    <string name="ajustes_titulo_filtro">Image filter</string>
+    <string name="ajustes_dica_filtro">Changes how the game image is scaled. Sharp keeps pixel edges clean at any size. Scanlines and CRT add a retro look.</string>
+    <string name="ajustes_op_filtro_nitido">Sharp</string>
+    <string name="ajustes_op_filtro_linear">Smooth</string>
+    <string name="ajustes_op_filtro_scanlines">Scanlines</string>
+    <string name="ajustes_op_filtro_crt">CRT</string>
+    <string name="ajustes_op_filtro_vizinho">Raw pixels</string>
 </resources>

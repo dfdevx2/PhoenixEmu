@@ -513,4 +513,11 @@
     <string name="editor_overlay_ocultar_no_menu">Ocultar no menu de pausa</string>
     <string name="editor_overlay_exportar_json">Exportar JSON</string>
     <string name="editor_overlay_importar_json">Importar JSON</string>
+    <string name="ajustes_titulo_filtro">Filtro de imagem</string>
+    <string name="ajustes_dica_filtro">Muda como a imagem do jogo é ampliada. Nítido mantém as bordas dos pixels limpas em qualquer tamanho. Scanlines e CRT dão um visual retrô.</string>
+    <string name="ajustes_op_filtro_nitido">Nítido</string>
+    <string name="ajustes_op_filtro_linear">Suave</string>
+    <string name="ajustes_op_filtro_scanlines">Scanlines</string>
+    <string name="ajustes_op_filtro_crt">CRT</string>
+    <string name="ajustes_op_filtro_vizinho">Pixels brutos</string>
 </resources>

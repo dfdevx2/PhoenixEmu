@@ -290,6 +290,7 @@ fun TelaConfiguracoes(prefs: Preferencias) {
     var opacidadeArrastada by remember(wallOpacidade) { mutableFloatStateOf(wallOpacidade) }
     val globalEscala by prefs.globalEscalaImagem.collectAsStateWithLifecycle()
     val globalProporcao by prefs.globalProporcaoImagem.collectAsStateWithLifecycle()
+    val globalFiltro by prefs.globalFiltroImagem.collectAsStateWithLifecycle()
     val globalMostrarFps by prefs.globalMostrarFps.collectAsStateWithLifecycle()
     
     val globalVolume by prefs.globalVolume.collectAsStateWithLifecycle()
@@ -717,9 +718,9 @@ fun TelaConfiguracoes(prefs: Preferencias) {
                     RotuloComDica(R.string.ajustes_titulo_proporcao, R.string.ajustes_dica_proporcao)
                     val proporcoesOpcoes = listOf(
                         "AUTOMATICA" to stringResource(R.string.ajustes_op_proporcao_auto),
-                        "PIXELS_QUADRADOS" to "Pixels quadrados",
+                        "PIXELS_QUADRADOS" to stringResource(R.string.ajustes_op_proporcao_pixels_quadrados),
                         "RATIO_4_3" to stringResource(R.string.ajustes_op_proporcao_4_3),
-                        "RATIO_16_9" to "16:9",
+                        "RATIO_16_9" to stringResource(R.string.ajustes_op_proporcao_16_9),
                         "ESTICAR" to stringResource(R.string.ajustes_op_proporcao_esticar)
                     )
                     proporcoesOpcoes.forEach { (nome, rotulo) ->
@@ -732,6 +733,24 @@ fun TelaConfiguracoes(prefs: Preferencias) {
 
                     HorizontalDivider()
 
+                    RotuloComDica(R.string.ajustes_titulo_filtro, R.string.ajustes_dica_filtro)
+                    val filtrosOpcoes = listOf(
+                        "NITIDO" to stringResource(R.string.ajustes_op_filtro_nitido),
+                        "LINEAR" to stringResource(R.string.ajustes_op_filtro_linear),
+                        "SCANLINES" to stringResource(R.string.ajustes_op_filtro_scanlines),
+                        "CRT" to stringResource(R.string.ajustes_op_filtro_crt),
+                        "VIZINHO" to stringResource(R.string.ajustes_op_filtro_vizinho)
+                    )
+                    filtrosOpcoes.forEach { (nome, rotulo) ->
+                        LinhaDeOpcaoString(
+                            rotulo = rotulo,
+                            selecionado = globalFiltro == nome,
+                            onSelecionar = { prefs.setAjusteString("aj_global_filtro", nome) }
+                        )
+                    }
+
+                    HorizontalDivider()
+
                     LinhaDeInterruptor(
                         rotulo = R.string.ajustes_titulo_mostrar_fps,
                         dica = R.string.ajustes_dica_mostrar_fps,
@@ -739,15 +758,7 @@ fun TelaConfiguracoes(prefs: Preferencias) {
                         onMudar = { prefs.setAjusteBoolean("aj_global_mostrarFps", it) }
                     )
                     
-                    HorizontalDivider()
                     
-                    RotuloComDica(R.string.ajustes_titulo_varredura, R.string.ajustes_dica_varredura)
-                    Text(stringResource(R.string.em_breve), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    
-                    HorizontalDivider()
-                    
-                    RotuloComDica(R.string.ajustes_titulo_suavizacao, R.string.ajustes_dica_suavizacao)
-                    Text(stringResource(R.string.em_breve), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else if (abaSelecionada == 3) {
                 Cartao {
