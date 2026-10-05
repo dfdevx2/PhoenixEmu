@@ -575,4 +575,15 @@
     <string name="skin_menu_rapido">Skins no menu rápido</string>
     <string name="skin_menu_rapido_dica">Escolha até 3 skins para aparecer no menu de pausa do jogo. A skin ativa também aparece sempre. Sem nenhuma marcada, aparecem as skins embutidas.</string>
     <string name="skin_erro_limite">Você atingiu o limite de 12 skins instaladas. Remova uma antes.</string>
+    <string name="skin_baixar">Baixar skins</string>
+    <string name="skin_biblioteca_titulo">Biblioteca de skins</string>
+    <string name="skin_biblioteca_erro_rede">Não foi possível acessar a biblioteca de skins. Verifique sua conexão.</string>
+    <string name="skin_biblioteca_vazia">Ainda não há skins disponíveis.</string>
+    <string name="skin_biblioteca_tentar">Tentar de novo</string>
+    <string name="skin_biblioteca_instalar">Instalar</string>
+    <string name="skin_biblioteca_atualizar">Atualizar</string>
+    <string name="skin_biblioteca_instalada">Instalada</string>
+    <string name="skin_biblioteca_baixando">Baixando…</string>
+    <string name="skin_biblioteca_fechar">Fechar</string>
+    <string name="skin_biblioteca_por">por %1$s · v%2$d</string>
 </resources>

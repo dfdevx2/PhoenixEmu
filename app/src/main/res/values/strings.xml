@@ -581,4 +581,15 @@
     <string name="skin_menu_rapido">Skins in the quick menu</string>
     <string name="skin_menu_rapido_dica">Pick up to 3 skins to show in the in-game pause menu. The active skin is always shown too. With none picked, the built-in skins are shown.</string>
     <string name="skin_erro_limite">You reached the limit of 12 installed skins. Remove one first.</string>
+    <string name="skin_baixar">Download skins</string>
+    <string name="skin_biblioteca_titulo">Skin library</string>
+    <string name="skin_biblioteca_erro_rede">Could not reach the skin library. Check your connection.</string>
+    <string name="skin_biblioteca_vazia">No skins available yet.</string>
+    <string name="skin_biblioteca_tentar">Try again</string>
+    <string name="skin_biblioteca_instalar">Install</string>
+    <string name="skin_biblioteca_atualizar">Update</string>
+    <string name="skin_biblioteca_instalada">Installed</string>
+    <string name="skin_biblioteca_baixando">Downloading…</string>
+    <string name="skin_biblioteca_fechar">Close</string>
+    <string name="skin_biblioteca_por">by %1$s · v%2$d</string>
 </resources>

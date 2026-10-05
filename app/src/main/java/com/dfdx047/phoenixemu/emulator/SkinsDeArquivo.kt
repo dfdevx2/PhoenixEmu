@@ -40,7 +40,8 @@ import kotlin.math.roundToInt
 
 data class ImagemSkinJson(
     val normal: String? = null,
-    val pressionado: String? = null
+    val pressionado: String? = null,
+    @SerializedName("cor_rotulo") val corRotulo: String? = null
 )
 
 data class SkinJson(
@@ -61,7 +62,8 @@ class SkinDeArquivo(
     private val corRotulo: Color?,
     private val comRotulos: Boolean,
     private val normal: Map<String, ImageBitmap>,
-    private val pressionadas: Map<String, ImageBitmap>
+    private val pressionadas: Map<String, ImageBitmap>,
+    private val coresRotulo: Map<String, Color> = emptyMap()
 ) : SkinDeControles {
 
     override fun desenharControle(
@@ -109,7 +111,7 @@ class SkinDeArquivo(
         )
         if (comRotulos && chave != "dpad") {
             desenharRotulo(
-                escopoCanvas, controle, centro, raioOuTamanho, corRotulo ?: Color.White,
+                escopoCanvas, controle, centro, raioOuTamanho, coresRotulo[chave] ?: corRotulo ?: Color.White,
                 mostrarRotulos, textMeasurer, textStyle, opacidade
             )
         }
@@ -152,10 +154,12 @@ object CarregadorDeSkins {
         require(ID_OK.matches(id) && id == dir.name) { "id invalido" }
         val normal = HashMap<String, ImageBitmap>()
         val press = HashMap<String, ImageBitmap>()
+        val cores = HashMap<String, Color>()
         for ((chave, par) in j.imagens.orEmpty()) {
             if (chave !in CHAVES) continue
             par.normal?.let { n -> decodificar(File(dir, n))?.let { normal[chave] = it } }
             par.pressionado?.let { n -> decodificar(File(dir, n))?.let { press[chave] = it } }
+            par.corRotulo?.let { c -> runCatching { Color(android.graphics.Color.parseColor(c)) }.getOrNull()?.let { cores[chave] = it } }
         }
         val cor = j.corRotulo?.let { c -> runCatching { Color(android.graphics.Color.parseColor(c)) }.getOrNull() }
         return SkinDeArquivo(
@@ -166,7 +170,8 @@ object CarregadorDeSkins {
             corRotulo = cor,
             comRotulos = j.rotulos != false,
             normal = normal,
-            pressionadas = press
+            pressionadas = press,
+            coresRotulo = cores
         )
     }
 

@@ -544,10 +544,16 @@ private fun EditorDoOverlay(prefs: Preferencias) {
             val ehInstalada = skinAtual != null &&
                 com.dfdx047.phoenixemu.emulator.Skins.embutidas.none { it.id == skinAtual.id }
 
-            Row(
+            var mostrarBiblioteca by remember { mutableStateOf(false) }
+            if (mostrarBiblioteca) BibliotecaDeSkinsDialog(onFechar = { mostrarBiblioteca = false })
+            androidx.compose.foundation.layout.FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceEvenly
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceEvenly,
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
             ) {
+                androidx.compose.material3.Button(onClick = { mostrarBiblioteca = true }) {
+                    Text(stringResource(R.string.skin_baixar))
+                }
                 androidx.compose.material3.Button(onClick = { seletorZip.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) }) {
                     Text(stringResource(R.string.skin_importar))
                 }
