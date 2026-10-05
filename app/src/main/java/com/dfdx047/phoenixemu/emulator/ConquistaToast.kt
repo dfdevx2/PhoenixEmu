@@ -10,8 +10,6 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -23,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -45,6 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dfdx047.phoenixemu.R
+import com.dfdx047.phoenixemu.ui.design.SuperficieDeVidro
 import coil.compose.AsyncImage
 import com.dfdx047.phoenixemu.ui.design.LocalReduzirEfeitos
 import kotlinx.coroutines.delay
@@ -148,7 +148,9 @@ fun BoxScope.PopupDeConquista(
     }
     val forma = RoundedCornerShape(16.dp)
 
-    Row(
+    SuperficieDeVidro(
+        forma = forma,
+        desfocar = false,
         modifier = Modifier
             .align(alinhamento)
             .padding(16.dp)
@@ -163,13 +165,12 @@ fun BoxScope.PopupDeConquista(
                     scaleY = s
                 }
             }
-            .clip(forma)
-            .background(Color(0xE60F1118))
-            .border(1.dp, corPrimaria.copy(alpha = 0.6f), forma)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
         if (aviso.badgeUrl != null) {
             AsyncImage(
                 model = aviso.badgeUrl,
@@ -189,7 +190,7 @@ fun BoxScope.PopupDeConquista(
             )
             Text(
                 aviso.titulo,
-                color = Color.White,
+                color = LocalContentColor.current,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
@@ -198,7 +199,7 @@ fun BoxScope.PopupDeConquista(
             if (aviso.descricao.isNotBlank()) {
                 Text(
                     aviso.descricao,
-                    color = Color.White.copy(alpha = 0.75f),
+                    color = LocalContentColor.current.copy(alpha = 0.75f),
                     fontSize = 12.sp,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
@@ -211,5 +212,6 @@ fun BoxScope.PopupDeConquista(
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold
         )
+        }
     }
 }
