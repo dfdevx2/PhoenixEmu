@@ -23,6 +23,36 @@ add_library(phoenix_emu SHARED
 
 target_include_directories(phoenix_emu PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
+# ---------------------------------------------------------------------
+# rcheevos (RetroAchievements) -- MIT. Fonte em third_party/rcheevos.
+# ---------------------------------------------------------------------
+set(RC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third_party/rcheevos)
+file(GLOB RC_SRC
+    ${RC_DIR}/src/api/*.c
+    ${RC_DIR}/src/client/*.c
+    ${RC_DIR}/src/runtime/*.c
+    ${RC_DIR}/src/util/*.c
+    ${RC_DIR}/src/hash/*.c
+    ${RC_DIR}/src/libretro/*.c
+)
+list(FILTER RC_SRC EXCLUDE REGEX "raintegration")
+add_library(rcheevos STATIC ${RC_SRC})
+target_include_directories(rcheevos PUBLIC
+    ${RC_DIR}/include
+    ${RC_DIR}/src
+    ${RC_DIR}/src/api
+    ${RC_DIR}/src/client
+    ${RC_DIR}/src/hash
+    ${RC_DIR}/src/libretro
+    ${RC_DIR}/src/runtime
+    ${RC_DIR}/src/util
+)
+target_compile_definitions(rcheevos PUBLIC RC_DISABLE_LUA=1 RC_CLIENT_SUPPORTS_HASH=1)
+set_target_properties(rcheevos PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_compile_options(rcheevos PRIVATE -w)
+target_include_directories(rcheevos PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+
 find_library(log-lib log)
 find_library(android-lib android)
 find_library(egl-lib EGL)
@@ -34,6 +64,7 @@ target_link_libraries(phoenix_emu
     ${egl-lib}
     ${gles-lib}
     dl          # dlopen/dlsym para carregar os nucleos libretro
+    rcheevos
     oboe::oboe
 )
 
