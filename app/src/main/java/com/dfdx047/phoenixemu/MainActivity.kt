@@ -11,8 +11,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.ui.graphics.graphicsLayer
@@ -166,6 +168,7 @@ import com.dfdx047.phoenixemu.ui.design.halo
 import com.dfdx047.phoenixemu.ui.design.lembrarEstadoDoChrome
 import com.dfdx047.phoenixemu.ui.design.EstadoDoChrome
 import com.dfdx047.phoenixemu.ui.design.LocalReduzirEfeitos
+import com.dfdx047.phoenixemu.ui.design.Anim
 import com.dfdx047.phoenixemu.ui.design.TipoDeControle
 import com.dfdx047.phoenixemu.ui.design.lembrarTipoDeControle
 import com.dfdx047.phoenixemu.ui.design.ItemDeNavegacao
@@ -1063,6 +1066,20 @@ fun TelaJogos(
     topoFixoNaGrade: Boolean = false,
     focoDaLista: FocusRequester,
 ) {
+    val reduzirEfeitosLista = LocalReduzirEfeitos.current
+    val fadeDaLista = remember { Animatable(1f) }
+    val primeiraComposicao = remember { booleanArrayOf(true) }
+    val chaveDoConteudo = Triple(jogos.size, jogos.firstOrNull()?.nome, jogos.lastOrNull()?.nome)
+    LaunchedEffect(chaveDoConteudo) {
+        if (primeiraComposicao[0]) {
+            primeiraComposicao[0] = false
+            return@LaunchedEffect
+        }
+        if (reduzirEfeitosLista) return@LaunchedEffect
+        fadeDaLista.snapTo(0.35f)
+        fadeDaLista.animateTo(1f, tween(Anim.RAPIDA_MS))
+    }
+
     val recuo = PaddingValues(
         start = 16.dp,
         end = 16.dp,
@@ -1098,7 +1115,7 @@ fun TelaJogos(
     val gerenciadorDeFoco = LocalFocusManager.current
     val emGrade = modoVisual == ModoVisual.GRADE
 
-    BoxWithConstraints(Modifier.fillMaxSize()) {
+    BoxWithConstraints(Modifier.fillMaxSize().graphicsLayer { alpha = fadeDaLista.value }) {
         // Copiados para locais AQUI, no corpo do BoxWithConstraints, e nao
         // lidos mais para baixo: os escopos de layout do Compose sao marcados
         // com @DslMarker, entao dentro de um Box aninhado so o BoxScope mais
