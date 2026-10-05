@@ -174,6 +174,8 @@ import com.dfdx047.phoenixemu.ui.design.SeletorSegmentado
 import com.dfdx047.phoenixemu.ui.design.SuperficieDeVidro
 import com.dfdx047.phoenixemu.ui.design.fonteDeFundo
 import com.dfdx047.phoenixemu.ui.design.lembrarEstadoDeFundo
+import com.dfdx047.phoenixemu.ui.design.EntradaDaBiblioteca
+import com.dfdx047.phoenixemu.ui.design.entradaDeCartao
 import com.dfdx047.phoenixemu.ui.telas.BoasVindas
 import com.dfdx047.phoenixemu.ui.telas.TelaControles
 import com.dfdx047.phoenixemu.ui.theme.PhoenixEmuTheme
@@ -392,6 +394,11 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx
         if (indiceSelecionado > jogosVisiveis.lastIndex) {
             indiceSelecionado = jogosVisiveis.lastIndex.coerceAtLeast(0)
         }
+    }
+
+    LaunchedEffect(Unit) {
+        delay(1500)
+        EntradaDaBiblioteca.concluida = true
     }
 
     // A2 — som ao mudar de capa (ignora a primeira emissao)
@@ -1222,6 +1229,7 @@ fun TelaJogos(
                                 val jogo = jogos[indice]
                                 CartaoDeJogo(
                                     jogo = jogo,
+                                    modifier = Modifier.entradaDeCartao(indice),
                                     selecionado = indice == indiceSelecionado,
                                     onClicar = { onSelecionar(indice); onAbrir(jogo) },
                                     onOpcoes = { onSelecionar(indice); onOpcoes(jogo) }
@@ -1247,6 +1255,7 @@ fun TelaJogos(
                             val jogo = jogos[indice]
                             CartaoDeJogo(
                                 jogo = jogo,
+                                modifier = Modifier.entradaDeCartao(indice),
                                 selecionado = indice == indiceSelecionado,
                                 onClicar = { onSelecionar(indice); onAbrir(jogo) },
                                 onOpcoes = { onSelecionar(indice); onOpcoes(jogo) }
@@ -1414,6 +1423,7 @@ private fun CarrosselXmb(
                     ) {
                         CartaoDeJogo(
                             jogo = jogo,
+                            modifier = Modifier.entradaDeCartao(indice),
                             altura = with(densidade) { alturaDaCapa.dp },
                             largura = with(densidade) { larguraDaCapa.dp },
                             selecionado = ad == 0,

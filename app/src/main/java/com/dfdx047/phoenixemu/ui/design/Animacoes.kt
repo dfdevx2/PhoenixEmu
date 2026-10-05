@@ -1,14 +1,23 @@
 package com.dfdx047.phoenixemu.ui.design
 
-import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.TweenSpec
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.composed
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.Modifier
+import kotlinx.coroutines.delay
 
 val LocalReduzirEfeitos = staticCompositionLocalOf { false }
 
@@ -31,4 +40,31 @@ object Anim {
     /** Se reduzido, não anima: troca direto. */
     fun <T> quando(reduzido: Boolean, spec: AnimationSpec<T>): AnimationSpec<T> =
         if (reduzido) snap() else spec
+}
+
+object EntradaDaBiblioteca {
+    @Volatile var concluida = false
+}
+
+fun Modifier.entradaDeCartao(indice: Int): Modifier = composed {
+    val reduzido = LocalReduzirEfeitos.current
+    val animar = remember { !reduzido && !EntradaDaBiblioteca.concluida }
+    if (!animar) {
+        Modifier
+    } else {
+        val progresso = remember { Animatable(0f) }
+        val deslocamentoPx = with(LocalDensity.current) { 28.dp.toPx() }
+        LaunchedEffect(Unit) {
+            delay(indice.coerceIn(0, 14) * 40L)
+            progresso.animateTo(1f, tween(Anim.MEDIA_MS + 60, easing = FastOutSlowInEasing))
+        }
+        Modifier.graphicsLayer {
+            val p = progresso.value
+            alpha = p
+            translationY = (1f - p) * deslocamentoPx
+            val s = 0.94f + 0.06f * p
+            scaleX = s
+            scaleY = s
+        }
+    }
 }
