@@ -133,10 +133,6 @@ Every other shortcut starts unassigned and can be set in **Controls ▸ Shortcut
 
 Phoenix Emu is an emulator. It does **not** include ROMs, BIOS files or any copyrighted game. Use only games you own and have dumped yourself. "Nintendo", "NES", "Famicom", "SNES" and "Super Famicom" are trademarks of their respective owners; this project is not affiliated with or endorsed by them.
 
-## Support the project
-
-Phoenix Emu is free. A Ko-fi donation link will be added here and in the app for the first public release.
-
 ## Credits
 
 - [libretro](https://www.libretro.com/) API and community

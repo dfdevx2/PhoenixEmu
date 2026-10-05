@@ -134,10 +134,6 @@ Os outros atalhos começam sem nada atribuído e são definidos em **Controles �
 
 O Phoenix Emu é um emulador. Ele **não** inclui ROMs, BIOS ou qualquer jogo protegido por direitos autorais. Use apenas jogos que você possui e que você mesmo extraiu. "Nintendo", "NES", "Famicom", "SNES" e "Super Famicom" são marcas dos seus respectivos donos; este projeto não é afiliado nem aprovado por eles.
 
-## Apoie o projeto
-
-O Phoenix Emu é gratuito. O link de doação do Ko-fi será colocado aqui e no app na primeira versão pública.
-
 ## Créditos
 
 - API e comunidade [libretro](https://www.libretro.com/)
