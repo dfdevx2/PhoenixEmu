@@ -85,7 +85,7 @@
     <string name="config_fundo">Library background</string>
     <string name="config_fundo_desc">Pick an image or an animated GIF to sit behind your game list.</string>
     <string name="config_reduzir_efeitos">Reduce visual effects</string>
-    <string name="config_reduzir_efeitos_desc">Replaces live blur with a lighter translucent layer. Worth turning on for older devices.</string>
+    <string name="config_reduzir_efeitos_desc">Turns off blur and animations to save battery and run smoother on weaker devices.</string>
     <string name="sec_audio">AUDIO AND SOUND</string>
     <string name="config_bgm">Background music (BGM)</string>
     <string name="config_sfx">Sound effects (SFX)</string>
@@ -246,7 +246,7 @@
     <string name="dica_fundo">Uses your own image as the app background.</string>
     <string name="dica_desfoque">How blurred the background image is. Only works on Android 12 or newer.</string>
     <string name="dica_opacidade">How much of the background image shows. Lower opacity reveals more of the theme background.</string>
-    <string name="dica_reduzir_efeitos">Turns off live blur and heavy animations. Helps weaker devices and saves battery.</string>
+    <string name="dica_reduzir_efeitos">Removes the glass blur and the motion effects (card entrance, focus zoom, menu transitions). Recommended for weaker devices or if you prefer a static interface.</string>
     <string name="dica_idioma">App language. System follows the Android language. The screen restarts when you change it.</string>
     <string name="dica_bgm">Background music in the app menus. Does not affect game audio.</string>
     <string name="dica_sfx">Click and navigation sounds in the menus. Does not affect game audio.</string>

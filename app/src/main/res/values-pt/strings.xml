@@ -84,7 +84,7 @@
     <string name="config_fundo">Plano de fundo da biblioteca</string>
     <string name="config_fundo_desc">Escolha uma imagem ou um GIF animado para ficar atrás da sua lista de jogos.</string>
     <string name="config_reduzir_efeitos">Reduzir efeitos visuais</string>
-    <string name="config_reduzir_efeitos_desc">Troca o desfoque ao vivo por uma camada translúcida mais leve. Vale ligar em aparelhos antigos.</string>
+    <string name="config_reduzir_efeitos_desc">Desliga o desfoque e as animações para poupar bateria e rodar mais leve em aparelhos fracos.</string>
     <string name="sec_audio">ÁUDIO E SOM</string>
     <string name="config_bgm">Música de fundo (BGM)</string>
     <string name="config_sfx">Efeitos sonoros (SFX)</string>
@@ -241,7 +241,7 @@
     <string name="dica_fundo">Usa uma imagem sua como fundo do app.</string>
     <string name="dica_desfoque">Quanto a imagem de fundo é desfocada. Só funciona no Android 12 ou superior.</string>
     <string name="dica_opacidade">Quanto da imagem de fundo aparece. Menos opacidade deixa o fundo do tema mais visível.</string>
-    <string name="dica_reduzir_efeitos">Desliga o desfoque ao vivo e animações pesadas. Ajuda em aparelhos mais fracos e economiza bateria.</string>
+    <string name="dica_reduzir_efeitos">Remove o desfoque do vidro e os efeitos de movimento (entrada dos cartões, zoom do foco, transições do menu). Recomendado para aparelhos mais fracos ou se preferir uma interface estática.</string>
     <string name="dica_idioma">Idioma do app. Em Sistema, ele acompanha o idioma do Android. A tela reinicia ao trocar.</string>
     <string name="dica_bgm">Música de fundo dos menus do app. Não afeta o som dos jogos.</string>
     <string name="dica_sfx">Sons de clique e navegação nos menus. Não afeta o som dos jogos.</string>
