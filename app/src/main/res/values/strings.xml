@@ -116,7 +116,6 @@
     <string name="ra_progresso">Recent progress</string>
     <string name="ra_conquistas">%1$d of %2$d achievements</string>
     <string name="ra_platinado">Mastered</string>
-    <string name="ra_aviso_mock">This screen still shows sample data. Real achievement tracking arrives with the rcheevos library in Phase 5.</string>
     <!-- Achievements — games -->
     <string name="ra_destaque_conquistas">Achievements</string>
     <string name="ra_recentes">Recently played</string>

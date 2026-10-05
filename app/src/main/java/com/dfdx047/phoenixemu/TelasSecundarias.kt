@@ -1295,6 +1295,25 @@ fun TelaRetroAchievements(jogos: List<Jogo>) {
     val scope = rememberCoroutineScope()
 
     val repoRa = remember { RaRepositorio(context) }
+    val resumos = remember { androidx.compose.runtime.mutableStateMapOf<String, Pair<Int, Int>>() }
+    androidx.compose.runtime.LaunchedEffect(logado, jogosAbertos.map { it.id }) {
+        if (!logado) return@LaunchedEffect
+        val user = RaCredenciais.usuario(context)
+        val key = RaCredenciais.chave(context)
+        val lista = repoRa.lista(user, key).valorOuNull().orEmpty().associateBy { it.idRa }
+        for (j in jogosAbertos.take(40)) {
+            if (resumos.containsKey(j.id)) continue
+            val hash = hashRaDoJogo(context, j) ?: continue
+            val idRa = repoRa.idDoJogo(hash).valorOuNull() ?: continue
+            val r = lista[idRa]
+            if (r != null) {
+                resumos[j.id] = r.maximo to r.ganhas
+                continue
+            }
+            val p = repoRa.progresso(user, key, idRa).valorOuNull() ?: continue
+            resumos[j.id] = p.totalConquistas to p.desbloqueadas
+        }
+    }
     var estadoRa by remember { mutableStateOf<EstadoRa>(EstadoRa.Carregando) }
     var recarregar by remember { mutableIntStateOf(0) }
     androidx.compose.runtime.LaunchedEffect(logado, jogoDestaque?.id, jogoDestaque?.hashRa, recarregar) {
@@ -1732,7 +1751,7 @@ fun TelaRetroAchievements(jogos: List<Jogo>) {
                             .horizontalScroll(rememberScrollState())
                     ) {
                         recentes.forEachIndexed { idx, jogo ->
-                            CartaoRecente(jogo, onClick = {
+                            CartaoRecente(jogo, resumos[jogo.id], onClick = {
                                 audio.playClick()
                                 jogoSelecionadoId = jogo.id
                                 scope.launch { lazyListState.animateScrollToItem(0) }
@@ -1774,11 +1793,11 @@ fun TelaRetroAchievements(jogos: List<Jogo>) {
                         )
                     } else {
                         jogosFiltrados.forEach { jogo ->
-                            val stats = conquistasDeExemplo(jogo)
+                            val stats = resumos[jogo.id]
                             CartaoConquistaJogo(
                                 jogo = jogo,
-                                totalConquistas = stats.first,
-                                desbloqueadas = stats.second,
+                                totalConquistas = stats?.first ?: 0,
+                                desbloqueadas = stats?.second ?: 0,
                                 onClick = {
                                     audio.playClick()
                                     jogoSelecionadoId = jogo.id
@@ -1790,14 +1809,6 @@ fun TelaRetroAchievements(jogos: List<Jogo>) {
                     }
                 }
 
-                // f) Aviso mock
-                item {
-                    Text(
-                        stringResource(R.string.ra_aviso_mock),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
             }
         }
     }
@@ -1807,6 +1818,26 @@ fun TelaRetroAchievements(jogos: List<Jogo>) {
 // Funções auxiliares e composables da tela
 // =====================================================================
 
+private fun <T> RaResultado<T>.valorOuNull(): T? = when (this) {
+    is RaResultado.Ok -> valor
+    is RaResultado.Erro -> null
+}
+
+/** Garante o hash do RA de um jogo: usa o salvo ou calcula na hora e grava no banco. */
+private suspend fun hashRaDoJogo(context: Context, j: Jogo): String? {
+    j.hashRa?.takeIf { it.isNotBlank() }?.let { return it }
+    val identidade = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        runCatching {
+            com.dfdx047.phoenixemu.data.RomHasher.calcular(context, j.uri, j.extensao, j.sistema)
+        }.getOrNull()
+    } ?: return null
+    runCatching {
+        com.dfdx047.phoenixemu.data.BibliotecaStore.obter(context)
+            .definirIdentidade(j.id, identidade.crc32, identidade.hashRa)
+    }
+    return identidade.hashRa
+}
+
 private sealed interface EstadoRa {
     data object Carregando : EstadoRa
     data object SemHash : EstadoRa
@@ -1815,20 +1846,10 @@ private sealed interface EstadoRa {
     data class Pronto(val progresso: RaJogoProgresso, val doCache: Boolean) : EstadoRa
 }
 
-private fun conquistasDeExemplo(jogo: Jogo): Pair<Int, Int> {
-    val total = 12 + kotlin.math.abs(jogo.id.hashCode()) % 40
-    val desbloqueadas = if (jogo.tempoJogadoMinutos > 0 || jogo.ultimaVezJogado > 0) {
-        kotlin.math.abs(jogo.nome.hashCode()) % (total + 1)
-    } else {
-        0
-    }
-    return total to desbloqueadas
-}
 
 @Composable
-private fun CartaoRecente(jogo: Jogo, onClick: () -> Unit) {
-    val stats = conquistasDeExemplo(jogo)
-    val fracao = if (stats.first > 0) stats.second.toFloat() / stats.first else 0f
+private fun CartaoRecente(jogo: Jogo, stats: Pair<Int, Int>?, onClick: () -> Unit) {
+    val fracao = if (stats != null && stats.first > 0) stats.second.toFloat() / stats.first else 0f
 
     Column(
         modifier = Modifier

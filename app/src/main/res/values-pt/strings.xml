@@ -115,7 +115,6 @@
     <string name="ra_progresso">Progresso recente</string>
     <string name="ra_conquistas">%1$d de %2$d conquistas</string>
     <string name="ra_platinado">Platinado</string>
-    <string name="ra_aviso_mock">Esta tela ainda mostra dados de exemplo. O acompanhamento real de conquistas chega com a biblioteca rcheevos, na Fase 5.</string>
     <!-- Conquistas — jogos -->
     <string name="ra_destaque_conquistas">Conquistas</string>
     <string name="ra_recentes">Jogados recentemente</string>
