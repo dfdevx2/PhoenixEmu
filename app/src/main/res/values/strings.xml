@@ -619,4 +619,11 @@
     <string name="editor_acao_atalho">Shortcut</string>
     <string name="editor_acao_rotulo">Label</string>
     <string name="editor_dica_rolar">↓ Scroll down for more options (button action / shortcuts)</string>
+    <string name="capas_titulo">Game covers</string>
+    <string name="capas_dica">Covers are downloaded automatically from the Libretro thumbnails server (box art), with no key needed. Games not found there can fall back to RAWG if you add a key below.</string>
+    <string name="capas_desc">Search again for games that are still missing a cover.</string>
+    <string name="capas_botao_buscar">Search covers again</string>
+    <string name="capas_rawg_titulo">RAWG API key (optional)</string>
+    <string name="capas_rawg_dica">Optional fallback for games the Libretro server does not have. Get a free key at rawg.io/apidocs. RAWG images are artwork or screenshots, not box art. The key stays on this device.</string>
+    <string name="capas_rawg_hint">Paste your RAWG key</string>
 </resources>

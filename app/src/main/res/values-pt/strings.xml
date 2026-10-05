@@ -613,4 +613,11 @@
     <string name="editor_acao_atalho">Atalho</string>
     <string name="editor_acao_rotulo">Rótulo</string>
     <string name="editor_dica_rolar">↓ Role para baixo: mais opções (ação do botão / atalhos)</string>
+    <string name="capas_titulo">Capas dos jogos</string>
+    <string name="capas_dica">As capas são baixadas automaticamente do servidor de miniaturas do Libretro (caixa do jogo), sem precisar de chave. Jogos que não estiverem lá podem usar a RAWG se você colocar uma chave abaixo.</string>
+    <string name="capas_desc">Busca de novo os jogos que ainda estão sem capa.</string>
+    <string name="capas_botao_buscar">Buscar capas de novo</string>
+    <string name="capas_rawg_titulo">Chave da API RAWG (opcional)</string>
+    <string name="capas_rawg_dica">Alternativa opcional para jogos que o servidor do Libretro não tem. Peça uma chave grátis em rawg.io/apidocs. As imagens da RAWG são arte ou screenshots, não a caixa. A chave fica só neste aparelho.</string>
+    <string name="capas_rawg_hint">Cole sua chave da RAWG</string>
 </resources>

@@ -179,8 +179,18 @@ object RetroScraper {
             .build()
     }
 
+    @Volatile
+    var chaveRawg: String = BuildConfig.RAWG_API_KEY
+
+    /** A chave digitada pelo usuario (Manutencao) tem prioridade sobre a do build. */
+    fun carregarChave(ctx: android.content.Context) {
+        val v = ctx.getSharedPreferences("phoenix_capas", android.content.Context.MODE_PRIVATE)
+            .getString("rawg", "").orEmpty().trim()
+        chaveRawg = v.ifBlank { BuildConfig.RAWG_API_KEY }
+    }
+
     private val rawgDisponivel: Boolean
-        get() = BuildConfig.RAWG_API_KEY.isNotBlank()
+        get() = chaveRawg.isNotBlank()
 
     private val rawg: RawgApi by lazy {
         Retrofit.Builder()
@@ -377,7 +387,7 @@ object RetroScraper {
             val resposta = rawg.searchGames(
                 query = nomeLimpo,
                 platforms = plataforma,
-                apiKey = BuildConfig.RAWG_API_KEY
+                apiKey = chaveRawg
             )
             val comImagem = resposta.results?.filter { !it.background_image.isNullOrBlank() }
             if (comImagem.isNullOrEmpty()) return null

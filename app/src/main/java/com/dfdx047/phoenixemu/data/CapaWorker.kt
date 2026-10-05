@@ -35,6 +35,7 @@ class CapaWorker(
 
     override suspend fun doWork(): Result {
         val store = BibliotecaStore.obter(applicationContext)
+        RetroScraper.carregarChave(applicationContext)
         store.carregar()
 
         val pendentes = store.jogosSemCapa()

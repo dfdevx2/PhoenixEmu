@@ -975,6 +975,67 @@ fun TelaConfiguracoes(prefs: Preferencias) {
                         ) { Text(stringResource(R.string.acao_calcular)) }
                     }
                 }
+                Cartao {
+                    RotuloComDica(R.string.capas_titulo, R.string.capas_dica)
+                    Text(
+                        stringResource(R.string.capas_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    val progressoCapas by remember { Trabalhos.progresso(context, Trabalhos.CAPAS) }
+                        .collectAsStateWithLifecycle(initialValue = null)
+                    val andamentoCapas = progressoCapas
+                    if (andamentoCapas != null) {
+                        LinearProgressIndicator(
+                            progress = { andamentoCapas.fracao },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                stringResource(R.string.progresso_contagem, andamentoCapas.feitos, andamentoCapas.total),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            OutlinedButton(onClick = {
+                                audio.playClick()
+                                Trabalhos.cancelar(context, Trabalhos.CAPAS)
+                            }) { Text(stringResource(R.string.acao_cancelar)) }
+                        }
+                    } else {
+                        Button(
+                            onClick = {
+                                audio.playClick()
+                                escopo.launch {
+                                    runCatching { BibliotecaStore.obter(context).reabrirCapas() }
+                                    Trabalhos.enfileirarCapas(context)
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text(stringResource(R.string.capas_botao_buscar)) }
+                    }
+
+                    HorizontalDivider()
+
+                    RotuloComDica(R.string.capas_rawg_titulo, R.string.capas_rawg_dica)
+                    val prefsCapas = remember { context.getSharedPreferences("phoenix_capas", android.content.Context.MODE_PRIVATE) }
+                    var chaveRawg by remember { mutableStateOf(prefsCapas.getString("rawg", "").orEmpty()) }
+                    OutlinedTextField(
+                        value = chaveRawg,
+                        onValueChange = {
+                            chaveRawg = it
+                            prefsCapas.edit().putString("rawg", it.trim()).apply()
+                        },
+                        singleLine = true,
+                        placeholder = { Text(stringResource(R.string.capas_rawg_hint)) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
                 if (mostrarDialogoRestaurar) {
                     val focusCancelarRestaurar = remember { FocusRequester() }
                     LaunchedEffect(Unit) { focusCancelarRestaurar.requestFocus() }

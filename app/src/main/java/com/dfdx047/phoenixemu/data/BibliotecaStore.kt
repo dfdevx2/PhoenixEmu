@@ -339,7 +339,6 @@ class BibliotecaStore private constructor(context: Context) {
             }
         } finally {
             _estadoScan.value = EstadoScan.Parado
-            runCatching { reabrirCapas() }
             Trabalhos.enfileirarCapas(app)
         }
     }
@@ -411,7 +410,6 @@ class BibliotecaStore private constructor(context: Context) {
             )
         } finally {
             _estadoScan.value = EstadoScan.Parado
-            runCatching { reabrirCapas() }
             Trabalhos.enfileirarCapas(app)
         }
     }
