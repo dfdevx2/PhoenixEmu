@@ -380,6 +380,19 @@ class EmulatorActivity : ComponentActivity() {
         }
     }
 
+    private fun atalhoDaTela(acao: AcaoAtalho, pressionado: Boolean) {
+        when (acao) {
+            AcaoAtalho.AVANCAR -> setFfActive(pressionado)
+            AcaoAtalho.VOLTAR -> setRewindActive(pressionado)
+            AcaoAtalho.SALVAR_ESTADO -> if (pressionado) executarAcao(Acao.SALVAR_ESTADO)
+            AcaoAtalho.CARREGAR_ESTADO -> if (pressionado) executarAcao(Acao.CARREGAR_ESTADO)
+            AcaoAtalho.SLOT_ANTERIOR -> if (pressionado) executarAcao(Acao.SLOT_ANTERIOR)
+            AcaoAtalho.SLOT_PROXIMO -> if (pressionado) executarAcao(Acao.SLOT_PROXIMO)
+            AcaoAtalho.MENU -> if (pressionado) executarAcao(Acao.MENU)
+            AcaoAtalho.REINICIAR -> if (pressionado) executarAcao(Acao.REINICIAR)
+        }
+    }
+
     private fun executarAcao(acao: Acao) {
         val ctx = contextoLocalizado ?: this
         when (acao) {
@@ -736,7 +749,8 @@ class EmulatorActivity : ComponentActivity() {
                             motorDeAtalhos.atualizarTouchMask(mask)
                             // Se tocou na tela, reexibir overlay
                             controleOcultouOverlay = false
-                        }
+                        },
+                        aoAtalhoNaTela = { a, p -> atalhoDaTela(a, p) }
                     )
 
                     HudDoJogo(

@@ -35,6 +35,11 @@ import androidx.compose.ui.input.key.nativeKeyCode
 import androidx.compose.foundation.focusable
 import com.dfdx047.phoenixemu.data.BotaoVirtual
 import com.dfdx047.phoenixemu.data.ControleNaTela
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import com.dfdx047.phoenixemu.data.AcaoDoControle
+import com.dfdx047.phoenixemu.data.AcaoAtalho
+import com.dfdx047.phoenixemu.data.TipoAcaoControle
 import com.dfdx047.phoenixemu.data.OverlayConfigNova
 import com.dfdx047.phoenixemu.data.TipoControleNaTela
 import kotlin.math.abs
@@ -338,13 +343,26 @@ fun PropriedadesControleDialog(
     var tamanho by remember { mutableFloatStateOf(controle.tamanhoBase) }
     var opacidade by remember { mutableFloatStateOf(controle.opacidade ?: 1f) }
     var usarOpacidadePropria by remember { mutableStateOf(controle.opacidade != null) }
+    var tipoAcao by remember { mutableStateOf(if (controle.acao?.tipo == TipoAcaoControle.ATALHO) TipoAcaoControle.ATALHO else TipoAcaoControle.BOTAO) }
+    var atalhoSel by remember { mutableStateOf(controle.acao?.acaoAtalho ?: AcaoAtalho.SALVAR_ESTADO) }
+    var botaoSel by remember { mutableStateOf(controle.acao?.botaoVirtual) }
+    var rotuloTxt by remember { mutableStateOf(controle.rotulo ?: "") }
     
     // Implement properties here
+    val scrollDica = rememberScrollState()
     AlertDialog(
         onDismissRequest = onCancelar,
         title = { Text(stringResource(R.string.editor_overlay_props_titulo)) },
         text = {
-            Column {
+            Column(modifier = Modifier.verticalScroll(scrollDica)) {
+            if (scrollDica.canScrollForward) {
+                androidx.compose.material3.Text(
+                    stringResource(R.string.editor_dica_rolar),
+                    style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
                 Text(stringResource(R.string.editor_overlay_props_tamanho, (tamanho * 100).toInt()))
                 Slider(value = tamanho, onValueChange = { tamanho = it }, valueRange = 0.5f..2.5f)
                 
@@ -354,6 +372,50 @@ fun PropriedadesControleDialog(
                 }
                 if (usarOpacidadePropria) {
                     Slider(value = opacidade, onValueChange = { opacidade = it }, valueRange = 0.0f..1.0f)
+                }
+
+                if (controle.tipo == TipoControleNaTela.BOTAO) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(stringResource(R.string.editor_acao_titulo), fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(
+                            TipoAcaoControle.BOTAO to R.string.editor_acao_botao,
+                            TipoAcaoControle.ATALHO to R.string.editor_acao_atalho
+                        ).forEach { (tp, rot) ->
+                            if (tipoAcao == tp) Button(onClick = {}) { Text(stringResource(rot)) }
+                            else OutlinedButton(onClick = { tipoAcao = tp }) { Text(stringResource(rot)) }
+                        }
+                    }
+                    if (tipoAcao == TipoAcaoControle.ATALHO) {
+                        AcaoAtalho.entries.forEach { a ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                androidx.compose.material3.RadioButton(
+                                    selected = atalhoSel == a,
+                                    onClick = {
+                                        atalhoSel = a
+                                        if (rotuloTxt.isBlank() || rotuloTxt == "NOVO" || rotuloTxt in AcaoAtalho.entries.map { rotuloCurtoAtalho(it) }) {
+                                            rotuloTxt = rotuloCurtoAtalho(a)
+                                        }
+                                    }
+                                )
+                                Text(stringResource(a.rotulo))
+                            }
+                        }
+                    } else {
+                        BotaoVirtual.entries.forEach { b ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                androidx.compose.material3.RadioButton(selected = botaoSel == b, onClick = { botaoSel = b })
+                                Text(b.name)
+                            }
+                        }
+                    }
+                    androidx.compose.material3.OutlinedTextField(
+                        value = rotuloTxt,
+                        onValueChange = { rotuloTxt = it.take(8) },
+                        label = { Text(stringResource(R.string.editor_acao_rotulo)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
 
                 Spacer(Modifier.height(8.dp))
@@ -377,7 +439,21 @@ fun PropriedadesControleDialog(
             }
         },
         confirmButton = {
-            Button(onClick = { onSalvar(controle.copy(tamanhoBase = tamanho, opacidade = if (usarOpacidadePropria) opacidade else null)) }) { Text(stringResource(R.string.editor_overlay_props_ok)) }
+            Button(onClick = {
+                val ehBotao = controle.tipo == TipoControleNaTela.BOTAO
+                val novaAcao = if (!ehBotao) controle.acao
+                else if (tipoAcao == TipoAcaoControle.ATALHO)
+                    (controle.acao ?: AcaoDoControle()).copy(tipo = TipoAcaoControle.ATALHO, acaoAtalho = atalhoSel, botaoVirtual = null)
+                else
+                    (controle.acao ?: AcaoDoControle()).copy(tipo = TipoAcaoControle.BOTAO, acaoAtalho = null, botaoVirtual = botaoSel)
+                onSalvar(controle.copy(
+                    tamanhoBase = tamanho,
+                    opacidade = if (usarOpacidadePropria) opacidade else null,
+                    acao = novaAcao,
+                    rotulo = if (ehBotao) rotuloTxt.ifBlank { null } else controle.rotulo,
+                    formato = if (ehBotao && tipoAcao == TipoAcaoControle.ATALHO) "PILULA" else controle.formato
+                ))
+            }) { Text(stringResource(R.string.editor_overlay_props_ok)) }
         },
         dismissButton = {
             Row {
@@ -387,4 +463,15 @@ fun PropriedadesControleDialog(
             }
         }
     )
+}
+
+private fun rotuloCurtoAtalho(a: AcaoAtalho): String = when (a) {
+    AcaoAtalho.SALVAR_ESTADO -> "SAVE"
+    AcaoAtalho.CARREGAR_ESTADO -> "LOAD"
+    AcaoAtalho.SLOT_ANTERIOR -> "SLOT-"
+    AcaoAtalho.SLOT_PROXIMO -> "SLOT+"
+    AcaoAtalho.AVANCAR -> "FF"
+    AcaoAtalho.VOLTAR -> "REW"
+    AcaoAtalho.MENU -> "MENU"
+    AcaoAtalho.REINICIAR -> "RESET"
 }

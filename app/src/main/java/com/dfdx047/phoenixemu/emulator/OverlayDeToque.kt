@@ -34,9 +34,12 @@ fun OverlayDeToque(
     corPrimaria: Color,
     corAcento: Color,
     aoMudarToque: (Int) -> Unit,
+    aoAtalhoNaTela: (com.dfdx047.phoenixemu.data.AcaoAtalho, Boolean) -> Unit = { _, _ -> },
     plataforma: String = "SNES"
 ) {
     var touchMaskAtual by remember { mutableIntStateOf(0) }
+    val atalhosAtivos = remember { mutableMapOf<String, com.dfdx047.phoenixemu.data.AcaoAtalho>() }
+    val idsAtalhoEstado = remember { androidx.compose.runtime.mutableStateOf(emptySet<String>()) }
     val view = LocalView.current
     val textMeasurer = rememberTextMeasurer()
     val textStyle = TextStyle(
@@ -49,6 +52,11 @@ fun OverlayDeToque(
             if (touchMaskAtual != 0) {
                 touchMaskAtual = 0
                 aoMudarToque(0)
+            }
+            if (atalhosAtivos.isNotEmpty()) {
+                atalhosAtivos.values.toList().forEach { aoAtalhoNaTela(it, false) }
+                atalhosAtivos.clear()
+                idsAtalhoEstado.value = emptySet()
             }
         }
     }
@@ -69,6 +77,7 @@ fun OverlayDeToque(
                     while (true) {
                         val evento = awaitPointerEvent()
                         var novaMascara = 0
+                        val novosAtalhos = mutableMapOf<String, com.dfdx047.phoenixemu.data.AcaoAtalho>()
                         
                         val w = size.width.toFloat()
                         val h = size.height.toFloat()
@@ -84,6 +93,7 @@ fun OverlayDeToque(
 
                             var distMin = Float.MAX_VALUE
                             var botaoProximo: BotaoVirtual? = null
+                            var controleProximo: com.dfdx047.phoenixemu.data.ControleNaTela? = null
 
                             for (j in config.controles.indices) {
                                 val c = config.controles[j]
@@ -108,6 +118,7 @@ fun OverlayDeToque(
                                     if (dist < raioToque && dist < distMin) {
                                         distMin = dist
                                         botaoProximo = c.acao?.botaoVirtual
+                                        controleProximo = c
                                     }
                                 }
                             }
@@ -129,10 +140,26 @@ fun OverlayDeToque(
                                 }
                                 novaMascara = novaMascara or bit
                             }
+                            val ctlProx = controleProximo
+                            val acaoCtl = ctlProx?.acao
+                            val atalhoCtl = acaoCtl?.acaoAtalho
+                            if (ctlProx != null && acaoCtl != null && atalhoCtl != null &&
+                                acaoCtl.tipo == com.dfdx047.phoenixemu.data.TipoAcaoControle.ATALHO) {
+                                novosAtalhos[ctlProx.id] = atalhoCtl
+                            }
                         }
 
+                        val atalhosApertados = novosAtalhos.filterKeys { it !in atalhosAtivos }
+                        val atalhosSoltos = atalhosAtivos.filterKeys { it !in novosAtalhos }
+                        if (atalhosApertados.isNotEmpty() || atalhosSoltos.isNotEmpty()) {
+                            atalhosSoltos.values.forEach { aoAtalhoNaTela(it, false) }
+                            atalhosApertados.values.forEach { aoAtalhoNaTela(it, true) }
+                            atalhosAtivos.clear()
+                            atalhosAtivos.putAll(novosAtalhos)
+                            idsAtalhoEstado.value = novosAtalhos.keys.toSet()
+                        }
                         val novosPressionados = novaMascara and touchMaskAtual.inv()
-                        if (novosPressionados != 0 && config.hapticoAtivo) {
+                        if ((novosPressionados != 0 || atalhosApertados.isNotEmpty()) && config.hapticoAtivo) {
                             view.performHapticFeedback(
                                 if (config.hapticoIntensidade > 1) HapticFeedbackConstants.KEYBOARD_PRESS else HapticFeedbackConstants.VIRTUAL_KEY,
                                 HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
@@ -182,7 +209,7 @@ fun OverlayDeToque(
                     // if any dpad direction is pressed
                     (touchMaskAtual and ((1 shl 4) or (1 shl 5) or (1 shl 6) or (1 shl 7))) != 0
                 } else {
-                    (touchMaskAtual and bit) != 0
+                    (touchMaskAtual and bit) != 0 || c.id in idsAtalhoEstado.value
                 }
 
                 val opacidade = if (pressionado) config.opacidadePressionado else config.opacidadeOciosa

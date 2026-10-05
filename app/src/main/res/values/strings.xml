@@ -614,4 +614,9 @@
     <string name="conq_hardcore_sessao_on">This session: hardcore is ON</string>
     <string name="conq_hardcore_sessao_off">This session: hardcore is OFF</string>
     <string name="conq_hardcore_salvo">Saved. Applies the next time you open the game.</string>
+    <string name="editor_acao_titulo">What does this button do?</string>
+    <string name="editor_acao_botao">Console button</string>
+    <string name="editor_acao_atalho">Shortcut</string>
+    <string name="editor_acao_rotulo">Label</string>
+    <string name="editor_dica_rolar">↓ Scroll down for more options (button action / shortcuts)</string>
 </resources>

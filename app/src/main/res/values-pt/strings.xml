@@ -608,4 +608,9 @@
     <string name="conq_hardcore_sessao_on">Nesta sessão: hardcore ligado</string>
     <string name="conq_hardcore_sessao_off">Nesta sessão: hardcore desligado</string>
     <string name="conq_hardcore_salvo">Salvo. Vale na próxima vez que você abrir o jogo.</string>
+    <string name="editor_acao_titulo">O que este botão faz?</string>
+    <string name="editor_acao_botao">Botão do console</string>
+    <string name="editor_acao_atalho">Atalho</string>
+    <string name="editor_acao_rotulo">Rótulo</string>
+    <string name="editor_dica_rolar">↓ Role para baixo: mais opções (ação do botão / atalhos)</string>
 </resources>

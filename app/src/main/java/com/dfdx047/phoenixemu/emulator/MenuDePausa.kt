@@ -806,7 +806,7 @@ private fun BarraDeAbas(
 
                 Box(
                     modifier = Modifier
-                        .weight(1f)
+                        .weight(ctx.getString(item.labelRes).length + 5f)
                         .fillMaxHeight()
                         .clip(cantos)
                         .background(bgAnim)
@@ -825,13 +825,15 @@ private fun BarraDeAbas(
                             imageVector = item.iconVector,
                             contentDescription = ctx.getString(item.labelRes),
                             tint = textAnim,
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier.size(if (abas.size > 3) 18.dp else 20.dp),
                         )
                         Text(
                             text = ctx.getString(item.labelRes),
-                            fontSize = 14.sp,
+                            fontSize = if (abas.size > 3) 12.sp else 14.sp,
                             fontWeight = fontWeight,
                             color = textAnim,
+                            maxLines = 1,
+                            softWrap = false,
                         )
                     }
 
