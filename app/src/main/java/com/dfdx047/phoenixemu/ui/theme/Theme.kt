@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowInsetsControllerCompat
 import com.dfdx047.phoenixemu.Acabamento
 import com.dfdx047.phoenixemu.TemaApp
+import com.dfdx047.phoenixemu.ui.design.LocalReduzirEfeitos
 import com.dfdx047.phoenixemu.ui.design.LocalVidro
 import com.dfdx047.phoenixemu.ui.design.estiloDeVidroPara
 
@@ -182,7 +183,10 @@ fun PhoenixEmuTheme(
         estiloDeVidroPara(temaAtual, colorScheme, ehEscuro, reduzirEfeitos, acabamento, amoled, sombras)
     }
 
-    CompositionLocalProvider(LocalVidro provides estiloDeVidro) {
+    CompositionLocalProvider(
+        LocalVidro provides estiloDeVidro,
+        LocalReduzirEfeitos provides reduzirEfeitos
+    ) {
         MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
     }
 }
