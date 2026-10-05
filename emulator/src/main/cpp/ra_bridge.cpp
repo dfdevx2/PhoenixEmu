@@ -119,6 +119,14 @@ void notificar_erro(int codigo, const char *msg) {
 }
 
 // ---- memoria do core ----
+int g_console = 0;
+std::string g_usuario, g_token;
+uint32_t g_quadros = 0;
+std::atomic<bool> g_adiar{false};
+retro_memory_descriptor g_desc[64];
+retro_memory_map g_mapa;
+bool g_tem_mapa = false;
+uint32_t g_tent = 0;
 void RC_CCONV info_memoria(uint32_t id, rc_libretro_core_memory_info_t *info) {
     if (g_nucleo == nullptr) {
         info->data = nullptr;
@@ -130,7 +138,18 @@ void RC_CCONV info_memoria(uint32_t id, rc_libretro_core_memory_info_t *info) {
 }
 
 uint32_t RC_CCONV ler_memoria(uint32_t endereco, uint8_t *buffer, uint32_t n, rc_client_t *) {
-    if (!g_regioes_ok) return 0;
+    if (!g_regioes_ok) {
+        // alguns nucleos so expoem a RAM depois do primeiro quadro: tenta de novo de vez em quando
+        if (g_nucleo != nullptr && (g_tent++ % 300) == 0 && g_tent < 20000) {
+            memset(&g_regioes, 0, sizeof(g_regioes));
+            g_regioes_ok = rc_libretro_memory_init(&g_regioes, g_tem_mapa ? &g_mapa : nullptr, info_memoria, static_cast<uint32_t>(g_console)) != 0;
+            LOGI("memoria (tentativa %u): ok=%d sram=%zu wram=%zu", g_tent, g_regioes_ok ? 1 : 0,
+                 static_cast<size_t>(g_nucleo->memoriaTamanho(0)), static_cast<size_t>(g_nucleo->memoriaTamanho(2)));
+            for (unsigned id = 0; id < 12; id++) LOGI("  sonda id=%u tam=%zu ptr=%p", id, static_cast<size_t>(g_nucleo->memoriaTamanho(id)), g_nucleo->memoriaDados(id));
+            for (unsigned id = 256; id < 262; id++) LOGI("  sonda id=%u tam=%zu ptr=%p", id, static_cast<size_t>(g_nucleo->memoriaTamanho(id)), g_nucleo->memoriaDados(id));
+        }
+        if (!g_regioes_ok) return 0;
+    }
     return rc_libretro_memory_read(&g_regioes, endereco, buffer, n);
 }
 
@@ -211,6 +230,7 @@ void RC_CCONV ao_logar(int result, const char *msg, rc_client_t *client, void *)
 }
 
 void parar_interno() {
+    g_adiar.store(false, std::memory_order_release);
     g_ativo.store(false, std::memory_order_release);
     if (g_client != nullptr) {
         rc_client_unload_game(g_client);
@@ -227,8 +247,32 @@ void parar_interno() {
 
 } // namespace
 
+void phoenix_ra_definir_mapa(const struct retro_memory_map *mapa) {
+    g_tem_mapa = false;
+    if (mapa == nullptr || mapa->descriptors == nullptr || mapa->num_descriptors == 0) return;
+    unsigned n = mapa->num_descriptors > 64 ? 64 : mapa->num_descriptors;
+    for (unsigned i = 0; i < n; i++) g_desc[i] = mapa->descriptors[i];
+    g_mapa.descriptors = g_desc;
+    g_mapa.num_descriptors = n;
+    g_tem_mapa = true;
+    LOGI("mapa de memoria do nucleo: %u descritores", n);
+}
+
 void phoenix_ra_depois_do_quadro() {
-    if (g_ativo.load(std::memory_order_relaxed) && g_client != nullptr) rc_client_do_frame(g_client);
+    if (!g_ativo.load(std::memory_order_relaxed) || g_client == nullptr) return;
+    if (g_adiar.load(std::memory_order_acquire)) {
+        if (++g_quadros < 90) return;
+        g_adiar.store(false, std::memory_order_release);
+        if (g_regioes_ok) rc_libretro_memory_destroy(&g_regioes);
+        memset(&g_regioes, 0, sizeof(g_regioes));
+        g_regioes_ok = rc_libretro_memory_init(&g_regioes, g_tem_mapa ? &g_mapa : nullptr, info_memoria, static_cast<uint32_t>(g_console)) != 0;
+        LOGI("memoria (apos %u quadros): console=%d ok=%d wram=%zu sram=%zu", g_quadros, g_console, g_regioes_ok ? 1 : 0,
+             static_cast<size_t>(g_nucleo != nullptr ? g_nucleo->memoriaTamanho(2) : 0),
+             static_cast<size_t>(g_nucleo != nullptr ? g_nucleo->memoriaTamanho(0) : 0));
+        rc_client_begin_login_with_token(g_client, g_usuario.c_str(), g_token.c_str(), ao_logar, nullptr);
+        return;
+    }
+    rc_client_do_frame(g_client);
 }
 
 void phoenix_ra_idle() {
@@ -272,12 +316,18 @@ bool phoenix_ra_iniciar(JNIEnv *env, phoenix::LibretroCore *nucleo, const std::s
     rc_client_set_event_handler(g_client, evento);
     rc_client_set_hardcore_enabled(g_client, hardcore ? 1 : 0);
 
+    g_console = consoleId;
+    g_tent = 0;
     memset(&g_regioes, 0, sizeof(g_regioes));
-    g_regioes_ok = rc_libretro_memory_init(&g_regioes, nullptr, info_memoria, static_cast<uint32_t>(consoleId)) != 0;
+    g_regioes_ok = rc_libretro_memory_init(&g_regioes, g_tem_mapa ? &g_mapa : nullptr, info_memoria, static_cast<uint32_t>(consoleId)) != 0;
     LOGI("memoria: console=%d ok=%d", consoleId, g_regioes_ok ? 1 : 0);
 
     g_ativo.store(true, std::memory_order_release);
-    rc_client_begin_login_with_token(g_client, usuario.c_str(), token.c_str(), ao_logar, nullptr);
+    // login e mapeamento da memoria so depois de alguns quadros (alguns nucleos so tem a RAM pronta depois)
+    g_usuario = usuario;
+    g_token = token;
+    g_quadros = 0;
+    g_adiar.store(true, std::memory_order_release);
     return true;
 }
 

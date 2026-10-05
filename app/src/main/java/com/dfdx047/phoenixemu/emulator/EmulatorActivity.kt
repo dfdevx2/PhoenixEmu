@@ -596,6 +596,8 @@ class EmulatorActivity : ComponentActivity() {
         
         aplicarAjustesNoEmulador()
 
+        iniciarRetroAchievements(isJogoReal && loadError == null)
+
         if (isJogoReal) {
             autosavePendente = true
         }
@@ -734,7 +736,7 @@ class EmulatorActivity : ComponentActivity() {
                         avisoTexto = avisoTexto
                     )
 
-                    val filaConquistas = remember { androidx.compose.runtime.mutableStateListOf<ConquistaAviso>() }
+                    val filaConquistas = filaConquistasAct
                     PopupDeConquista(fila = filaConquistas, corPrimaria = Color(temaCorPrimaria), config = conqConfig)
                     if ((applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
                         LaunchedEffect(Unit) {
@@ -1036,9 +1038,40 @@ class EmulatorActivity : ComponentActivity() {
         }
     }
 
+    private val filaConquistasAct = androidx.compose.runtime.mutableStateListOf<ConquistaAviso>()
+
+    private fun iniciarRetroAchievements(carregou: Boolean) {
+        val usuario = intent.getStringExtra("phoenix.ra_usuario").orEmpty()
+        val token = intent.getStringExtra("phoenix.ra_token").orEmpty()
+        val hash = intent.getStringExtra("phoenix.ra_hash").orEmpty()
+        val consoleId = intent.getIntExtra("phoenix.ra_console", 0)
+        if (!carregou || usuario.isBlank() || token.isBlank() || hash.isBlank() || consoleId == 0) {
+            android.util.Log.i("PhoenixRA", "RA desligado (carregou=" + carregou + ", user=" + usuario.isNotBlank() +
+                ", token=" + token.isNotBlank() + ", hash=" + hash.isNotBlank() + ", console=" + consoleId + ")")
+            return
+        }
+        val principal = android.os.Handler(android.os.Looper.getMainLooper())
+        RaNativo.ouvinte = object : RaNativo.Ouvinte {
+            override fun aoConquista(titulo: String, descricao: String, pontos: Int, badgeUrl: String) {
+                principal.post {
+                    filaConquistasAct.add(ConquistaAviso(titulo, descricao, pontos, badgeUrl.ifBlank { null }))
+                }
+            }
+            override fun aoJogoCarregado(titulo: String, total: Int, desbloqueadas: Int, pontosTotal: Int, pontosGanhos: Int) {
+                android.util.Log.i("PhoenixRA", "jogo: " + titulo + " " + desbloqueadas + "/" + total + " (" + pontosGanhos + "/" + pontosTotal + " pts)")
+            }
+            override fun aoErro(codigo: Int, mensagem: String) {
+                android.util.Log.w("PhoenixRA", "erro " + codigo + ": " + mensagem)
+            }
+        }
+        RaNativo.iniciar(usuario, token, hash, consoleId, false)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         nucleo.parar()
+        RaNativo.ouvinte = null
+        RaNativo.parar()
         motorDeAtalhos.resetar()
         gerenciadorDeEstados?.cancelarPendentes()
         srmPath?.let { nucleo.salvarSram(it) }

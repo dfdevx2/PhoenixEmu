@@ -42,7 +42,7 @@ object Emulador {
      */
     const val NUCLEO_FALSO = "libnucleo_falso.so"
     const val NUCLEO_NES = "libmesen.so"
-    const val NUCLEO_SNES = "libbsnes.so"
+    const val NUCLEO_SNES = "libsnes9x.so"
 
     fun nucleoPara(sistema: Sistema): String = when (sistema) {
         Sistema.NES -> NUCLEO_NES
@@ -65,6 +65,17 @@ object Emulador {
             plataforma = when (jogo.sistema) {
                 Sistema.NES -> "NES"
                 Sistema.SNES -> "SNES"
+            },
+            raHash = jogo.hashRa?.takeIf { it.isNotBlank() }
+                ?: runCatching {
+                    runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                        com.dfdx047.phoenixemu.data.RomHasher.calcular(context, jogo.uri, jogo.extensao, jogo.sistema)?.hashRa
+                    }
+                }.getOrNull()
+                ?: "",
+            raConsole = when (jogo.sistema) {
+                Sistema.NES -> 7
+                Sistema.SNES -> 3
             }
         )
 
@@ -78,6 +89,8 @@ object Emulador {
         capa: String? = null,
         tempoJogadoMs: Long = 0,
         plataforma: String = "",
+        raHash: String = "",
+        raConsole: Int = 0,
     ) {
         val idDoJogo = rom?.let { Base64.encodeToString(it.toByteArray(), Base64.NO_WRAP) } ?: ""
 
@@ -189,6 +202,10 @@ object Emulador {
         intent.putExtra("phoenix.conq_posicao", runBlocking { prefs.conqPosicao.first() })
         intent.putExtra("phoenix.conq_duracao", runBlocking { prefs.conqDuracao.first() })
         intent.putExtra("phoenix.conq_volume", runBlocking { prefs.conqVolume.first() })
+        intent.putExtra("phoenix.ra_usuario", com.dfdx047.phoenixemu.ra.RaCredenciais.usuario(context) ?: "")
+        intent.putExtra("phoenix.ra_token", com.dfdx047.phoenixemu.ra.RaCredenciais.token(context) ?: "")
+        intent.putExtra("phoenix.ra_hash", raHash)
+        intent.putExtra("phoenix.ra_console", raConsole)
         context.startActivity(intent)
     }
 

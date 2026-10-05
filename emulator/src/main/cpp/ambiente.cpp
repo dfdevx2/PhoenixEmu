@@ -10,6 +10,8 @@
 
 #include <atomic>
 
+void phoenix_ra_definir_mapa(const struct retro_memory_map *mapa);
+
 std::string g_system_dir;
 std::string g_saves_dir;
 int g_formato_pixel = -1;
@@ -76,6 +78,9 @@ bool cb_environment(unsigned cmd, void *data) {
         case 32: // RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO
             return true;
         case 35: // RETRO_ENVIRONMENT_SET_CONTROLLER_INFO
+            return true;
+        case 36: // RETRO_ENVIRONMENT_SET_MEMORY_MAPS
+            phoenix_ra_definir_mapa(static_cast<const struct retro_memory_map *>(data));
             return true;
         case 37: // RETRO_ENVIRONMENT_SET_GEOMETRY
             return true;
