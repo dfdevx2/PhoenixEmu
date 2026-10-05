@@ -56,9 +56,7 @@ fun OverlayDeToque(
     if (!visivel || config.visivelModo == com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.NUNCA) return
 
     val skinId = config.skinId
-    val skin = if (skinId == "classico_8bit") SkinClassica8Bit 
-               else if (skinId == "moderno") SkinModerna 
-               else SkinClassica16Bit
+    val skin = Skins.porId(skinId)
 
     Box(
         modifier = Modifier

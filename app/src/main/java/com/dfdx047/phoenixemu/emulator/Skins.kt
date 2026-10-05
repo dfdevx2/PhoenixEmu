@@ -206,3 +206,10 @@ object SkinModerna : SkinDeControles {
         }
     }
 }
+
+object Skins {
+    val todas: List<SkinDeControles> = listOf(SkinClassica8Bit, SkinClassica16Bit, SkinModerna)
+
+    fun porId(id: String?): SkinDeControles =
+        todas.firstOrNull { it.id == id } ?: SkinClassica16Bit
+}

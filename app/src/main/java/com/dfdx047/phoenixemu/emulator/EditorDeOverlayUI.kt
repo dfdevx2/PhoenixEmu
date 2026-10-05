@@ -300,9 +300,7 @@ fun EditorDeOverlayUI(
                 val w = size.width
                 val h = size.height
                 val rRef = Math.min(w, h) * 0.08f * configInicial.escalaGlobal
-                val skin = if (configInicial.skinId == "classico_8bit") SkinClassica8Bit 
-                           else if (configInicial.skinId == "moderno") SkinModerna 
-                           else SkinClassica16Bit
+                val skin = Skins.porId(configInicial.skinId)
 
                 for (c in state.controles) {
                     val cx = c.x * w

@@ -16,3 +16,9 @@ local.properties
 .aider*
 build/
 texto.txt
+
+keystore.properties
+*.jks
+*.keystore
+crash.txt
+erro.txt
