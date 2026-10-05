@@ -1,5 +1,6 @@
 package com.dfdx047.phoenixemu.emulator
 
+import androidx.compose.material.icons.outlined.EmojiEvents
 import android.util.Log
 import android.graphics.Bitmap
 import android.net.Uri
@@ -537,6 +538,7 @@ private fun MenuDePausaInner(
                                 acabamento = acabamento,
                                 reduzirEfeitos = reduzirEfeitos,
                             )
+                            AbaDoMenu.CONQUISTAS -> ConteudoAbaConquistas(texto = paleta.texto, destaque = paleta.destaque)
                             AbaDoMenu.AJUSTES -> ConteudoAbaAjustes(
                                 ajustes = ajustes,
                                 aoMudarAjuste = aoMudarAjuste,
@@ -772,7 +774,7 @@ private fun BarraDeAbas(
         TabItem(AbaDoMenu.JOGO, R.string.pause_aba_jogo, Icons.Outlined.PlayArrow),
         TabItem(AbaDoMenu.AJUSTES, R.string.pause_aba_ajustes, Icons.Outlined.Settings),
         TabItem(AbaDoMenu.CONTROLES, R.string.pause_aba_controles, Icons.Outlined.Gamepad),
-    )
+    ) + (if (EstadoRaJogo.ativo) listOf(TabItem(AbaDoMenu.CONQUISTAS, R.string.pause_aba_conquistas, Icons.Outlined.EmojiEvents)) else emptyList())
 
     var abaIndex by remember { mutableIntStateOf(abas.indexOfFirst { it.aba == abaAtual }.takeIf { it >= 0 } ?: 0) }
 

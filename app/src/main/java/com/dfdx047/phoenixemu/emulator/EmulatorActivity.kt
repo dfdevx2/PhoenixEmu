@@ -439,11 +439,20 @@ class EmulatorActivity : ComponentActivity() {
         }
     }
 
+    private fun atualizarConquistasDoMenu() {
+        if (!EstadoRaJogo.ativo) return
+        Thread {
+            val itens = RaNativo.lista()
+            runOnUiThread { EstadoRaJogo.itens = itens }
+        }.start()
+    }
+
     private fun pausarJogo() {
         capturarMiniatura {
             abaAtual = AbaDoMenu.JOGO
             fundoDoMenu = lastCapturedBitmap
             mensagemFeedback = ""
+            atualizarConquistasDoMenu()
             isPaused = true
         }
     }
@@ -1055,9 +1064,24 @@ class EmulatorActivity : ComponentActivity() {
             }
             override fun aoJogoCarregado(titulo: String, total: Int, desbloqueadas: Int, pontosTotal: Int, pontosGanhos: Int) {
                 android.util.Log.i("PhoenixRA", "jogo: " + titulo + " " + desbloqueadas + "/" + total + " (" + pontosGanhos + "/" + pontosTotal + " pts)")
+                principal.post {
+                    EstadoRaJogo.definirResumo(titulo, total, desbloqueadas, pontosTotal, pontosGanhos)
+                    if (total > 0) {
+                        filaConquistasAct.add(
+                            ConquistaAviso(
+                                titulo,
+                                getString(R.string.conq_aviso_inicio_texto, desbloqueadas, total, pontosGanhos, pontosTotal),
+                                0, RaNativo.capa().ifBlank { null }, informativo = true
+                            )
+                        )
+                    }
+                }
             }
             override fun aoErro(codigo: Int, mensagem: String) {
                 android.util.Log.w("PhoenixRA", "erro " + codigo + ": " + mensagem)
+                if (codigo == 1) principal.post {
+                    filaConquistasAct.add(ConquistaAviso("RetroAchievements", getString(R.string.conq_erro_login), 0, null, informativo = true))
+                }
             }
         }
         RaNativo.iniciar(usuario, token, hash, consoleId, false)

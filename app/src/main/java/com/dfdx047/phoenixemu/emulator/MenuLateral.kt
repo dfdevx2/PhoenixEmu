@@ -48,7 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 internal enum class AbaDoMenu {
-    JOGO, ESTADOS, AJUSTES, CONTROLES
+    JOGO, ESTADOS, AJUSTES, CONTROLES, CONQUISTAS
 }
 
 @Composable
@@ -163,6 +163,7 @@ private fun MenuCabecalho(abaAtual: AbaDoMenu, aoTrocarAba: (AbaDoMenu) -> Unit)
                         AbaDoMenu.ESTADOS -> "Estados"
                         AbaDoMenu.AJUSTES -> "Ajustes"
                         AbaDoMenu.CONTROLES -> "Controles"
+                        AbaDoMenu.CONQUISTAS -> "Conquistas"
                     },
                     style = TextStyle(
                         fontSize = 16.sp,

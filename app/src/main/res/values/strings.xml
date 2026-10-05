@@ -592,4 +592,9 @@
     <string name="skin_biblioteca_baixando">Downloading…</string>
     <string name="skin_biblioteca_fechar">Close</string>
     <string name="skin_biblioteca_por">by %1$s · v%2$d</string>
+    <string name="pause_aba_conquistas">Trophies</string>
+    <string name="conq_aviso_cabecalho">Achievements</string>
+    <string name="conq_aviso_inicio_texto">%1$d of %2$d achievements · %3$d/%4$d pts</string>
+    <string name="conq_erro_login">Your RetroAchievements sign-in expired. Sign in again in the app.</string>
+    <string name="conq_menu_vazio">No achievements loaded yet.</string>
 </resources>

@@ -1,3 +1,4 @@
+#include <string>
 /**
  * Ponte com o rcheevos (RetroAchievements).
  *
@@ -336,6 +337,57 @@ extern "C" {
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *) {
     g_vm = vm;
     return JNI_VERSION_1_6;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_dfdx047_phoenixemu_emulator_RaNativo_nativeRaCapa(JNIEnv *env, jobject) {
+    char url[256] = {0};
+    rc_client_t *cli = g_client;
+    if (g_ativo.load(std::memory_order_acquire) && cli != nullptr) {
+        const rc_client_game_t *jogo = rc_client_get_game_info(cli);
+        if (jogo != nullptr) rc_client_game_get_image_url(jogo, url, sizeof(url));
+    }
+    size_t n = strlen(url);
+    jbyteArray r = env->NewByteArray(static_cast<jsize>(n));
+    if (r != nullptr && n > 0) env->SetByteArrayRegion(r, 0, static_cast<jsize>(n), reinterpret_cast<const jbyte *>(url));
+    return r;
+}
+
+JNIEXPORT jbyteArray JNICALL
+Java_com_dfdx047_phoenixemu_emulator_RaNativo_nativeRaLista(JNIEnv *env, jobject) {
+    std::string saida;
+    rc_client_t *cli = g_client;
+    if (g_ativo.load(std::memory_order_acquire) && cli != nullptr && !g_adiar.load(std::memory_order_acquire)) {
+        rc_client_achievement_list_t *lista = rc_client_create_achievement_list(
+            cli, RC_CLIENT_ACHIEVEMENT_CATEGORY_PROMOTED, RC_CLIENT_ACHIEVEMENT_LIST_GROUPING_LOCK_STATE);
+        if (lista != nullptr) {
+            auto limpar = [](const char *s, std::string &out) {
+                if (s == nullptr) return;
+                for (const char *p = s; *p; ++p) out += (*p == '\t' || *p == '\n' || *p == '\r') ? ' ' : *p;
+            };
+            for (uint32_t b = 0; b < lista->num_buckets; b++) {
+                const rc_client_achievement_bucket_t &bk = lista->buckets[b];
+                for (uint32_t k = 0; k < bk.num_achievements; k++) {
+                    const rc_client_achievement_t *a = bk.achievements[k];
+                    if (a == nullptr || a->state == RC_CLIENT_ACHIEVEMENT_STATE_DISABLED) continue;
+                    int estado = (a->unlocked & 2) ? 2
+                        : (((a->unlocked & 1) || a->state == RC_CLIENT_ACHIEVEMENT_STATE_UNLOCKED) ? 1 : 0);
+                    const char *badge = estado > 0 ? a->badge_url : a->badge_locked_url;
+                    saida += std::to_string(estado); saida += '\t';
+                    saida += std::to_string(a->points); saida += '\t';
+                    limpar(badge, saida); saida += '\t';
+                    limpar(a->measured_progress, saida); saida += '\t';
+                    limpar(a->title, saida); saida += '\t';
+                    limpar(a->description, saida); saida += '\n';
+                }
+            }
+            rc_client_destroy_achievement_list(lista);
+        }
+    }
+    jbyteArray r = env->NewByteArray(static_cast<jsize>(saida.size()));
+    if (r != nullptr && !saida.empty())
+        env->SetByteArrayRegion(r, 0, static_cast<jsize>(saida.size()), reinterpret_cast<const jbyte *>(saida.data()));
+    return r;
 }
 
 JNIEXPORT void JNICALL

@@ -586,4 +586,9 @@
     <string name="skin_biblioteca_baixando">Baixando…</string>
     <string name="skin_biblioteca_fechar">Fechar</string>
     <string name="skin_biblioteca_por">por %1$s · v%2$d</string>
+    <string name="pause_aba_conquistas">Troféus</string>
+    <string name="conq_aviso_cabecalho">Conquistas</string>
+    <string name="conq_aviso_inicio_texto">%1$d de %2$d conquistas · %3$d/%4$d pts</string>
+    <string name="conq_erro_login">Seu login do RetroAchievements expirou. Entre de novo no app.</string>
+    <string name="conq_menu_vazio">Nenhuma conquista carregada ainda.</string>
 </resources>

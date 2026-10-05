@@ -33,6 +33,8 @@ object RaNativo {
         usuario: String, token: String, hash: String, consoleId: Int, hardcore: Boolean
     ): Boolean
     private external fun nativeRaParar()
+    private external fun nativeRaLista(): ByteArray?
+    private external fun nativeRaCapa(): ByteArray?
     private external fun nativeRaResposta(id: Long, status: Int, corpo: ByteArray?)
 
     /** Chamar DEPOIS de o jogo estar carregado no nucleo. consoleId: NES = 7, SNES = 3. */
@@ -40,6 +42,22 @@ object RaNativo {
         nativeRaIniciar(usuario, token, hash, consoleId, hardcore)
 
     /** Chamar DEPOIS de parar o laco do emulador. */
+    /** Lista de conquistas do jogo atual (le direto do rcheevos). */
+    fun lista(): List<ItemConquista> {
+        val b = nativeRaLista() ?: return emptyList()
+        return String(b, Charsets.UTF_8).split('\n').mapNotNull { l ->
+            val p = l.split('\t', limit = 6)
+            if (p.size < 6) null
+            else ItemConquista(p[0].toIntOrNull() ?: 0, p[1].toIntOrNull() ?: 0, p[2], p[3], p[4], p[5])
+        }
+    }
+
+    /** URL da imagem do jogo atual no RetroAchievements (vazia se nao houver). */
+    fun capa(): String {
+        val b = nativeRaCapa() ?: return ""
+        return String(b, Charsets.UTF_8)
+    }
+
     fun parar() = nativeRaParar()
 
     private fun texto(b: ByteArray?): String = if (b == null) "" else String(b, Charsets.UTF_8)
@@ -95,3 +113,13 @@ object RaNativo {
         ouvinte?.aoErro(codigo, texto(mensagem))
     }
 }
+
+/** estado: 0 bloqueada, 1 desbloqueada (casual), 2 desbloqueada em hardcore. */
+data class ItemConquista(
+    val estado: Int,
+    val pontos: Int,
+    val badgeUrl: String,
+    val progresso: String,
+    val titulo: String,
+    val descricao: String
+)

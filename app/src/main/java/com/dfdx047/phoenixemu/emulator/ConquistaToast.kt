@@ -55,6 +55,7 @@ data class ConquistaAviso(
     val descricao: String,
     val pontos: Int,
     val badgeUrl: String? = null,
+    val informativo: Boolean = false,
     val uid: Long = System.nanoTime()
 )
 
@@ -128,8 +129,8 @@ fun BoxScope.PopupDeConquista(
             return@LaunchedEffect
         }
         exibido = aviso
-        if (config.som) som.tocar(config.volume)
-        if (config.vibrar) vibrarConquista(view)
+        if (config.som && !aviso.informativo) som.tocar(config.volume)
+        if (config.vibrar && !aviso.informativo) vibrarConquista(view)
         progresso.snapTo(0f)
         progresso.animateTo(1f, tween(if (reduzir) 120 else 280, easing = FastOutSlowInEasing))
         delay(config.duracaoMs)
@@ -185,7 +186,7 @@ fun BoxScope.PopupDeConquista(
         }
         Column(modifier = Modifier.weight(1f, fill = false)) {
             Text(
-                stringResource(R.string.conquista_desbloqueada).uppercase(),
+                (if (aviso.informativo) stringResource(R.string.conq_aviso_cabecalho) else stringResource(R.string.conquista_desbloqueada)).uppercase(),
                 color = corPrimaria,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
@@ -209,7 +210,7 @@ fun BoxScope.PopupDeConquista(
                 )
             }
         }
-        Text(
+        if (!aviso.informativo) Text(
             "+${aviso.pontos}",
             color = corPrimaria,
             fontSize = 16.sp,
