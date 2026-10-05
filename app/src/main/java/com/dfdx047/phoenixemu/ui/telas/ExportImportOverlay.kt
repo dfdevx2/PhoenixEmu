@@ -12,6 +12,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.dfdx047.phoenixemu.R
 import com.dfdx047.phoenixemu.data.OverlayConfigNova
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
@@ -60,10 +62,10 @@ fun BotaoExportarImportarLayout(
 
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
         Button(onClick = { exportLauncher.launch("meu_layout_phoenix.json") }) {
-            Text("Exportar JSON")
+            Text(stringResource(R.string.editor_overlay_exportar_json))
         }
         Button(onClick = { importLauncher.launch(arrayOf("application/json", "*/*")) }) {
-            Text("Importar JSON")
+            Text(stringResource(R.string.editor_overlay_importar_json))
         }
     }
 }

@@ -445,4 +445,50 @@
 
     <string name="ajustes_secao_controles_tela">CONTROLES NA TELA</string>
 
+
+    <string name="overlay_jogo_titulo">Controles na tela</string>
+
+    <string name="overlay_jogo_opacidade_ociosa">Opacidade ociosa</string>
+
+    <string name="overlay_jogo_opacidade_ociosa_dica">Quão transparente os controles ficam quando você não está tocando neles.</string>
+
+    <string name="overlay_jogo_opacidade_pressionado">Opacidade pressionado</string>
+
+    <string name="overlay_jogo_opacidade_pressionado_dica">Quão opacos os controles ficam quando você os pressiona.</string>
+
+    <string name="overlay_jogo_tamanho">Tamanho dos controles</string>
+
+    <string name="overlay_jogo_tamanho_dica">Dimensiona todos os botões na tela e o D-pad de uma vez só.</string>
+
+    <!-- Strings do editor / overlay -->
+    <string name="editor_overlay_sair">Sair</string>
+    <string name="editor_overlay_salvar">Salvar</string>
+    <string name="editor_overlay_add">+ Adicionar</string>
+    <string name="editor_overlay_desfazer">Desfazer</string>
+    <string name="editor_overlay_refazer">Refazer</string>
+    <string name="editor_overlay_grade">Grade</string>
+    <string name="editor_overlay_props_titulo">Propriedades do controle</string>
+    <string name="editor_overlay_props_tamanho">Tamanho: %d%%</string>
+    <string name="editor_overlay_props_opacidade">Opacidade própria</string>
+    <string name="editor_overlay_props_espelhar_x">Espelhar X</string>
+    <string name="editor_overlay_props_centro_x">Centralizar X</string>
+    <string name="editor_overlay_props_centro_y">Centralizar Y</string>
+    <string name="editor_overlay_props_ok">OK</string>
+    <string name="editor_overlay_props_remover">Remover</string>
+    <string name="editor_overlay_props_duplicar">Duplicar</string>
+    <string name="editor_overlay_props_cancelar">Cancelar</string>
+    <string name="overlay_jogo_editar_layout">Editar layout (arrastar, adicionar, ...)</string>
+    <string name="editor_overlay_visibilidade">Modo de visibilidade</string>
+    <string name="editor_overlay_vis_sempre">Sempre</string>
+    <string name="editor_overlay_vis_sempre_ativo">[ Sempre ]</string>
+    <string name="editor_overlay_vis_auto">Auto-esconder</string>
+    <string name="editor_overlay_vis_auto_ativo">[ Auto-esconder ]</string>
+    <string name="editor_overlay_vis_nunca">Nunca</string>
+    <string name="editor_overlay_vis_nunca_ativo">[ Nunca ]</string>
+    <string name="editor_overlay_opacidade_ociosa_valor">Opacidade ociosa: %d%%</string>
+    <string name="editor_overlay_opacidade_pressionado_valor">Opacidade pressionado: %d%%</string>
+    <string name="editor_overlay_tamanho_global_valor">Tamanho global: %d%%</string>
+    <string name="editor_overlay_ocultar_no_menu">Ocultar no menu de pausa</string>
+    <string name="editor_overlay_exportar_json">Exportar JSON</string>
+    <string name="editor_overlay_importar_json">Importar JSON</string>
 </resources>

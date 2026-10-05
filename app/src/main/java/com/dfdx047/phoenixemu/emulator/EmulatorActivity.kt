@@ -73,6 +73,7 @@ import com.dfdx047.phoenixemu.data.AcaoAtalho
 import com.dfdx047.phoenixemu.data.AtalhoDaAcao
 import com.dfdx047.phoenixemu.data.BotaoVirtual
 import com.dfdx047.phoenixemu.data.ConfigDeAtalhos
+import com.dfdx047.phoenixemu.data.OverlayConfigNova
 import com.dfdx047.phoenixemu.data.combo
 import com.dfdx047.phoenixemu.ui.theme.PhoenixEmuTheme
 import com.google.gson.Gson
@@ -159,7 +160,21 @@ class EmulatorActivity : ComponentActivity() {
         sendBroadcast(intent)
         aplicarAjustesNoEmulador()
     }
-    
+
+    private fun salvarOverlay(nova: OverlayConfigNova) {
+        overlayConfig = nova
+        salvarAjuste("overlay_controle", Gson().toJson(nova), "string", false)
+        val intent = Intent("com.dfdx047.phoenixemu.AJUSTE_MUDOU").apply {
+            setPackage(packageName)
+            putExtra("acao", "overlay_salvar")
+            putExtra("escopo", if (ajustes.isSomenteEsteJogo()) "JOGO" else "GLOBAL")
+            putExtra("idDoJogo", idDoJogoAtual)
+            putExtra("json", Gson().toJson(nova))
+        }
+        sendBroadcast(intent)
+        editandoOverlay = false
+    }
+
     private lateinit var motorDeAtalhos: MotorDeAtalhos
     private var atalhosCfg by mutableStateOf(ConfigDeAtalhos.padrao())
     private var capturaAtalho by mutableStateOf<String?>(null)
@@ -497,6 +512,7 @@ class EmulatorActivity : ComponentActivity() {
         } catch (_: Exception) {
             com.dfdx047.phoenixemu.data.OverlayConfigNova()
         }
+        Log.d("PhoenixOverlay", "carregado rotulos=${overlayConfig.mostrarRotulos} skin=${overlayConfig.skinId} controles=${overlayConfig.controles.size} opIdle=${overlayConfig.opacidadeOciosa}")
 
         atalhosCfg = try {
             val cfgJson = intent.getStringExtra(EXTRA_ATALHOS_CFG)
@@ -660,7 +676,7 @@ class EmulatorActivity : ComponentActivity() {
 
                     OverlayDeToque(
                         config = overlayConfig,
-                        visivel = (!isPaused || !overlayConfig.ocultarNoMenu) && !controleOcultouOverlay,
+                        visivel = (!isPaused || !overlayConfig.ocultarNoMenu) && !controleOcultouOverlay && !editandoOverlay,
                         corPrimaria = Color(temaCorPrimaria),
                         corAcento = Color(temaCorSuperficie),
                         aoMudarToque = { mask ->
@@ -710,19 +726,9 @@ class EmulatorActivity : ComponentActivity() {
                             configInicial = overlayConfig,
                             corPrimaria = Color(temaCorPrimaria),
                             corAcento = Color(temaCorSuperficie),
+                            fundoOpaco = true,
                             onSave = { novaConfig ->
-                                overlayConfig = novaConfig
-                                salvarAjuste("overlay_controle", Gson().toJson(novaConfig), "string", false)
-                                // also save it via broadcast like overlay_salvar 
-                                val intent = Intent("com.dfdx047.phoenixemu.AJUSTE_MUDOU").apply {
-                                    setPackage(packageName)
-                                    putExtra("acao", "overlay_salvar")
-                                    putExtra("escopo", if (ajustes.isSomenteEsteJogo()) "JOGO" else "GLOBAL")
-                                    putExtra("idDoJogo", idDoJogoAtual)
-                                    putExtra("json", Gson().toJson(novaConfig))
-                                }
-                                sendBroadcast(intent)
-                                editandoOverlay = false
+                                salvarOverlay(novaConfig)
                             },
                             onCancel = { editandoOverlay = false }
                         )
@@ -827,6 +833,8 @@ class EmulatorActivity : ComponentActivity() {
                             aoMudarSlot = { slot -> slotAtual = slot },
                             aoMudarAba = { aba -> abaAtual = aba },
                             aoEditarLayout = { editandoOverlay = true },
+                            overlayConfig = overlayConfig,
+                            aoMudarOverlay = { salvarOverlay(it) },
                             ajustes = ajustes,
                             aoMudarAjuste = { chave, valor, tipo -> 
                                 if (chave == AjustesDeJogo.CHAVE_ESCALA && valor is String) {

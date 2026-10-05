@@ -42,7 +42,8 @@ fun desenharRotulo(
     corTexto: Color,
     mostrarRotulos: Boolean,
     textMeasurer: TextMeasurer,
-    textStyle: TextStyle
+    textStyle: TextStyle,
+    opacidade: Float
 ) {
     if (!mostrarRotulos) return
     val rotulo = controle.rotulo ?: controle.acao?.botaoVirtual?.name ?: return
@@ -55,7 +56,7 @@ fun desenharRotulo(
     escopoCanvas.drawText(
         textMeasurer = textMeasurer,
         text = textToDraw,
-        style = textStyle.copy(color = corTexto),
+        style = textStyle.copy(color = corTexto.copy(alpha = kotlin.math.max(opacidade, 0.6f))),
         topLeft = textOffset
     )
 }
@@ -98,11 +99,11 @@ object SkinClassica8Bit : SkinDeControles {
                 val rh = raioOuTamanho * 0.7f * escala
                 drawRoundRect(color = corFundo, topLeft = Offset(centro.x - rw, centro.y - rh), size = Size(rw * 2, rh * 2), cornerRadius = CornerRadius(rh))
                 drawRoundRect(color = contorno, topLeft = Offset(centro.x - rw, centro.y - rh), size = Size(rw * 2, rh * 2), cornerRadius = CornerRadius(rh), style = Stroke(1.5.dp.toPx()))
-                desenharRotulo(this, controle, centro, raioOuTamanho, corTexto, mostrarRotulos, textMeasurer, textStyle)
+                desenharRotulo(this, controle, centro, raioOuTamanho, corTexto, mostrarRotulos, textMeasurer, textStyle, opacidade)
             } else {
                 drawCircle(color = corFundo, radius = raioOuTamanho * escala, center = centro)
                 drawCircle(color = contorno, radius = raioOuTamanho * escala, center = centro, style = Stroke(1.5.dp.toPx()))
-                desenharRotulo(this, controle, centro, raioOuTamanho, corTexto, mostrarRotulos, textMeasurer, textStyle)
+                desenharRotulo(this, controle, centro, raioOuTamanho, corTexto, mostrarRotulos, textMeasurer, textStyle, opacidade)
             }
         }
     }
@@ -147,12 +148,12 @@ object SkinClassica16Bit : SkinDeControles {
                 val rh = raioOuTamanho * 0.7f * escala
                 drawRoundRect(color = corFundo, topLeft = Offset(centro.x - rw, centro.y - rh), size = Size(rw * 2, rh * 2), cornerRadius = CornerRadius(rh))
                 drawRoundRect(color = contorno, topLeft = Offset(centro.x - rw, centro.y - rh), size = Size(rw * 2, rh * 2), cornerRadius = CornerRadius(rh), style = Stroke(1.5.dp.toPx()))
-                desenharRotulo(this, controle, centro, raioOuTamanho, corTexto, mostrarRotulos, textMeasurer, textStyle)
+                desenharRotulo(this, controle, centro, raioOuTamanho, corTexto, mostrarRotulos, textMeasurer, textStyle, opacidade)
             } else {
                 // Diamond buttons
                 drawCircle(color = corFundo, radius = raioOuTamanho * escala, center = centro)
                 drawCircle(color = contorno, radius = raioOuTamanho * escala, center = centro, style = Stroke(1.5.dp.toPx()))
-                desenharRotulo(this, controle, centro, raioOuTamanho, corTexto, mostrarRotulos, textMeasurer, textStyle)
+                desenharRotulo(this, controle, centro, raioOuTamanho, corTexto, mostrarRotulos, textMeasurer, textStyle, opacidade)
             }
         }
     }
@@ -193,11 +194,11 @@ object SkinModerna : SkinDeControles {
                 val rh = raioOuTamanho * 0.7f * escala
                 drawRoundRect(color = corFundo, topLeft = Offset(centro.x - rw, centro.y - rh), size = Size(rw * 2, rh * 2), cornerRadius = CornerRadius(rh))
                 drawRoundRect(color = contorno, topLeft = Offset(centro.x - rw, centro.y - rh), size = Size(rw * 2, rh * 2), cornerRadius = CornerRadius(rh), style = Stroke(1.5.dp.toPx()))
-                desenharRotulo(this, controle, centro, raioOuTamanho, corTexto, mostrarRotulos, textMeasurer, textStyle)
+                desenharRotulo(this, controle, centro, raioOuTamanho, corTexto, mostrarRotulos, textMeasurer, textStyle, opacidade)
             } else {
                 drawCircle(color = corFundo, radius = raioOuTamanho * escala, center = centro)
                 drawCircle(color = contorno, radius = raioOuTamanho * escala, center = centro, style = Stroke(1.5.dp.toPx()))
-                desenharRotulo(this, controle, centro, raioOuTamanho, corTexto, mostrarRotulos, textMeasurer, textStyle)
+                desenharRotulo(this, controle, centro, raioOuTamanho, corTexto, mostrarRotulos, textMeasurer, textStyle, opacidade)
             }
             if (pressionado) {
                 drawCircle(color = corAcento.copy(alpha = 0.5f), radius = raioOuTamanho * escala, center = centro)

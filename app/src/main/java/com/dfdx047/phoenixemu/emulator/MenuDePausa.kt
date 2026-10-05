@@ -74,6 +74,7 @@ import com.dfdx047.phoenixemu.R
 import com.dfdx047.phoenixemu.data.AcaoAtalho
 import com.dfdx047.phoenixemu.data.AtalhoDaAcao
 import com.dfdx047.phoenixemu.data.ConfigDeAtalhos
+import com.dfdx047.phoenixemu.data.OverlayConfigNova
 import com.dfdx047.phoenixemu.data.nomeDaTecla
 import kotlin.math.absoluteValue
 import kotlin.math.max
@@ -285,6 +286,8 @@ internal fun MenuDePausa(
     aoRestaurarAtalhos: () -> Unit,
     aoRestaurarBotoes: () -> Unit,
     aoEditarLayout: () -> Unit,
+    overlayConfig: OverlayConfigNova,
+    aoMudarOverlay: (OverlayConfigNova) -> Unit,
 ) {
     AnimatedVisibility(
         visible = visivel,
@@ -341,6 +344,8 @@ internal fun MenuDePausa(
             aoRestaurarAtalhos = aoRestaurarAtalhos,
             aoRestaurarBotoes = aoRestaurarBotoes,
             aoEditarLayout = aoEditarLayout,
+            overlayConfig = overlayConfig,
+            aoMudarOverlay = aoMudarOverlay,
         )
     }
 }
@@ -389,6 +394,8 @@ private fun MenuDePausaInner(
     aoRestaurarAtalhos: () -> Unit,
     aoRestaurarBotoes: () -> Unit,
     aoEditarLayout: () -> Unit,
+    overlayConfig: OverlayConfigNova,
+    aoMudarOverlay: (OverlayConfigNova) -> Unit,
 ) {
     val corPrimaria = Color(temaCorPrimaria)
     val corSuperficie = Color(temaCorSuperficie)
@@ -553,7 +560,9 @@ private fun MenuDePausaInner(
                                 aoRestaurarBotoes = aoRestaurarBotoes,
             aoEditarLayout = aoEditarLayout,
                                                     ajustes = ajustes,
-                                aoMudarAjuste = aoMudarAjuste
+                                aoMudarAjuste = aoMudarAjuste,
+                                overlayConfig = overlayConfig,
+                                aoMudarOverlay = aoMudarOverlay
                             )
                             else -> ConteudoAbaJogo(
                                 slots = slots,

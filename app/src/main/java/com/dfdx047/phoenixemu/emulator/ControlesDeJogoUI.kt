@@ -22,6 +22,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -71,6 +73,8 @@ internal fun ConteudoAbaControles(
     aoRestaurar: () -> Unit,
     aoRestaurarBotoes: () -> Unit,
     aoEditarLayout: () -> Unit,
+    overlayConfig: OverlayConfigNova,
+    aoMudarOverlay: (OverlayConfigNova) -> Unit,
     ajustes: AjustesDeJogo,
     aoMudarAjuste: (String, Any, String) -> Unit
 ) {
@@ -102,14 +106,44 @@ internal fun ConteudoAbaControles(
     ) {
         // ——— CONTROLES NA TELA ———
         Text(
-            text = "Controles na Tela",
+            text = stringResource(R.string.overlay_jogo_titulo),
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
             color = corDestaque,
         )
+
+        LinhaSlider(
+            titulo = stringResource(R.string.overlay_jogo_opacidade_ociosa),
+            dica = stringResource(R.string.overlay_jogo_opacidade_ociosa_dica),
+            valor = overlayConfig.opacidadeOciosa,
+            onValueChange = { aoMudarOverlay(overlayConfig.copy(opacidadeOciosa = it)) },
+            paleta = paleta,
+            faixa = 0f..1f,
+            passos = 19
+        )
+
+        LinhaSlider(
+            titulo = stringResource(R.string.overlay_jogo_opacidade_pressionado),
+            dica = stringResource(R.string.overlay_jogo_opacidade_pressionado_dica),
+            valor = overlayConfig.opacidadePressionado,
+            onValueChange = { aoMudarOverlay(overlayConfig.copy(opacidadePressionado = it)) },
+            paleta = paleta,
+            faixa = 0f..1f,
+            passos = 19
+        )
+
+        LinhaSlider(
+            titulo = stringResource(R.string.overlay_jogo_tamanho),
+            dica = stringResource(R.string.overlay_jogo_tamanho_dica),
+            valor = overlayConfig.escalaGlobal,
+            onValueChange = { aoMudarOverlay(overlayConfig.copy(escalaGlobal = it)) },
+            paleta = paleta,
+            faixa = 0.5f..2f,
+            passos = 30
+        )
         
         LinhaBotaoGenerico(
-            texto = "Editar Layout (Arrastar, Adicionar, ...)",
+            texto = stringResource(R.string.overlay_jogo_editar_layout),
             corTexto = corTexto,
             corDestaque = corDestaque,
             corContorno = corContorno,

@@ -412,18 +412,18 @@ private fun EditorDoOverlay(prefs: Preferencias) {
         OutlinedButton(
             onClick = { audio.playClick(); editandoLayout = true },
             modifier = Modifier.fillMaxWidth()
-        ) { Text("Editar Layout (Arrastar, Adicionar, Propriedades)") }
+        ) { Text(stringResource(R.string.overlay_jogo_editar_layout)) }
 
-        Text("Modo de Visibilidade", fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.editor_overlay_visibilidade), fontWeight = FontWeight.Bold)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             TextButton(onClick = { prefs.definirOverlay(config.copy(visivelModo = com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.SEMPRE)) }) {
-                Text(if (config.visivelModo == com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.SEMPRE) "[ Sempre ]" else "Sempre")
+                Text(if (config.visivelModo == com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.SEMPRE) stringResource(R.string.editor_overlay_vis_sempre_ativo) else stringResource(R.string.editor_overlay_vis_sempre))
             }
             TextButton(onClick = { prefs.definirOverlay(config.copy(visivelModo = com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.AUTO_ESCONDER_COM_CONTROLE)) }) {
-                Text(if (config.visivelModo == com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.AUTO_ESCONDER_COM_CONTROLE) "[ Auto-esconder ]" else "Auto-esconder")
+                Text(if (config.visivelModo == com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.AUTO_ESCONDER_COM_CONTROLE) stringResource(R.string.editor_overlay_vis_auto_ativo) else stringResource(R.string.editor_overlay_vis_auto))
             }
             TextButton(onClick = { prefs.definirOverlay(config.copy(visivelModo = com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.NUNCA)) }) {
-                Text(if (config.visivelModo == com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.NUNCA) "[ Nunca ]" else "Nunca")
+                Text(if (config.visivelModo == com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.NUNCA) stringResource(R.string.editor_overlay_vis_nunca_ativo) else stringResource(R.string.editor_overlay_vis_nunca))
             }
         }
 
@@ -433,21 +433,21 @@ private fun EditorDoOverlay(prefs: Preferencias) {
         
         HorizontalDivider()
 
-        Text("Opacidade Ociosa: ${(config.opacidadeOciosa * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
+        Text(stringResource(R.string.editor_overlay_opacidade_ociosa_valor, (config.opacidadeOciosa * 100).toInt()), style = MaterialTheme.typography.bodyMedium)
         Slider(
             value = config.opacidadeOciosa,
             onValueChange = { prefs.definirOverlay(config.copy(opacidadeOciosa = it)) },
             valueRange = 0.0f..1f
         )
         
-        Text("Opacidade Pressionado: ${(config.opacidadePressionado * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
+        Text(stringResource(R.string.editor_overlay_opacidade_pressionado_valor, (config.opacidadePressionado * 100).toInt()), style = MaterialTheme.typography.bodyMedium)
         Slider(
             value = config.opacidadePressionado,
             onValueChange = { prefs.definirOverlay(config.copy(opacidadePressionado = it)) },
             valueRange = 0.0f..1f
         )
 
-        Text("Tamanho Global: ${(config.escalaGlobal * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
+        Text(stringResource(R.string.editor_overlay_tamanho_global_valor, (config.escalaGlobal * 100).toInt()), style = MaterialTheme.typography.bodyMedium)
         Slider(
             value = config.escalaGlobal,
             onValueChange = { prefs.definirOverlay(config.copy(escalaGlobal = it)) },
@@ -455,7 +455,7 @@ private fun EditorDoOverlay(prefs: Preferencias) {
         )
 
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Ocultar no menu de pausa")
+            Text(stringResource(R.string.editor_overlay_ocultar_no_menu))
             Switch(
                 checked = config.ocultarNoMenu,
                 onCheckedChange = { prefs.definirOverlay(config.copy(ocultarNoMenu = it)) }

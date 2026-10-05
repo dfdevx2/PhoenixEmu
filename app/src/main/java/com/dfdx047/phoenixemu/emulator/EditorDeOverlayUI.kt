@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.res.stringResource
+import com.dfdx047.phoenixemu.R
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.KeyEventType
@@ -102,7 +104,7 @@ fun EditorDeOverlayUI(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = if (fundoOpaco) 0.92f else 0.5f))
+            .background(Color.Black.copy(alpha = if (fundoOpaco) 0.88f else 0.5f))
             .focusRequester(focusRequester)
             .focusable()
             .onKeyEvent { event ->
@@ -167,19 +169,19 @@ fun EditorDeOverlayUI(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onCancel, colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)) { Text("Sair") }
-                Button(onClick = { onSave(configInicial.copy(controles = state.controles)) }) { Text("Salvar") }
+                Button(onClick = onCancel, colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)) { Text(stringResource(R.string.editor_overlay_sair)) }
+                Button(onClick = { onSave(configInicial.copy(controles = state.controles)) }) { Text(stringResource(R.string.editor_overlay_salvar)) }
                 Button(onClick = { 
                     val novo = ControleNaTela("btn_${System.currentTimeMillis()}", TipoControleNaTela.BOTAO, 0.5f, 0.5f, rotulo = "NOVO", acao = com.dfdx047.phoenixemu.data.AcaoDoControle())
                     pushState(state.controles + novo)
                     state = state.copy(selectedId = novo.id, mode = EditorMode.MOVE)
-                }) { Text("+ Add") }
+                }) { Text(stringResource(R.string.editor_overlay_add)) }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = ::undo, enabled = historyIndex > 0) { Text("Desfazer") }
-                Button(onClick = ::redo, enabled = historyIndex < history.size - 1) { Text("Refazer") }
+                Button(onClick = ::undo, enabled = historyIndex > 0) { Text(stringResource(R.string.editor_overlay_desfazer)) }
+                Button(onClick = ::redo, enabled = historyIndex < history.size - 1) { Text(stringResource(R.string.editor_overlay_refazer)) }
                 Button(onClick = { state = state.copy(snapToGrid = !state.snapToGrid) }, colors = ButtonDefaults.buttonColors(containerColor = if (state.snapToGrid) corPrimaria else Color.DarkGray)) {
-                    Text("Grade")
+                    Text(stringResource(R.string.editor_overlay_grade))
                 }
             }
         }
@@ -342,15 +344,15 @@ fun PropriedadesControleDialog(
     // Implement properties here
     AlertDialog(
         onDismissRequest = onCancelar,
-        title = { Text("Propriedades do Controle") },
+        title = { Text(stringResource(R.string.editor_overlay_props_titulo)) },
         text = {
             Column {
-                Text("Tamanho: ${(tamanho * 100).toInt()}%")
+                Text(stringResource(R.string.editor_overlay_props_tamanho, (tamanho * 100).toInt()))
                 Slider(value = tamanho, onValueChange = { tamanho = it }, valueRange = 0.5f..2.5f)
                 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = usarOpacidadePropria, onCheckedChange = { usarOpacidadePropria = it })
-                    Text("Opacidade própria")
+                    Text(stringResource(R.string.editor_overlay_props_opacidade))
                 }
                 if (usarOpacidadePropria) {
                     Slider(value = opacidade, onValueChange = { opacidade = it }, valueRange = 0.0f..1.0f)
@@ -364,26 +366,26 @@ fun PropriedadesControleDialog(
                     OutlinedButton(modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(horizontal = 4.dp),
                         onClick = { onSalvar(controle.copy(x = 1f - controle.x)) }
-                    ) { Text("Espelhar X", maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                    ) { Text(stringResource(R.string.editor_overlay_props_espelhar_x), maxLines = 1, overflow = TextOverflow.Ellipsis) }
                     OutlinedButton(modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(horizontal = 4.dp),
                         onClick = { onSalvar(controle.copy(x = 0.5f)) }
-                    ) { Text("Centro X", maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                    ) { Text(stringResource(R.string.editor_overlay_props_centro_x), maxLines = 1, overflow = TextOverflow.Ellipsis) }
                     OutlinedButton(modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(horizontal = 4.dp),
                         onClick = { onSalvar(controle.copy(y = 0.5f)) }
-                    ) { Text("Centro Y", maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                    ) { Text(stringResource(R.string.editor_overlay_props_centro_y), maxLines = 1, overflow = TextOverflow.Ellipsis) }
                 }
             }
         },
         confirmButton = {
-            Button(onClick = { onSalvar(controle.copy(tamanhoBase = tamanho, opacidade = if (usarOpacidadePropria) opacidade else null)) }) { Text("OK") }
+            Button(onClick = { onSalvar(controle.copy(tamanhoBase = tamanho, opacidade = if (usarOpacidadePropria) opacidade else null)) }) { Text(stringResource(R.string.editor_overlay_props_ok)) }
         },
         dismissButton = {
             Row {
-                TextButton(onClick = onRemover) { Text("Remover", color = Color.Red) }
-                TextButton(onClick = onDuplicar) { Text("Duplicar") }
-                TextButton(onClick = onCancelar) { Text("Cancelar") }
+                TextButton(onClick = onRemover) { Text(stringResource(R.string.editor_overlay_props_remover), color = Color.Red) }
+                TextButton(onClick = onDuplicar) { Text(stringResource(R.string.editor_overlay_props_duplicar)) }
+                TextButton(onClick = onCancelar) { Text(stringResource(R.string.editor_overlay_props_cancelar)) }
             }
         }
     )

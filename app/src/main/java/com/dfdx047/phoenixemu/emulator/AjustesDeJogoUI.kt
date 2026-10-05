@@ -227,7 +227,7 @@ private fun LinhaInterruptor(
 }
 
 @Composable
-private fun LinhaSlider(
+internal fun LinhaSlider(
     titulo: String, dica: String, valor: Float, onValueChange: (Float) -> Unit,
     paleta: PaletaMenu,
     faixa: ClosedFloatingPointRange<Float> = 0f..1f,
