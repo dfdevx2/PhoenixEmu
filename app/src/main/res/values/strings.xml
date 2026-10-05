@@ -488,6 +488,8 @@
 
     <string name="overlay_jogo_ocultar_menu_dica">Hides the on-screen controls when the pause menu is open.</string>
 
+    <string name="overlay_skin_dica">Changes how the on-screen buttons look.</string>
+
     <!-- Editor / overlay UI strings -->
     <string name="editor_overlay_sair">Exit</string>
     <string name="editor_overlay_salvar">Save</string>

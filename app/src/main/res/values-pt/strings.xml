@@ -482,6 +482,8 @@
 
     <string name="overlay_jogo_ocultar_menu_dica">Esconde os controles na tela quando o menu de pausa está aberto.</string>
 
+    <string name="overlay_skin_dica">Muda a aparência dos botões na tela.</string>
+
     <!-- Strings do editor / overlay -->
     <string name="editor_overlay_sair">Sair</string>
     <string name="editor_overlay_salvar">Salvar</string>

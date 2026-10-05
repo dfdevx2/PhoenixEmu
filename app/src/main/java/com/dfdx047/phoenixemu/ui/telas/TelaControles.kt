@@ -35,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -379,6 +380,12 @@ private fun EditorDoOverlay(prefs: Preferencias) {
     val audio = LocalAudio.current
     val config by prefs.overlay.collectAsStateWithLifecycle()
     var editandoLayout by remember { mutableStateOf(false) }
+    var skinIndice by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(config.skinId) {
+        val idx = com.dfdx047.phoenixemu.emulator.Skins.todas.indexOfFirst { it.id == config.skinId }
+        if (idx >= 0) skinIndice = idx
+    }
 
     if (editandoLayout) {
         Dialog(
@@ -426,6 +433,16 @@ private fun EditorDoOverlay(prefs: Preferencias) {
                 Text(if (config.visivelModo == com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.NUNCA) stringResource(R.string.editor_overlay_vis_nunca_ativo) else stringResource(R.string.editor_overlay_vis_nunca))
             }
         }
+
+        Text(stringResource(R.string.overlay_skin), fontWeight = FontWeight.Bold)
+        SeletorSegmentado(
+            opcoes = com.dfdx047.phoenixemu.emulator.Skins.todas.map { it.nome },
+            indiceSelecionado = skinIndice,
+            onSelecionar = {
+                skinIndice = it
+                prefs.definirOverlay(config.copy(skinId = com.dfdx047.phoenixemu.emulator.Skins.todas[it].id))
+            }
+        )
 
         HorizontalDivider()
         

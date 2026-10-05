@@ -52,6 +52,7 @@ import com.dfdx047.phoenixemu.data.combo
 import com.dfdx047.phoenixemu.data.nomeDaTecla
 import com.dfdx047.phoenixemu.data.OverlayConfigNova
 import com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay
+import com.dfdx047.phoenixemu.emulator.Skins
 import com.google.gson.Gson
 import android.util.Log
 import androidx.compose.material.icons.Icons
@@ -153,6 +154,15 @@ internal fun ConteudoAbaControles(
             ),
             selecionado = overlayConfig.visivelModo,
             onSelect = { aoMudarOverlay(overlayConfig.copy(visivelModo = it as ModoVisibilidadeOverlay)) },
+            paleta = paleta
+        )
+
+        LinhaSegmentada(
+            titulo = stringResource(R.string.overlay_skin),
+            dica = stringResource(R.string.overlay_skin_dica),
+            opcoes = Skins.todas.map { it.nome to it.id },
+            selecionado = overlayConfig.skinId,
+            onSelect = { aoMudarOverlay(overlayConfig.copy(skinId = it as String)) },
             paleta = paleta
         )
 
