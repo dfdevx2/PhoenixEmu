@@ -424,18 +424,24 @@ private fun EditorDoOverlay(prefs: Preferencias) {
             modifier = Modifier.fillMaxWidth()
         ) { Text(stringResource(R.string.overlay_jogo_editar_layout)) }
 
-        Text(stringResource(R.string.editor_overlay_visibilidade), fontWeight = FontWeight.Bold)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            TextButton(onClick = { prefs.definirOverlay(config.copy(visivelModo = com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.SEMPRE)) }) {
-                Text(if (config.visivelModo == com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.SEMPRE) stringResource(R.string.editor_overlay_vis_sempre_ativo) else stringResource(R.string.editor_overlay_vis_sempre))
-            }
-            TextButton(onClick = { prefs.definirOverlay(config.copy(visivelModo = com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.AUTO_ESCONDER_COM_CONTROLE)) }) {
-                Text(if (config.visivelModo == com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.AUTO_ESCONDER_COM_CONTROLE) stringResource(R.string.editor_overlay_vis_auto_ativo) else stringResource(R.string.editor_overlay_vis_auto))
-            }
-            TextButton(onClick = { prefs.definirOverlay(config.copy(visivelModo = com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.NUNCA)) }) {
-                Text(if (config.visivelModo == com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.NUNCA) stringResource(R.string.editor_overlay_vis_nunca_ativo) else stringResource(R.string.editor_overlay_vis_nunca))
-            }
+        val modosVis = listOf(com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.SEMPRE, com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.AUTO_ESCONDER_COM_CONTROLE, com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.NUNCA)
+        Row(
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(R.string.editor_overlay_visibilidade), fontWeight = FontWeight.Bold)
+            com.dfdx047.phoenixemu.ui.design.BotaoDeDica(stringResource(R.string.editor_overlay_visibilidade_dica))
         }
+        SeletorSegmentado(
+            opcoes = listOf(
+                stringResource(R.string.editor_overlay_vis_sempre),
+                stringResource(R.string.editor_overlay_vis_auto),
+                stringResource(R.string.editor_overlay_vis_nunca)
+            ),
+            indiceSelecionado = modosVis.indexOf(config.visivelModo).coerceAtLeast(0),
+            onSelecionar = { prefs.definirOverlay(config.copy(visivelModo = modosVis[it])) }
+        )
 
         Row(
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,

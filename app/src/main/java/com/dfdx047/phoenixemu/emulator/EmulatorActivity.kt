@@ -1078,6 +1078,15 @@ class EmulatorActivity : ComponentActivity() {
         }
     }
 
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        // Tocar na tela (dedo, nao controle fisico) traz o overlay de volta no modo "esconder automaticamente"
+        if (ev.actionMasked == MotionEvent.ACTION_DOWN &&
+            (ev.source and InputDevice.SOURCE_TOUCHSCREEN) == InputDevice.SOURCE_TOUCHSCREEN) {
+            controleOcultouOverlay = false
+        }
+        return super.dispatchTouchEvent(ev)
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         // Hide overlay on controller input if configured
         if (overlayConfig.visivelModo == com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.AUTO_ESCONDER_COM_CONTROLE &&

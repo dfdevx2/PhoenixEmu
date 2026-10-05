@@ -577,4 +577,5 @@
     <string name="skin_erro_manifesto_invalido">The skin.json is invalid.</string>
     <string name="skin_erro_imagem_invalida">One of the images is missing or too large (max 1024 px).</string>
     <string name="skin_erro_id_reservado">This skin id is reserved by a built-in skin.</string>
+    <string name="editor_overlay_visibilidade_dica">Always: the on-screen controls are always visible. Auto-hide: they hide when you use a physical controller and come back when you touch the screen. Never: always hidden.</string>
 </resources>

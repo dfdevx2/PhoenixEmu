@@ -571,4 +571,5 @@
     <string name="skin_erro_manifesto_invalido">O skin.json é inválido.</string>
     <string name="skin_erro_imagem_invalida">Uma das imagens está faltando ou é grande demais (máx. 1024 px).</string>
     <string name="skin_erro_id_reservado">Este id de skin é reservado por uma skin embutida.</string>
+    <string name="editor_overlay_visibilidade_dica">Sempre: os controles na tela ficam sempre visíveis. Esconder automático: somem quando você usa um controle físico e voltam quando você toca na tela. Nunca: ficam sempre escondidos.</string>
 </resources>
