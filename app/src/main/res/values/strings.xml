@@ -518,8 +518,8 @@
     <string name="editor_overlay_opacidade_pressionado_valor">Pressed opacity: %d%%</string>
     <string name="editor_overlay_tamanho_global_valor">Global size: %d%%</string>
     <string name="editor_overlay_ocultar_no_menu">Hide in pause menu</string>
-    <string name="editor_overlay_exportar_json">Export JSON</string>
-    <string name="editor_overlay_importar_json">Import JSON</string>
+    <string name="editor_overlay_exportar_json">Export layout</string>
+    <string name="editor_overlay_importar_json">Import layout</string>
     <string name="ajustes_titulo_filtro">Image filter</string>
     <string name="ajustes_dica_filtro">Changes how the game image is scaled. Sharp keeps pixel edges clean at any size. Scanlines and CRT add a retro look.</string>
     <string name="ajustes_op_filtro_nitido">Sharp</string>
@@ -566,4 +566,15 @@
     <string name="ra_senha">Password (optional)</string>
     <string name="ra_senha_dica">Only needed for live achievements while you play. It is used once to get a login token and is never stored.</string>
     <string name="ra_erro_senha">Wrong password.</string>
+    <string name="skin_importar">Import skin (.zip)</string>
+    <string name="skin_remover">Remove this skin</string>
+    <string name="skin_importar_dica">Community skins are a .zip with a skin.json and PNG images. They appear in the list above.</string>
+    <string name="skin_importada">Skin %1$s installed</string>
+    <string name="skin_erro_zip_invalido">Could not read this file as a skin package.</string>
+    <string name="skin_erro_arquivo_proibido">The package has files that are not allowed (only .png and .json).</string>
+    <string name="skin_erro_grande">The skin package is too big.</string>
+    <string name="skin_erro_sem_manifesto">The package has no skin.json.</string>
+    <string name="skin_erro_manifesto_invalido">The skin.json is invalid.</string>
+    <string name="skin_erro_imagem_invalida">One of the images is missing or too large (max 1024 px).</string>
+    <string name="skin_erro_id_reservado">This skin id is reserved by a built-in skin.</string>
 </resources>

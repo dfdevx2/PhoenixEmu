@@ -56,6 +56,8 @@ fun OverlayDeToque(
     if (!visivel || config.visivelModo == com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.NUNCA) return
 
     val skinId = config.skinId
+    val ctxSkins = androidx.compose.ui.platform.LocalContext.current
+    androidx.compose.runtime.remember(ctxSkins) { Skins.garantir(ctxSkins); 0 }
     val skin = Skins.porId(skinId)
 
     Box(

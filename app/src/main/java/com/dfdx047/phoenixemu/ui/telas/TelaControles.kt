@@ -1,5 +1,6 @@
 package com.dfdx047.phoenixemu.ui.telas
 
+import kotlinx.coroutines.launch
 import android.view.KeyEvent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -380,6 +381,8 @@ private fun EditorDoOverlay(prefs: Preferencias) {
     val audio = LocalAudio.current
     val config by prefs.overlay.collectAsStateWithLifecycle()
     var editandoLayout by remember { mutableStateOf(false) }
+    val ctxSkins = androidx.compose.ui.platform.LocalContext.current
+    remember(ctxSkins) { com.dfdx047.phoenixemu.emulator.Skins.garantir(ctxSkins); 0 }
     var skinIndice by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(config.skinId) {
@@ -434,7 +437,14 @@ private fun EditorDoOverlay(prefs: Preferencias) {
             }
         }
 
-        Text(stringResource(R.string.overlay_skin), fontWeight = FontWeight.Bold)
+        Row(
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(R.string.overlay_skin), fontWeight = FontWeight.Bold)
+            com.dfdx047.phoenixemu.ui.design.BotaoDeDica(stringResource(R.string.skin_importar_dica))
+        }
         SeletorSegmentado(
             opcoes = com.dfdx047.phoenixemu.emulator.Skins.todas.map { it.nome },
             indiceSelecionado = skinIndice,
@@ -443,6 +453,64 @@ private fun EditorDoOverlay(prefs: Preferencias) {
                 prefs.definirOverlay(config.copy(skinId = com.dfdx047.phoenixemu.emulator.Skins.todas[it].id))
             }
         )
+
+        run {
+            val escopoSkins = androidx.compose.runtime.rememberCoroutineScope()
+            var msgSkin by remember { mutableStateOf<String?>(null) }
+            val seletorZip = androidx.activity.compose.rememberLauncherForActivityResult(
+                androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
+            ) { uri ->
+                if (uri != null) escopoSkins.launch {
+                    val r = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        runCatching {
+                            ctxSkins.contentResolver.openInputStream(uri)?.use {
+                                com.dfdx047.phoenixemu.emulator.CarregadorDeSkins.instalarZip(ctxSkins, it)
+                            }
+                        }.getOrNull()
+                    }
+                    msgSkin = when (r) {
+                        is com.dfdx047.phoenixemu.emulator.ResultadoSkin.Ok -> {
+                            com.dfdx047.phoenixemu.emulator.Skins.recarregar(ctxSkins)
+                            prefs.definirOverlay(config.copy(skinId = r.skin.id))
+                            ctxSkins.getString(R.string.skin_importada, r.skin.nome)
+                        }
+                        is com.dfdx047.phoenixemu.emulator.ResultadoSkin.Erro -> ctxSkins.getString(
+                            when (r.codigo) {
+                                "arquivo_proibido" -> R.string.skin_erro_arquivo_proibido
+                                "grande" -> R.string.skin_erro_grande
+                                "sem_manifesto" -> R.string.skin_erro_sem_manifesto
+                                "manifesto_invalido" -> R.string.skin_erro_manifesto_invalido
+                                "imagem_invalida" -> R.string.skin_erro_imagem_invalida
+                                "id_reservado" -> R.string.skin_erro_id_reservado
+                                else -> R.string.skin_erro_zip_invalido
+                            }
+                        )
+                        null -> ctxSkins.getString(R.string.skin_erro_zip_invalido)
+                    }
+                }
+            }
+            val skinAtual = com.dfdx047.phoenixemu.emulator.Skins.todas.getOrNull(skinIndice)
+            val ehInstalada = skinAtual != null &&
+                com.dfdx047.phoenixemu.emulator.Skins.embutidas.none { it.id == skinAtual.id }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceEvenly
+            ) {
+                androidx.compose.material3.Button(onClick = { seletorZip.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) }) {
+                    Text(stringResource(R.string.skin_importar))
+                }
+                if (ehInstalada && skinAtual != null) {
+                    androidx.compose.material3.Button(onClick = {
+                        com.dfdx047.phoenixemu.emulator.CarregadorDeSkins.remover(ctxSkins, skinAtual.id)
+                        com.dfdx047.phoenixemu.emulator.Skins.recarregar(ctxSkins)
+                        prefs.definirOverlay(config.copy(skinId = com.dfdx047.phoenixemu.emulator.SkinClassica16Bit.id))
+                        msgSkin = null
+                    }) { Text(stringResource(R.string.skin_remover)) }
+                }
+            }
+            msgSkin?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+        }
 
         HorizontalDivider()
         

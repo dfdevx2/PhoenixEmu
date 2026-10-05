@@ -717,7 +717,9 @@ class EmulatorActivity : ComponentActivity() {
 
                     OverlayDeToque(
                         config = overlayConfig,
-                        visivel = (!isPaused || !overlayConfig.ocultarNoMenu) && !controleOcultouOverlay && !editandoOverlay,
+                        visivel = (!isPaused || !overlayConfig.ocultarNoMenu) &&
+                            !(controleOcultouOverlay && overlayConfig.visivelModo == com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay.AUTO_ESCONDER_COM_CONTROLE) &&
+                            !editandoOverlay,
                         corPrimaria = Color(temaCorPrimaria),
                         corAcento = Color(temaCorSuperficie),
                         aoMudarToque = { mask ->

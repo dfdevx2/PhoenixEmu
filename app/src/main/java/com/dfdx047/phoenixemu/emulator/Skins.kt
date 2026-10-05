@@ -12,6 +12,10 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.unit.dp
 import com.dfdx047.phoenixemu.data.ControleNaTela
 import com.dfdx047.phoenixemu.data.TipoControleNaTela
+import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 
 interface SkinDeControles {
     val id: String
@@ -208,7 +212,28 @@ object SkinModerna : SkinDeControles {
 }
 
 object Skins {
-    val todas: List<SkinDeControles> = listOf(SkinClassica8Bit, SkinClassica16Bit, SkinModerna)
+    val embutidas: List<SkinDeControles> = listOf(SkinClassica8Bit, SkinClassica16Bit, SkinModerna)
+
+    private var tick by mutableIntStateOf(0)
+    @Volatile private var cache: List<SkinDeControles>? = null
+
+    /** Embutidas + instaladas. Le o `tick` pra a UI recompor depois de instalar/remover. */
+    val todas: List<SkinDeControles>
+        get() {
+            if (tick < 0) return embutidas
+            return cache ?: embutidas
+        }
+
+    /** Carrega as skins instaladas uma vez por processo. Seguro de chamar varias vezes. */
+    fun garantir(context: Context) {
+        if (cache == null) cache = embutidas + CarregadorDeSkins.carregarInstaladas(context.applicationContext)
+    }
+
+    /** Depois de instalar ou remover uma skin. */
+    fun recarregar(context: Context) {
+        cache = embutidas + CarregadorDeSkins.carregarInstaladas(context.applicationContext)
+        tick++
+    }
 
     fun porId(id: String?): SkinDeControles =
         todas.firstOrNull { it.id == id } ?: SkinClassica16Bit

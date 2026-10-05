@@ -512,8 +512,8 @@
     <string name="editor_overlay_opacidade_pressionado_valor">Opacidade pressionado: %d%%</string>
     <string name="editor_overlay_tamanho_global_valor">Tamanho global: %d%%</string>
     <string name="editor_overlay_ocultar_no_menu">Ocultar no menu de pausa</string>
-    <string name="editor_overlay_exportar_json">Exportar JSON</string>
-    <string name="editor_overlay_importar_json">Importar JSON</string>
+    <string name="editor_overlay_exportar_json">Exportar layout</string>
+    <string name="editor_overlay_importar_json">Importar layout</string>
     <string name="ajustes_titulo_filtro">Filtro de imagem</string>
     <string name="ajustes_dica_filtro">Muda como a imagem do jogo é ampliada. Nítido mantém as bordas dos pixels limpas em qualquer tamanho. Scanlines e CRT dão um visual retrô.</string>
     <string name="ajustes_op_filtro_nitido">Nítido</string>
@@ -560,4 +560,15 @@
     <string name="ra_senha">Senha (opcional)</string>
     <string name="ra_senha_dica">Só é necessária para as conquistas ao vivo durante o jogo. É usada uma vez para obter um token de login e nunca é guardada.</string>
     <string name="ra_erro_senha">Senha incorreta.</string>
+    <string name="skin_importar">Importar skin (.zip)</string>
+    <string name="skin_remover">Remover esta skin</string>
+    <string name="skin_importar_dica">Skins da comunidade são um .zip com um skin.json e imagens PNG. Elas aparecem na lista acima.</string>
+    <string name="skin_importada">Skin %1$s instalada</string>
+    <string name="skin_erro_zip_invalido">Não foi possível ler este arquivo como um pacote de skin.</string>
+    <string name="skin_erro_arquivo_proibido">O pacote tem arquivos não permitidos (só .png e .json).</string>
+    <string name="skin_erro_grande">O pacote da skin é grande demais.</string>
+    <string name="skin_erro_sem_manifesto">O pacote não tem skin.json.</string>
+    <string name="skin_erro_manifesto_invalido">O skin.json é inválido.</string>
+    <string name="skin_erro_imagem_invalida">Uma das imagens está faltando ou é grande demais (máx. 1024 px).</string>
+    <string name="skin_erro_id_reservado">Este id de skin é reservado por uma skin embutida.</string>
 </resources>
