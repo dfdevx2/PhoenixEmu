@@ -460,6 +460,28 @@
 
     <string name="overlay_jogo_tamanho_dica">Dimensiona todos os botões na tela e o D-pad de uma vez só.</string>
 
+    <string name="overlay_jogo_visibilidade">Visibilidade</string>
+
+    <string name="overlay_jogo_visibilidade_dica">Quando os controles na tela aparecem.</string>
+
+    <string name="overlay_jogo_vis_sempre">Sempre</string>
+
+    <string name="overlay_jogo_vis_auto">Esconder ao usar controle</string>
+
+    <string name="overlay_jogo_vis_nunca">Nunca</string>
+
+    <string name="overlay_jogo_haptico">Vibração ao tocar</string>
+
+    <string name="overlay_jogo_haptico_dica">Vibra de leve ao tocar num botão.</string>
+
+    <string name="overlay_jogo_rotulos">Letras nos botões</string>
+
+    <string name="overlay_jogo_rotulos_dica">Mostra as letras nos botões.</string>
+
+    <string name="overlay_jogo_ocultar_menu">Esconder com o menu aberto</string>
+
+    <string name="overlay_jogo_ocultar_menu_dica">Esconde os controles na tela quando o menu de pausa está aberto.</string>
+
     <!-- Strings do editor / overlay -->
     <string name="editor_overlay_sair">Sair</string>
     <string name="editor_overlay_salvar">Salvar</string>

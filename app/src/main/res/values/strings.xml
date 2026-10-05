@@ -466,6 +466,28 @@
 
     <string name="overlay_jogo_tamanho_dica">Scale all on-screen buttons and the D-pad at once.</string>
 
+    <string name="overlay_jogo_visibilidade">Visibility</string>
+
+    <string name="overlay_jogo_visibilidade_dica">When the on-screen controls are shown.</string>
+
+    <string name="overlay_jogo_vis_sempre">Always</string>
+
+    <string name="overlay_jogo_vis_auto">Hide when a controller is used</string>
+
+    <string name="overlay_jogo_vis_nunca">Never</string>
+
+    <string name="overlay_jogo_haptico">Haptic feedback</string>
+
+    <string name="overlay_jogo_haptico_dica">Vibrates briefly when you press a button.</string>
+
+    <string name="overlay_jogo_rotulos">Button labels</string>
+
+    <string name="overlay_jogo_rotulos_dica">Shows the letters on the buttons.</string>
+
+    <string name="overlay_jogo_ocultar_menu">Hide while menu is open</string>
+
+    <string name="overlay_jogo_ocultar_menu_dica">Hides the on-screen controls when the pause menu is open.</string>
+
     <!-- Editor / overlay UI strings -->
     <string name="editor_overlay_sair">Exit</string>
     <string name="editor_overlay_salvar">Save</string>

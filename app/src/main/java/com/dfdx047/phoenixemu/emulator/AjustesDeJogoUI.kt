@@ -154,7 +154,7 @@ internal fun ConteudoAbaAjustes(
 
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
-private fun LinhaSegmentada(
+internal fun LinhaSegmentada(
     titulo: String, dica: String, opcoes: List<Pair<String, Any>>, selecionado: Any, onSelect: (Any) -> Unit,
     paleta: PaletaMenu
 ) {
@@ -202,7 +202,7 @@ private fun LinhaSegmentada(
 }
 
 @Composable
-private fun LinhaInterruptor(
+internal fun LinhaInterruptor(
     titulo: String, dica: String, checado: Boolean, onCheckedChange: (Boolean) -> Unit,
     paleta: PaletaMenu
 ) {

@@ -51,6 +51,7 @@ import com.dfdx047.phoenixemu.data.ConfigDeAtalhos
 import com.dfdx047.phoenixemu.data.combo
 import com.dfdx047.phoenixemu.data.nomeDaTecla
 import com.dfdx047.phoenixemu.data.OverlayConfigNova
+import com.dfdx047.phoenixemu.data.ModoVisibilidadeOverlay
 import com.google.gson.Gson
 import android.util.Log
 import androidx.compose.material.icons.Icons
@@ -140,6 +141,43 @@ internal fun ConteudoAbaControles(
             paleta = paleta,
             faixa = 0.5f..2f,
             passos = 30
+        )
+
+        LinhaSegmentada(
+            titulo = stringResource(R.string.overlay_jogo_visibilidade),
+            dica = stringResource(R.string.overlay_jogo_visibilidade_dica),
+            opcoes = listOf(
+                stringResource(R.string.overlay_jogo_vis_sempre) to ModoVisibilidadeOverlay.SEMPRE,
+                stringResource(R.string.overlay_jogo_vis_auto) to ModoVisibilidadeOverlay.AUTO_ESCONDER_COM_CONTROLE,
+                stringResource(R.string.overlay_jogo_vis_nunca) to ModoVisibilidadeOverlay.NUNCA
+            ),
+            selecionado = overlayConfig.visivelModo,
+            onSelect = { aoMudarOverlay(overlayConfig.copy(visivelModo = it as ModoVisibilidadeOverlay)) },
+            paleta = paleta
+        )
+
+        LinhaInterruptor(
+            titulo = stringResource(R.string.overlay_jogo_haptico),
+            dica = stringResource(R.string.overlay_jogo_haptico_dica),
+            checado = overlayConfig.hapticoAtivo,
+            onCheckedChange = { aoMudarOverlay(overlayConfig.copy(hapticoAtivo = it)) },
+            paleta = paleta
+        )
+
+        LinhaInterruptor(
+            titulo = stringResource(R.string.overlay_jogo_rotulos),
+            dica = stringResource(R.string.overlay_jogo_rotulos_dica),
+            checado = overlayConfig.mostrarRotulos,
+            onCheckedChange = { aoMudarOverlay(overlayConfig.copy(mostrarRotulos = it)) },
+            paleta = paleta
+        )
+
+        LinhaInterruptor(
+            titulo = stringResource(R.string.overlay_jogo_ocultar_menu),
+            dica = stringResource(R.string.overlay_jogo_ocultar_menu_dica),
+            checado = overlayConfig.ocultarNoMenu,
+            onCheckedChange = { aoMudarOverlay(overlayConfig.copy(ocultarNoMenu = it)) },
+            paleta = paleta
         )
         
         LinhaBotaoGenerico(
