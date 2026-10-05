@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -9,6 +11,11 @@ plugins {
 //     RAWG_API_KEY=suachaveaqui
 // Se estiver ausente, o app simplesmente nao usa o fallback da RAWG.
 val rawgApiKey: String = providers.gradleProperty("RAWG_API_KEY").orElse("").get()
+
+val keystoreProps = Properties().apply {
+    val arquivo = rootProject.file("keystore.properties")
+    if (arquivo.exists()) arquivo.inputStream().use { load(it) }
+}
 
 android {
     namespace = "com.dfdx047.phoenixemu"
@@ -28,12 +35,24 @@ android {
         buildConfigField("String", "RAWG_API_KEY", "\"$rawgApiKey\"")
     }
 
+    signingConfigs {
+        create("release") {
+            if (keystoreProps.isNotEmpty()) {
+                storeFile = file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
             isDebuggable = true
         }
         release {
+            signingConfig = signingConfigs.getByName("release")
             // Fase 0: R8 LIGADO. Compose sem R8 e mensuravelmente mais lento,
             // e qualquer medicao de fluidez feita em debug nao vale nada.
             optimization {

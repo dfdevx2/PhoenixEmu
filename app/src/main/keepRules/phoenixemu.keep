@@ -1,0 +1,14 @@
+# Remove logs v/d/i no release (a chamada e a montagem da string somem).
+-assumenosideeffects class android.util.Log {
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+}
+# JNI: o C++ chama estes membros por nome.
+-keepclasseswithmembers class * {
+    native <methods>;
+}
+-keep class com.dfdx047.phoenixemu.emulator.NucleoLibretro { *; }
+# Gson salva/le classes do app por nome de campo: nao renomear.
+-keepattributes Signature, *Annotation*, InnerClasses, EnclosingMethod
+-keep class com.dfdx047.phoenixemu.** { *; }
