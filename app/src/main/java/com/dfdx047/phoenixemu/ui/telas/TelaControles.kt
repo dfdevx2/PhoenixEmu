@@ -376,6 +376,7 @@ private fun EscutaDeTeclas(chave: Any, onCapturar: (Int) -> Unit) {
 // CONTROLE NA TELA
 // =====================================================================
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun EditorDoOverlay(prefs: Preferencias) {
     val audio = LocalAudio.current
@@ -451,14 +452,57 @@ private fun EditorDoOverlay(prefs: Preferencias) {
             Text(stringResource(R.string.overlay_skin), fontWeight = FontWeight.Bold)
             com.dfdx047.phoenixemu.ui.design.BotaoDeDica(stringResource(R.string.skin_importar_dica))
         }
-        SeletorSegmentado(
-            opcoes = com.dfdx047.phoenixemu.emulator.Skins.todas.map { it.nome },
-            indiceSelecionado = skinIndice,
-            onSelecionar = {
-                skinIndice = it
-                prefs.definirOverlay(config.copy(skinId = com.dfdx047.phoenixemu.emulator.Skins.todas[it].id))
+        val todasSkins = com.dfdx047.phoenixemu.emulator.Skins.todas
+        androidx.compose.foundation.layout.FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            todasSkins.forEachIndexed { i, s ->
+                androidx.compose.material3.FilterChip(
+                    selected = i == skinIndice,
+                    onClick = {
+                        skinIndice = i
+                        prefs.definirOverlay(config.copy(skinId = s.id))
+                    },
+                    label = { Text(s.nome) }
+                )
             }
-        )
+        }
+
+        val rapidasAtuais = config.skinsRapidas ?: com.dfdx047.phoenixemu.emulator.Skins.embutidas.map { it.id }
+        Row(
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                stringResource(R.string.skin_menu_rapido) + "  " + rapidasAtuais.size + "/" + com.dfdx047.phoenixemu.emulator.Skins.MAX_RAPIDAS,
+                fontWeight = FontWeight.Bold
+            )
+            com.dfdx047.phoenixemu.ui.design.BotaoDeDica(stringResource(R.string.skin_menu_rapido_dica))
+        }
+        androidx.compose.foundation.layout.FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            todasSkins.forEach { s ->
+                val marcada = s.id in rapidasAtuais
+                androidx.compose.material3.FilterChip(
+                    selected = marcada,
+                    onClick = {
+                        val novo = when {
+                            marcada -> rapidasAtuais - s.id
+                            rapidasAtuais.size < com.dfdx047.phoenixemu.emulator.Skins.MAX_RAPIDAS -> rapidasAtuais + s.id
+                            else -> rapidasAtuais
+                        }
+                        prefs.definirOverlay(config.copy(skinsRapidas = novo))
+                    },
+                    label = { Text(s.nome) }
+                )
+            }
+        }
 
         run {
             val escopoSkins = androidx.compose.runtime.rememberCoroutineScope()
@@ -488,6 +532,7 @@ private fun EditorDoOverlay(prefs: Preferencias) {
                                 "manifesto_invalido" -> R.string.skin_erro_manifesto_invalido
                                 "imagem_invalida" -> R.string.skin_erro_imagem_invalida
                                 "id_reservado" -> R.string.skin_erro_id_reservado
+                                "limite" -> R.string.skin_erro_limite
                                 else -> R.string.skin_erro_zip_invalido
                             }
                         )
@@ -510,7 +555,8 @@ private fun EditorDoOverlay(prefs: Preferencias) {
                     androidx.compose.material3.Button(onClick = {
                         com.dfdx047.phoenixemu.emulator.CarregadorDeSkins.remover(ctxSkins, skinAtual.id)
                         com.dfdx047.phoenixemu.emulator.Skins.recarregar(ctxSkins)
-                        prefs.definirOverlay(config.copy(skinId = com.dfdx047.phoenixemu.emulator.SkinClassica16Bit.id))
+                        prefs.definirOverlay(config.copy(skinId = com.dfdx047.phoenixemu.emulator.SkinClassica16Bit.id,
+                            skinsRapidas = config.skinsRapidas?.filter { it != skinAtual.id }))
                         msgSkin = null
                     }) { Text(stringResource(R.string.skin_remover)) }
                 }

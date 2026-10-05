@@ -129,6 +129,7 @@ object CarregadorDeSkins {
     private const val MAX_TOTAL = 6L * 1024 * 1024
     private const val MAX_ENTRADAS = 16
     private const val MAX_LADO = 1024
+    const val MAX_SKINS = 12
     private val CHAVES = setOf("botao", "pilula", "dpad")
 
     fun pasta(ctx: Context): File = File(ctx.filesDir, "skins")
@@ -238,6 +239,8 @@ object CarregadorDeSkins {
                 }
             }
 
+            val existentes = raiz.listFiles()?.count { it.isDirectory && !it.name.startsWith(".") && it.name != id } ?: 0
+            if (existentes >= MAX_SKINS) return ResultadoSkin.Erro("limite")
             val destino = File(raiz, id)
             if (destino.exists()) destino.deleteRecursively()
             if (!tmp.renameTo(destino)) return ResultadoSkin.Erro("zip_invalido", "mover")

@@ -160,7 +160,7 @@ internal fun ConteudoAbaControles(
         LinhaSegmentada(
             titulo = stringResource(R.string.overlay_skin),
             dica = stringResource(R.string.overlay_skin_dica),
-            opcoes = Skins.todas.map { it.nome to it.id },
+            opcoes = Skins.doMenuRapido(overlayConfig.skinsRapidas, overlayConfig.skinId).map { it.nome to it.id },
             selecionado = overlayConfig.skinId,
             onSelect = { aoMudarOverlay(overlayConfig.copy(skinId = it as String)) },
             paleta = paleta

@@ -235,6 +235,16 @@ object Skins {
         tick++
     }
 
+    const val MAX_RAPIDAS = 3
+
+    /** Skins mostradas no menu de pausa: as marcadas (max 3) + a ativa. Sem marcacao, as embutidas. */
+    fun doMenuRapido(rapidas: List<String>?, ativaId: String): List<SkinDeControles> {
+        val marcadas = rapidas.orEmpty().mapNotNull { id -> todas.firstOrNull { it.id == id } }
+        val base = (if (marcadas.isEmpty()) embutidas else marcadas).take(MAX_RAPIDAS)
+        val ativa = todas.firstOrNull { it.id == ativaId }
+        return if (ativa != null && base.none { it.id == ativa.id }) base + ativa else base
+    }
+
     fun porId(id: String?): SkinDeControles =
         todas.firstOrNull { it.id == id } ?: SkinClassica16Bit
 }
