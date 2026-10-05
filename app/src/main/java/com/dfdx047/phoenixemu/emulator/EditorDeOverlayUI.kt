@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -57,7 +58,8 @@ fun EditorDeOverlayUI(
     corPrimaria: Color,
     corAcento: Color,
     onSave: (OverlayConfigNova) -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    fundoOpaco: Boolean = false
 ) {
     // Undo/Redo stacks
     var history by remember { mutableStateOf(listOf(configInicial.controles)) }
@@ -100,7 +102,7 @@ fun EditorDeOverlayUI(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.5f))
+            .background(Color.Black.copy(alpha = if (fundoOpaco) 0.92f else 0.5f))
             .focusRequester(focusRequester)
             .focusable()
             .onKeyEvent { event ->
@@ -249,11 +251,16 @@ fun EditorDeOverlayUI(
                             .pointerInput(controle.id) {
                                 detectDragGestures(
                                     onDragStart = { state = state.copy(selectedId = controle.id) },
-                                    onDragEnd = { /* Snapshot for undo */ pushState(state.controles) }
+                                    onDragEnd = {
+                                        val atual = state.controles.first { it.id == controle.id }
+                                        val mudou = atual.x != controle.x || atual.y != controle.y
+                                        if (mudou) pushState(state.controles)
+                                    }
                                 ) { mudanca, arrasto ->
                                     mudanca.consume()
-                                    var newX = controle.x + (arrasto.x / w)
-                                    var newY = controle.y + (arrasto.y / h)
+                                    val atual = state.controles.first { it.id == controle.id }
+                                    var newX = atual.x + (arrasto.x / w)
+                                    var newY = atual.y + (arrasto.y / h)
 
                                     if (state.snapToGrid) {
                                         // Converter para px, snap, voltar para fração
@@ -350,10 +357,22 @@ fun PropriedadesControleDialog(
                 }
 
                 Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { onSalvar(controle.copy(x = 1f - controle.x)) }) { Text("Espelhar X") }
-                    OutlinedButton(onClick = { onSalvar(controle.copy(x = 0.5f)) }) { Text("Centrar X") }
-                    OutlinedButton(onClick = { onSalvar(controle.copy(y = 0.5f)) }) { Text("Centrar Y") }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 4.dp),
+                        onClick = { onSalvar(controle.copy(x = 1f - controle.x)) }
+                    ) { Text("Espelhar X", maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                    OutlinedButton(modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 4.dp),
+                        onClick = { onSalvar(controle.copy(x = 0.5f)) }
+                    ) { Text("Centro X", maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                    OutlinedButton(modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 4.dp),
+                        onClick = { onSalvar(controle.copy(y = 0.5f)) }
+                    ) { Text("Centro Y", maxLines = 1, overflow = TextOverflow.Ellipsis) }
                 }
             }
         },

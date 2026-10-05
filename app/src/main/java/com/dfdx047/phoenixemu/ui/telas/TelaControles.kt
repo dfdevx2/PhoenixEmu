@@ -25,6 +25,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
@@ -379,21 +381,31 @@ private fun EditorDoOverlay(prefs: Preferencias) {
     var editandoLayout by remember { mutableStateOf(false) }
 
     if (editandoLayout) {
-        com.dfdx047.phoenixemu.emulator.EditorDeOverlayUI(
-            configInicial = config,
-            corPrimaria = MaterialTheme.colorScheme.primary,
-            corAcento = MaterialTheme.colorScheme.secondary,
-            onSave = { 
-                audio.playClick()
-                prefs.definirOverlay(it)
-                editandoLayout = false 
-            },
-            onCancel = { 
-                audio.playClick()
-                editandoLayout = false 
+        Dialog(
+            onDismissRequest = { editandoLayout = false },
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false
+            )
+        ) {
+            Box(Modifier.fillMaxSize()) {
+                com.dfdx047.phoenixemu.emulator.EditorDeOverlayUI(
+                    configInicial = config,
+                    corPrimaria = MaterialTheme.colorScheme.primary,
+                    corAcento = MaterialTheme.colorScheme.secondary,
+                    fundoOpaco = true,
+                    onSave = {
+                        audio.playClick()
+                        prefs.definirOverlay(it)
+                        editandoLayout = false
+                    },
+                    onCancel = {
+                        audio.playClick()
+                        editandoLayout = false
+                    }
+                )
             }
-        )
-        return
+        }
     }
 
     CartaoDeVidro {
