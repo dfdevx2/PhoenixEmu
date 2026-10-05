@@ -366,7 +366,9 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx
     var secaoIndice by rememberSaveable { mutableIntStateOf(Secao.BIBLIOTECA.ordinal) }
     val secao = Secao.entries[secaoIndice]
 
-    var sistemaIndice by rememberSaveable { mutableIntStateOf(0) } // 0 = Todos
+    var sistemaIndice by rememberSaveable {
+        mutableIntStateOf(prefs.sistemaIdx.value.coerceIn(0, Sistema.entries.size))
+    } // 0 = Todos
     var busca by rememberSaveable { mutableStateOf("") }
     var menuDeOrdenacaoAberto by remember { mutableStateOf(false) }
     // Guardamos o proprio Jogo, nao o id: com a lista vindo do banco ja
@@ -685,7 +687,7 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx
                                         DialogoDeFiltros(
                                             rotulosDeSistema = rotulosDeSistema,
                                             sistemaIndice = sistemaIndice,
-                                            onSistema = { idx -> audio.playSwipe(); sistemaIndice = idx },
+                                            onSistema = { idx -> audio.playSwipe(); sistemaIndice = idx; prefs.definirSistemaIdx(idx) },
                                             filtro = filtro,
                                             onFiltro = { f -> audio.playClick(); prefs.definirFiltro(f) },
                                             ordenacao = ordenacao,
@@ -764,7 +766,7 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx
                                     SeletorSegmentado(
                                         opcoes = rotulosDeSistema,
                                         indiceSelecionado = sistemaIndice,
-                                        onSelecionar = { audio.playSwipe(); sistemaIndice = it }
+                                        onSelecionar = { audio.playSwipe(); sistemaIndice = it; prefs.definirSistemaIdx(it) }
                                     )
                                     FiltroBiblioteca.entries.forEach { opcao ->
                                         ChipDeVidro(

@@ -56,6 +56,7 @@ private val K_FILTRO = stringPreferencesKey("filtro_biblioteca")
 private val K_ORDENACAO = stringPreferencesKey("ordenacao_biblioteca")
 private val K_PROPORCAO = intPreferencesKey("proporcao_tela_idx")
 private val K_FILTRO_VIDEO = intPreferencesKey("filtro_video_idx")
+private val K_SISTEMA_IDX = intPreferencesKey("sistema_biblioteca_idx")
 private val K_PASTAS = stringSetPreferencesKey("pastas_roms_uris")
 private val K_PRIMEIRA_EXECUCAO = booleanPreferencesKey("primeira_execucao_concluida")
 private val K_MAPEAMENTO = stringPreferencesKey("mapeamento_controle")
@@ -238,6 +239,10 @@ class Preferencias private constructor(context: Context) {
 
     fun definirProporcaoTela(indice: Int) = editar { it[K_PROPORCAO] = indice }
     fun definirFiltroVideo(indice: Int) = editar { it[K_FILTRO_VIDEO] = indice }
+
+    val sistemaIdx: StateFlow<Int> = derivar(0) { it[K_SISTEMA_IDX] ?: 0 }
+
+    fun definirSistemaIdx(indice: Int) = editar { it[K_SISTEMA_IDX] = indice }
 
     // ---------------------------------------------------------- pastas SAF
     val pastasFluxo: StateFlow<Set<String>> =
