@@ -49,6 +49,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
@@ -1034,6 +1035,31 @@ private fun TituloFlutuante(texto: String) {
     }
 }
 
+/**
+ * Capa inteira (sem cortar) sobre um fundo desfocado da propria capa.
+ * Capas de SNES sao mais largas que o cartao; com Crop perdiam as laterais.
+ */
+@Composable
+private fun CapaInteira(model: Any?, descricao: String, modifier: Modifier = Modifier) {
+    Box(modifier) {
+        AsyncImage(
+            model = model,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize()
+                .blur(24.dp)
+                .alpha(0.55f)
+        )
+        AsyncImage(
+            model = model,
+            contentDescription = descricao,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+}
+
 @Composable
 private fun Wallpaper(uri: String, desfoque: Float, opacidade: Float) {
     val context = LocalContext.current
@@ -1141,7 +1167,16 @@ fun TelaJogos(
         // GridCells.Fixed com a contagem calculada, e nao Adaptive: a
         // navegacao por D-pad precisa saber quantas colunas existem para
         // "descer uma fileira" significar alguma coisa.
-        val colunas = (((larguraTotal - 32.dp) / (156.dp + 14.dp)).toInt()).coerceIn(2, 8)
+        // Formato unico para a grade inteira, decidido pelo console dominante:
+        // SNES (capas deitadas) -> cartoes largos; NES -> cartoes em pe.
+        val larga = remember(jogos) { jogos.count { it.sistema == Sistema.SNES } * 2 > jogos.size }
+        val colunas = if (larga) {
+            (((larguraTotal - 32.dp) / (230.dp + 14.dp)).toInt()).coerceIn(2, 6)
+        } else {
+            (((larguraTotal - 32.dp) / (156.dp + 14.dp)).toInt()).coerceIn(2, 8)
+        }
+        val larguraCartao = (larguraTotal - 32.dp - 14.dp * (colunas - 1)) / colunas
+        val alturaCartao = larguraCartao / (if (larga) 1.4f else 0.8f) + 56.dp
 
         // A lista inteira e UM alvo de foco. Quem se movimenta dentro dela e
         // o indice, nao o sistema de foco.
@@ -1263,6 +1298,7 @@ fun TelaJogos(
                                 val jogo = jogos[indice]
                                 CartaoDeJogo(
                                     jogo = jogo,
+                                    altura = alturaCartao,
                                     modifier = Modifier.entradaDeCartao(indice),
                                     selecionado = indice == indiceSelecionado,
                                     onClicar = { onSelecionar(indice); onAbrir(jogo) },
@@ -1289,6 +1325,7 @@ fun TelaJogos(
                             val jogo = jogos[indice]
                             CartaoDeJogo(
                                 jogo = jogo,
+                                altura = alturaCartao,
                                 modifier = Modifier.entradaDeCartao(indice),
                                 selecionado = indice == indiceSelecionado,
                                 onClicar = { onSelecionar(indice); onAbrir(jogo) },
@@ -1373,8 +1410,13 @@ private fun CarrosselXmb(
         val alturaDisponivelDp = maxHeight.value
 
         // calculo direto (sem estados externos mutableFloatStateOf)
-        val alturaDaCapa = ((alturaDisponivelDp - 8f) * FATOR_CAPA_XMB).coerceIn(120f, 560f)
-        val larguraDaCapa = (alturaDaCapa * 0.78f).coerceAtMost(larguraDaTelaDp * 0.42f)
+        // Formato unico para o carrossel inteiro (nada muda de tamanho ao carregar capas).
+        // SNES dominante: caixas largas (capas do SNES sao deitadas); senao, em pe.
+        val larga = remember(jogos) { jogos.count { it.sistema == Sistema.SNES } * 2 > jogos.size }
+        val alturaBase = ((alturaDisponivelDp - 8f) * FATOR_CAPA_XMB).coerceIn(120f, 560f)
+        val larguraBase = (alturaBase * 0.78f).coerceAtMost(larguraDaTelaDp * 0.42f)
+        val larguraDaCapa = if (larga) minOf(larguraBase * 1.5f, larguraDaTelaDp * 0.46f) else larguraBase
+        val alturaDaCapa = if (larga) larguraDaCapa / 1.4f else alturaBase
 
         // TEMPORARIO: remover — log de dimensoes
         Log.i("PhoenixUi", "xmb maxH=${maxHeight.value} maxW=${maxWidth.value} topo=$paddingTopDp base=$paddingBottomDp capaH=$alturaDaCapa capaW=$larguraDaCapa folgaLateral=${(maxWidth.value - larguraDaCapa) / 2f}")
@@ -1657,10 +1699,9 @@ fun CartaoDeJogo(
                     val pedido = remember(fonteDaCapa) {
                         ImageRequest.Builder(context).data(fonteDaCapa).crossfade(true).build()
                     }
-                    AsyncImage(
+                    CapaInteira(
                         model = pedido,
-                        contentDescription = stringResource(R.string.cartao_capa, jogo.nome),
-                        contentScale = ContentScale.Crop,
+                        descricao = stringResource(R.string.cartao_capa, jogo.nome),
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
@@ -1765,10 +1806,9 @@ fun CartaoDeJogo(
                         val pedido = remember(fonteDaCapa) {
                             ImageRequest.Builder(context).data(fonteDaCapa).crossfade(true).build()
                         }
-                        AsyncImage(
+                        CapaInteira(
                             model = pedido,
-                            contentDescription = stringResource(R.string.cartao_capa, jogo.nome),
-                            contentScale = ContentScale.Crop,
+                            descricao = stringResource(R.string.cartao_capa, jogo.nome),
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
