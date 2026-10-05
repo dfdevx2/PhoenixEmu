@@ -532,4 +532,5 @@
     <string name="ra_tentar_novamente">Tentar de novo</string>
     <string name="ra_mostrar_todas">Mostrar todas (%1$d)</string>
     <string name="ra_mostrar_menos">Mostrar menos</string>
+    <string name="conquista_desbloqueada">Conquista desbloqueada</string>
 </resources>

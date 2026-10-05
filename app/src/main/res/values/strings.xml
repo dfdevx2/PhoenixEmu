@@ -538,4 +538,5 @@
     <string name="ra_tentar_novamente">Try again</string>
     <string name="ra_mostrar_todas">Show all (%1$d)</string>
     <string name="ra_mostrar_menos">Show less</string>
+    <string name="conquista_desbloqueada">Achievement unlocked</string>
 </resources>
