@@ -522,4 +522,9 @@
     <string name="ajustes_op_filtro_scanlines">Scanlines</string>
     <string name="ajustes_op_filtro_crt">CRT</string>
     <string name="ajustes_op_filtro_vizinho">Pixels brutos</string>
+    <string name="ra_erro_chave">Chave da API ou usuário inválidos.</string>
+    <string name="ra_erro_rede">Sem conexão com a internet.</string>
+    <string name="ra_erro_usuario">Usuário não encontrado.</string>
+    <string name="ra_erro_generico">Não foi possível falar com o RetroAchievements. Tente de novo.</string>
+    <string name="ra_chave_dica">Use a sua Web API Key (retroachievements.org &gt; Settings &gt; Keys), não a senha da conta.</string>
 </resources>

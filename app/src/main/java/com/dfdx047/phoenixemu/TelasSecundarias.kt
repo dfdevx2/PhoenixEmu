@@ -1265,6 +1265,8 @@ fun TelaRetroAchievements(jogos: List<Jogo>) {
     var chave by remember { mutableStateOf("") }
     var chaveVisivel by remember { mutableStateOf(false) }
     var logado by remember { mutableStateOf(prefsRa.getBoolean("isLogged", false)) }
+    var validando by remember { mutableStateOf(false) }
+    var erroLogin by remember { mutableStateOf<Int?>(null) }
 
     // Jogos "abertos" = tempo > 0 ou ultimo jogado
     val jogosAbertos = remember(jogos) {
@@ -1311,7 +1313,7 @@ fun TelaRetroAchievements(jogos: List<Jogo>) {
                         )
                         OutlinedTextField(
                         value = usuario,
-                        onValueChange = { usuario = it },
+                        onValueChange = { usuario = it; erroLogin = null },
                         label = { Text(stringResource(R.string.ra_usuario)) },
                         leadingIcon = { Icon(Icons.Default.Person, null) },
                         singleLine = true,
@@ -1319,7 +1321,7 @@ fun TelaRetroAchievements(jogos: List<Jogo>) {
                     )
                     OutlinedTextField(
                         value = chave,
-                        onValueChange = { chave = it },
+                        onValueChange = { chave = it; erroLogin = null },
                         label = { Text(stringResource(R.string.ra_api_key)) },
                         leadingIcon = { Icon(Icons.Default.Lock, null) },
                         singleLine = true,
@@ -1340,45 +1342,50 @@ fun TelaRetroAchievements(jogos: List<Jogo>) {
                         },
                         modifier = Modifier.fillMaxWidth()
                     )
+                    Text(
+                        stringResource(R.string.ra_chave_dica),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    erroLogin?.let { msg ->
+                        Text(
+                            stringResource(msg),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
                     Button(
+                        enabled = !validando && usuario.isNotBlank() && chave.isNotBlank(),
                         onClick = {
-                            prefsRa.edit().putString("username", usuario).apply()
-                            prefsRa.edit().putString("api_key", chave).apply()
-                            prefsRa.edit().putBoolean("isLogged", true).apply()
-                            logado = true
-                            audio.playClick()
+                            validando = true
+                            erroLogin = null
+                            scope.launch {
+                                when (val r = com.dfdx047.phoenixemu.ra.RaApi.validarConta(usuario.trim(), chave.trim())) {
+                                    is com.dfdx047.phoenixemu.ra.RaResultado.Ok -> {
+                                        com.dfdx047.phoenixemu.ra.RaCredenciais.salvar(context, r.valor.usuario, chave.trim())
+                                        usuario = r.valor.usuario
+                                        chave = ""
+                                        logado = true
+                                        audio.playClick()
+                                    }
+                                    is com.dfdx047.phoenixemu.ra.RaResultado.Erro -> erroLogin = when (r.tipo) {
+                                        com.dfdx047.phoenixemu.ra.RaErro.CHAVE_INVALIDA -> R.string.ra_erro_chave
+                                        com.dfdx047.phoenixemu.ra.RaErro.SEM_REDE -> R.string.ra_erro_rede
+                                        com.dfdx047.phoenixemu.ra.RaErro.NAO_ENCONTRADO -> R.string.ra_erro_usuario
+                                        else -> R.string.ra_erro_generico
+                                    }
+                                }
+                                validando = false
+                            }
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(stringResource(R.string.ra_entrar))
+                        if (validando) {
+                            androidx.compose.material3.CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                        } else {
+                            Text(stringResource(R.string.ra_entrar))
+                        }
                     }
-                    if (prefsRa.getString("username", "") != null) {
-                        Text(
-                            text = usuario,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Button(
-                        onClick = {
-                            prefsRa.edit().clear().apply()
-                            logado = false
-                            audio.playClick()
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error
-                        )
-                    ) {
-                        Text(stringResource(R.string.ra_sair))
-                    }
-                    Spacer(Modifier.height(24.dp))
-                    Icon(
-                        imageVector = Icons.Default.AccountCircle,
-                        contentDescription = null,
-                        modifier = Modifier.size(100.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                    )
                 }
                 }
             }
