@@ -19,6 +19,7 @@ add_library(phoenix_emu SHARED
     ambiente.cpp
     video_renderer.cpp
     audio_output.cpp
+    ra_bridge.cpp
 )
 
 target_include_directories(phoenix_emu PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

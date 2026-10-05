@@ -19,6 +19,10 @@ object RaCredenciais {
         c.getSharedPreferences(ARQ, Context.MODE_PRIVATE).edit()
             .putString("username", usuario).putString("api_key", chave).putBoolean("isLogged", true).apply()
     }
+    fun token(c: Context): String = c.getSharedPreferences(ARQ, Context.MODE_PRIVATE).getString("token", "") ?: ""
+    fun salvarToken(c: Context, token: String) {
+        c.getSharedPreferences(ARQ, Context.MODE_PRIVATE).edit().putString("token", token).apply()
+    }
     fun sair(c: Context) {
         c.getSharedPreferences(ARQ, Context.MODE_PRIVATE).edit().clear().apply()
     }

@@ -42,6 +42,10 @@ public:
     void salvarSram(const std::string &caminho);
 
     void reiniciar();
+
+    /** Acesso a memoria do core (retro_get_memory_data/size), usado pelo RetroAchievements. */
+    void *memoriaDados(unsigned id) const;
+    size_t memoriaTamanho(unsigned id) const;
     void definirPausa(bool pausado);
 
     /** Tamanho do estado de save-state (0 se indisponivel). */

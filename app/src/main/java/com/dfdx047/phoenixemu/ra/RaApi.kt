@@ -119,6 +119,48 @@ object RaApi {
         }
     }
 
+    private suspend fun post(url: String, corpo: String): RaResultado<JsonElement> = withContext(Dispatchers.IO) {
+        var con: HttpURLConnection? = null
+        try {
+            val c = URL(url).openConnection() as HttpURLConnection
+            con = c
+            c.requestMethod = "POST"
+            c.doOutput = true
+            c.connectTimeout = 10_000
+            c.readTimeout = 15_000
+            c.setRequestProperty("User-Agent", UA)
+            c.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+            c.outputStream.use { it.write(corpo.toByteArray(Charsets.UTF_8)) }
+            val code = c.responseCode
+            if (code == 401 || code == 403) return@withContext RaResultado.Erro(RaErro.CHAVE_INVALIDA)
+            if (code == 429) return@withContext RaResultado.Erro(RaErro.LIMITE)
+            if (code !in 200..299) return@withContext RaResultado.Erro(RaErro.SERVIDOR, "HTTP $code")
+            val texto = c.inputStream.bufferedReader().use { it.readText() }
+            RaResultado.Ok(JsonParser.parseString(texto))
+        } catch (e: IOException) {
+            RaResultado.Erro(RaErro.SEM_REDE, e.message)
+        } catch (e: Exception) {
+            RaResultado.Erro(RaErro.RESPOSTA_INVALIDA, e.message)
+        } finally {
+            con?.disconnect()
+        }
+    }
+
+    /** Troca usuario + senha por um token de login (usado pelo rcheevos no jogo). A senha nunca e guardada. */
+    suspend fun obterToken(usuario: String, senha: String): RaResultado<String> {
+        val r = post("$BASE/dorequest.php", "r=login2&u=${enc(usuario)}&p=${enc(senha)}")
+        return when (r) {
+            is RaResultado.Erro -> r
+            is RaResultado.Ok -> {
+                val o = r.valor.objOuNull() ?: return RaResultado.Erro(RaErro.RESPOSTA_INVALIDA)
+                val ok = o.get("Success")?.takeIf { it.isJsonPrimitive }?.asBoolean ?: false
+                val token = o.str("Token")
+                if (ok && !token.isNullOrBlank()) RaResultado.Ok(token)
+                else RaResultado.Erro(RaErro.CHAVE_INVALIDA, o.str("Error"))
+            }
+        }
+    }
+
     /** Valida usuario + chave da Web API. */
     suspend fun validarConta(usuario: String, chave: String): RaResultado<RaPerfil> {
         val r = get("$BASE/API/API_GetUserProfile.php?u=${enc(usuario)}&y=${enc(chave)}")

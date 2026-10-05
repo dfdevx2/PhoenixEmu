@@ -1,4 +1,5 @@
 #include "libretro_core.h"
+#include "ra_bridge.h"
 #include "video_renderer.h"
 #include "audio_output.h"
 #include <android/log.h>
@@ -125,6 +126,7 @@ bool LibretroCore::iniciar() {
 
 void LibretroCore::rodarQuadro() {
     if (run_ != nullptr) run_();
+    phoenix_ra_depois_do_quadro();
 }
 
 bool LibretroCore::carregarJogo(const void* dados, size_t tamanho, const char* caminho) {
@@ -243,6 +245,15 @@ void LibretroCore::salvarSram(const std::string &caminho) {
 
 void LibretroCore::reiniciar() {
     if (reset_) reset_();
+    phoenix_ra_resetou();
+}
+
+void *LibretroCore::memoriaDados(unsigned id) const {
+    return get_memory_data_ != nullptr ? get_memory_data_(id) : nullptr;
+}
+
+size_t LibretroCore::memoriaTamanho(unsigned id) const {
+    return get_memory_size_ != nullptr ? get_memory_size_(id) : 0;
 }
 
 void LibretroCore::definirPausa(bool /*pausado*/) {

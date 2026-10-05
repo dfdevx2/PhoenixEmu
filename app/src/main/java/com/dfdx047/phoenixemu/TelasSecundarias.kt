@@ -1334,6 +1334,7 @@ fun TelaRetroAchievements(jogos: List<Jogo>) {
     var logado by remember { mutableStateOf(prefsRa.getBoolean("isLogged", false)) }
     var validando by remember { mutableStateOf(false) }
     var erroLogin by remember { mutableStateOf<Int?>(null) }
+    var senha by remember { mutableStateOf("") }
 
     // Jogos "abertos" = tempo > 0 ou ultimo jogado
     val jogosAbertos = remember(jogos) {
@@ -1472,6 +1473,21 @@ fun TelaRetroAchievements(jogos: List<Jogo>) {
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    OutlinedTextField(
+                        value = senha,
+                        onValueChange = { senha = it; erroLogin = null },
+                        label = { Text(stringResource(R.string.ra_senha)) },
+                        leadingIcon = { Icon(Icons.Default.Lock, null) },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        stringResource(R.string.ra_senha_dica),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     erroLogin?.let { msg ->
                         Text(
                             stringResource(msg),
@@ -1487,12 +1503,26 @@ fun TelaRetroAchievements(jogos: List<Jogo>) {
                             scope.launch {
                                 when (val r = com.dfdx047.phoenixemu.ra.RaApi.validarConta(usuario.trim(), chave.trim())) {
                                     is com.dfdx047.phoenixemu.ra.RaResultado.Ok -> {
-                                        com.dfdx047.phoenixemu.ra.RaCredenciais.salvar(context, r.valor.usuario, chave.trim())
-                                        usuario = r.valor.usuario
-                                        chave = ""
-                                        logado = true
-                                        audio.playClick()
-                                    }
+                    var tokenOk = true
+                    if (senha.isNotBlank()) {
+                        when (val t = com.dfdx047.phoenixemu.ra.RaApi.obterToken(r.valor.usuario, senha)) {
+                            is com.dfdx047.phoenixemu.ra.RaResultado.Ok ->
+                                com.dfdx047.phoenixemu.ra.RaCredenciais.salvarToken(context, t.valor)
+                            is com.dfdx047.phoenixemu.ra.RaResultado.Erro -> {
+                                tokenOk = false
+                                erroLogin = if (t.tipo == RaErro.SEM_REDE) R.string.ra_erro_rede else R.string.ra_erro_senha
+                            }
+                        }
+                    }
+                    if (tokenOk) {
+                        com.dfdx047.phoenixemu.ra.RaCredenciais.salvar(context, r.valor.usuario, chave.trim())
+                        usuario = r.valor.usuario
+                        chave = ""
+                        senha = ""
+                        logado = true
+                        audio.playClick()
+                    }
+                }
                                     is com.dfdx047.phoenixemu.ra.RaResultado.Erro -> erroLogin = when (r.tipo) {
                                         com.dfdx047.phoenixemu.ra.RaErro.CHAVE_INVALIDA -> R.string.ra_erro_chave
                                         com.dfdx047.phoenixemu.ra.RaErro.SEM_REDE -> R.string.ra_erro_rede

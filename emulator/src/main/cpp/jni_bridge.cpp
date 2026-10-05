@@ -21,6 +21,7 @@
 #include "libretro_core.h"
 #include "video_renderer.h"
 #include "audio_output.h"
+#include "ra_bridge.h"
 
 std::atomic<uint32_t> g_botoes[2] = {};
 std::atomic<bool> g_pedido_reset{false};
@@ -185,6 +186,7 @@ void lacoEmulador() {
             // Pausa REAL: nao roda retro_run, nao avanca relógio de pacing.
             // Pedidos de estado ja foram atendidos acima.
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            phoenix_ra_idle();
 
             auto agora = clock::now();
             if (agora >= proximo_relato) {
@@ -637,6 +639,14 @@ Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeDefinirVolume(JNIEnv *
 JNIEXPORT void JNICALL
 Java_com_dfdx047_phoenixemu_emulator_NucleoLibretro_nativeDefinirFiltroVideo(JNIEnv * /*env*/, jobject /*thiz*/, jint modo) {
     phoenix_video_definir_filtro(modo);
+}
+
+JNIEXPORT jboolean JNICALL
+Java_com_dfdx047_phoenixemu_emulator_RaNativo_nativeRaIniciar(
+    JNIEnv *env, jobject /*thiz*/, jstring usuario, jstring token, jstring hash, jint consoleId, jboolean hardcore) {
+    return phoenix_ra_iniciar(env, &g_nucleo, paraStdString(env, usuario), paraStdString(env, token),
+                              paraStdString(env, hash), consoleId, hardcore == JNI_TRUE)
+               ? JNI_TRUE : JNI_FALSE;
 }
 
 } // extern "C"

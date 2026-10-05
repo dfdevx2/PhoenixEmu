@@ -563,4 +563,7 @@
     <string name="conq_vol_alto">High</string>
     <string name="conq_pos_topo_esquerda">Top left</string>
     <string name="conq_pos_baixo_esquerda">Bottom left</string>
+    <string name="ra_senha">Password (optional)</string>
+    <string name="ra_senha_dica">Only needed for live achievements while you play. It is used once to get a login token and is never stored.</string>
+    <string name="ra_erro_senha">Wrong password.</string>
 </resources>

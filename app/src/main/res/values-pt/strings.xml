@@ -557,4 +557,7 @@
     <string name="conq_vol_alto">Alto</string>
     <string name="conq_pos_topo_esquerda">Topo, esquerda</string>
     <string name="conq_pos_baixo_esquerda">Baixo, esquerda</string>
+    <string name="ra_senha">Senha (opcional)</string>
+    <string name="ra_senha_dica">Só é necessária para as conquistas ao vivo durante o jogo. É usada uma vez para obter um token de login e nunca é guardada.</string>
+    <string name="ra_erro_senha">Senha incorreta.</string>
 </resources>
