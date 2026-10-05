@@ -11,12 +11,15 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.zIndex
 import androidx.compose.animation.AnimatedVisibility
@@ -611,25 +614,36 @@ fun PhoenixApp(prefs: Preferencias, biblioteca: BibliotecaStore, trocas: kotlinx
 
                 // Nada aqui dentro pode ser superficie de vidro com desfoque.
                 CompositionLocalProvider(LocalFundo provides null) {
+                    val reduzirNaTroca by prefs.reduzirEfeitos.collectAsStateWithLifecycle()
                     AnimatedContent(
                         targetState = secao,
-                        transitionSpec = { fadeIn() togetherWith fadeOut() },
+                        transitionSpec = {
+                            if (reduzirNaTroca) {
+                                fadeIn(snap()) togetherWith fadeOut(snap())
+                            } else {
+                                ((fadeIn(tween(220, delayMillis = 70)) + scaleIn(initialScale = 0.985f, animationSpec = tween(220, delayMillis = 70))) togetherWith fadeOut(tween(90))) using
+                                    SizeTransform(clip = false) { _, _ -> snap() }
+                            }
+                        },
                         label = "troca de secao"
                     ) { alvo ->
+                        val xmbDoConteudo = modoVisual == ModoVisual.XMB && alvo == Secao.BIBLIOTECA
+                        val topoDoConteudo = if (alvo != Secao.BIBLIOTECA) 72.dp else if (xmbDoConteudo) TOPO_XMB else 124.dp
+                        val rodapeDoConteudo = if (xmbDoConteudo) BASE_XMB else if (tipoDeControle == TipoDeControle.NENHUM) 104.dp else 148.dp
                         when (alvo) {
                             Secao.BIBLIOTECA -> TelaJogos(
                                 jogos = jogosVisiveis,
                                 modoVisual = modoVisual,
                                 estadoGrade = estadoGrade,
                                 estadoCarrossel = estadoCarrossel,
-                                recuoSuperior = alturaDoTopo,
-                                recuoInferior = alturaDoRodape,
+                                recuoSuperior = topoDoConteudo,
+                                recuoInferior = rodapeDoConteudo,
                                 indiceSelecionado = indiceSelecionado,
                                 comControle = tipoDeControle != TipoDeControle.NENHUM,
                                 onSelecionar = { indiceSelecionado = it },
                                 onAbrir = { jogoParaJogar = it },
                                 onOpcoes = { jogoDoMenu = it },
-                                chrome = if (secao == Secao.BIBLIOTECA) chrome else null,
+                                chrome = if (alvo == Secao.BIBLIOTECA) chrome else null,
                                 topoFixoNaGrade = topoFixoNaGrade,
                                 focoDaLista = focoDaLista
                             )
@@ -1076,8 +1090,8 @@ fun TelaJogos(
             return@LaunchedEffect
         }
         if (reduzirEfeitosLista) return@LaunchedEffect
-        fadeDaLista.snapTo(0.35f)
-        fadeDaLista.animateTo(1f, tween(Anim.RAPIDA_MS))
+        fadeDaLista.snapTo(0.6f)
+        fadeDaLista.animateTo(1f, tween(Anim.MEDIA_MS))
     }
 
     val recuo = PaddingValues(
