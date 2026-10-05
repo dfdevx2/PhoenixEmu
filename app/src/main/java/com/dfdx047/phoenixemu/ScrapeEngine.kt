@@ -211,12 +211,118 @@ object RetroScraper {
             RomParser.urlCapaLibretro(analise.nomeLimpo, sistema)
         )
 
+        urlPeloIndice(analise.nomeLimpo, sistema)?.let { return it }
+
         for (url in candidatos) {
             if (existe(url)) return url
         }
 
         if (!rawgDisponivel) return null
         return buscarNaRawg(analise.nomeLimpo, sistema)
+    }
+
+    private val indices = java.util.concurrent.ConcurrentHashMap<Sistema, Map<String, List<String>>>()
+    private val falhasDeIndice = java.util.concurrent.ConcurrentHashMap<Sistema, Long>()
+    private val travaIndice = kotlinx.coroutines.sync.Mutex()
+
+    private fun chaveDeNome(nome: String): String {
+        var t = nome.lowercase()
+        t = t.replace(Regex("\\([^)]*\\)"), " ").replace(Regex("\\[[^\\]]*\\]"), " ")
+        t = t.replace(Regex(",\\s*the\\s*$"), "").replace(Regex("^\\s*the\\s+"), "")
+        t = t.replace(Regex("\\band\\b"), " ")
+        t = t.replace(Regex("\\b(viii|vii|iii|ii|iv|vi|ix|v)\\b")) { m ->
+            when (m.value) {
+                "ii" -> "2"; "iii" -> "3"; "iv" -> "4"; "v" -> "5"
+                "vi" -> "6"; "vii" -> "7"; "viii" -> "8"; "ix" -> "9"
+                else -> m.value
+            }
+        }
+        return t.replace(Regex("[^a-z0-9]"), "")
+    }
+
+    private fun pastaLibretro(sistema: Sistema): String =
+        RomParser.urlCapaLibretro("x", sistema).substringBeforeLast("/") + "/"
+
+    private suspend fun indiceDe(sistema: Sistema): Map<String, List<String>> {
+        indices[sistema]?.let { return it }
+        travaIndice.lock()
+        try {
+            indices[sistema]?.let { return it }
+            val agora = System.currentTimeMillis()
+            val falhou = falhasDeIndice[sistema]
+            if (falhou != null && agora - falhou < 30_000) return emptyMap()
+            val mapa = HashMap<String, MutableList<String>>()
+            try {
+                val cliente = http.newBuilder()
+                    .callTimeout(60, TimeUnit.SECONDS)
+                    .readTimeout(30, TimeUnit.SECONDS)
+                    .build()
+                val html = withContext(Dispatchers.IO) {
+                    cliente.newCall(Request.Builder().url(pastaLibretro(sistema)).build())
+                        .execute().use { r -> if (r.isSuccessful) (r.body?.string() ?: "") else "" }
+                }
+                Regex("href=\"([^\"]+?)\\.png\"").findAll(html).forEach { m ->
+                    val arq = Uri.decode(m.groupValues[1])
+                    mapa.getOrPut(chaveDeNome(arq)) { mutableListOf() }.add(arq)
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Indice do Libretro falhou", e)
+            }
+            if (mapa.isNotEmpty()) indices[sistema] = mapa else falhasDeIndice[sistema] = agora
+            Log.w(TAG, "Indice do Libretro $sistema: ${mapa.size} jogos")
+            return mapa
+        } finally {
+            travaIndice.unlock()
+        }
+    }
+
+    private fun distanciaDeEdicao(a: String, b: String): Int {
+        var prev = IntArray(b.length + 1) { it }
+        var cur = IntArray(b.length + 1)
+        for (i in 1..a.length) {
+            cur[0] = i
+            for (j in 1..b.length) {
+                val custo = if (a[i - 1] == b[j - 1]) 0 else 1
+                cur[j] = minOf(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + custo)
+            }
+            val t = prev; prev = cur; cur = t
+        }
+        return prev[b.length]
+    }
+
+    private fun achaAproximado(ind: Map<String, List<String>>, k: String): List<String>? {
+        if (k.length < 6) return null
+        val max = maxOf(2, k.length / 8)
+        val digitos = k.filter { it.isDigit() }
+        var melhor: String? = null
+        var menor = max + 1
+        for (c in ind.keys) {
+            if (kotlin.math.abs(c.length - k.length) > max) continue
+            if (c.filter { it.isDigit() } != digitos) continue
+            val d = distanciaDeEdicao(k, c)
+            if (d < menor) { menor = d; melhor = c }
+        }
+        return melhor?.let { ind[it] }
+    }
+
+    private suspend fun urlPeloIndice(nome: String, sistema: Sistema): String? {
+        val indice = indiceDe(sistema)
+        val chave = chaveDeNome(nome)
+        val lista = indice[chave] ?: achaAproximado(indice, chave) ?: return null
+        val ruins = Regex("\\((beta|proto|demo|sample|unl|pirate|alt|rev)")
+        fun nota(a: String): Int {
+            val l = a.lowercase()
+            var n = when {
+                "(usa" in l -> 0
+                "(world" in l -> 1
+                "(europe" in l -> 2
+                else -> 3
+            }
+            if (ruins.containsMatchIn(l)) n += 10
+            return n
+        }
+        val melhor = lista.minByOrNull { nota(it) } ?: return null
+        return pastaLibretro(sistema) + Uri.encode(melhor) + ".png"
     }
 
     private suspend fun existe(url: String): Boolean = withContext(Dispatchers.IO) {

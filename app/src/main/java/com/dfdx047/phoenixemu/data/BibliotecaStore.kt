@@ -262,6 +262,8 @@ class BibliotecaStore private constructor(context: Context) {
 
     suspend fun marcarSemCapa(id: String) = dao.marcarSemCapa(id)
 
+    suspend fun reabrirCapas() = dao.reabrirCapas()
+
     suspend fun definirIdentidade(id: String, crc32: String, hashRa: String) =
         dao.definirIdentidade(id, crc32, hashRa)
 
@@ -337,6 +339,7 @@ class BibliotecaStore private constructor(context: Context) {
             }
         } finally {
             _estadoScan.value = EstadoScan.Parado
+            runCatching { reabrirCapas() }
             Trabalhos.enfileirarCapas(app)
         }
     }
@@ -408,6 +411,7 @@ class BibliotecaStore private constructor(context: Context) {
             )
         } finally {
             _estadoScan.value = EstadoScan.Parado
+            runCatching { reabrirCapas() }
             Trabalhos.enfileirarCapas(app)
         }
     }

@@ -38,6 +38,7 @@ class CapaWorker(
         store.carregar()
 
         val pendentes = store.jogosSemCapa()
+        Log.w(TAG, "pendentes=${pendentes.size}")
         if (pendentes.isEmpty()) return Result.success()
 
         val pasta = pastaDeCapas(applicationContext)
@@ -77,6 +78,7 @@ class CapaWorker(
             }.getOrNull()
 
         if (url == null) {
+            Log.w(TAG, "sem capa: ${jogo.nomeArquivoOriginal}")
             store.marcarSemCapa(jogo.id)
             return
         }

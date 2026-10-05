@@ -181,6 +181,16 @@ interface JogoDao {
 
     @Query(
         """
+        UPDATE jogos
+        SET capa_pendente = 1
+        WHERE (capa_local IS NULL OR capa_local = '')
+          AND ausente = 0
+        """
+    )
+    suspend fun reabrirCapas()
+
+    @Query(
+        """
         SELECT * FROM jogos
         WHERE (hash_ra IS NULL OR hash_ra = '')
           AND ausente = 0
