@@ -183,6 +183,12 @@ object Emulador {
         intent.putExtra("phoenix.menu_alca", runBlocking { prefs.globalMenuAlca.first() })
         intent.putExtra("phoenix.menu_voltar", runBlocking { prefs.globalMenuVoltar.first() })
         intent.putExtra("phoenix.menu_gesto", runBlocking { prefs.globalMenuGesto.first() })
+        intent.putExtra("phoenix.conq_avisos", runBlocking { prefs.conqAvisos.first() })
+        intent.putExtra("phoenix.conq_som", runBlocking { prefs.conqSom.first() })
+        intent.putExtra("phoenix.conq_vibrar", runBlocking { prefs.conqVibrar.first() })
+        intent.putExtra("phoenix.conq_posicao", runBlocking { prefs.conqPosicao.first() })
+        intent.putExtra("phoenix.conq_duracao", runBlocking { prefs.conqDuracao.first() })
+        intent.putExtra("phoenix.conq_volume", runBlocking { prefs.conqVolume.first() })
         context.startActivity(intent)
     }
 

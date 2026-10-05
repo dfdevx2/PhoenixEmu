@@ -58,7 +58,7 @@ data class ConquistaAviso(
     val uid: Long = System.nanoTime()
 )
 
-enum class PosicaoAviso { TOPO_CENTRO, TOPO_DIREITA, BAIXO_CENTRO, BAIXO_DIREITA }
+enum class PosicaoAviso { TOPO_ESQUERDA, TOPO_CENTRO, TOPO_DIREITA, BAIXO_ESQUERDA, BAIXO_CENTRO, BAIXO_DIREITA }
 
 data class ConfigAvisoConquista(
     val ativo: Boolean = true,
@@ -139,10 +139,13 @@ fun BoxScope.PopupDeConquista(
     }
 
     val aviso = exibido ?: return
-    val noTopo = config.posicao == PosicaoAviso.TOPO_CENTRO || config.posicao == PosicaoAviso.TOPO_DIREITA
+    val noTopo = config.posicao == PosicaoAviso.TOPO_ESQUERDA || config.posicao == PosicaoAviso.TOPO_CENTRO ||
+        config.posicao == PosicaoAviso.TOPO_DIREITA
     val alinhamento = when (config.posicao) {
+        PosicaoAviso.TOPO_ESQUERDA -> Alignment.TopStart
         PosicaoAviso.TOPO_CENTRO -> Alignment.TopCenter
         PosicaoAviso.TOPO_DIREITA -> Alignment.TopEnd
+        PosicaoAviso.BAIXO_ESQUERDA -> Alignment.BottomStart
         PosicaoAviso.BAIXO_CENTRO -> Alignment.BottomCenter
         PosicaoAviso.BAIXO_DIREITA -> Alignment.BottomEnd
     }

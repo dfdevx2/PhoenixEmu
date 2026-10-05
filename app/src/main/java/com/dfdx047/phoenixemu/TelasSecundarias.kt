@@ -796,6 +796,67 @@ fun TelaConfiguracoes(prefs: Preferencias) {
                     )
                     HorizontalDivider()
                     
+                    RotuloComDica(R.string.ajustes_titulo_conquistas, R.string.ajustes_dica_conquistas)
+                    val conqAvisos by prefs.conqAvisos.collectAsStateWithLifecycle()
+                    val conqSom by prefs.conqSom.collectAsStateWithLifecycle()
+                    val conqVibrar by prefs.conqVibrar.collectAsStateWithLifecycle()
+                    val conqPosicao by prefs.conqPosicao.collectAsStateWithLifecycle()
+                    val conqDuracao by prefs.conqDuracao.collectAsStateWithLifecycle()
+                    val conqVolume by prefs.conqVolume.collectAsStateWithLifecycle()
+                    LinhaDeInterruptor(
+                        rotulo = R.string.conq_avisos,
+                        dica = R.string.conq_avisos_dica,
+                        marcado = conqAvisos,
+                        onMudar = { audio.playClick(); prefs.definirConqAvisos(it) }
+                    )
+                    LinhaDeInterruptor(
+                        rotulo = R.string.conq_som,
+                        dica = R.string.conq_som_dica,
+                        marcado = conqSom,
+                        onMudar = { audio.playClick(); prefs.definirConqSom(it) }
+                    )
+                    LinhaDeInterruptor(
+                        rotulo = R.string.conq_vibrar,
+                        dica = R.string.conq_vibrar_dica,
+                        marcado = conqVibrar,
+                        onMudar = { audio.playClick(); prefs.definirConqVibrar(it) }
+                    )
+                    RotuloComDica(R.string.conq_posicao, R.string.conq_posicao_dica)
+                    listOf(
+                        "TOPO_ESQUERDA" to R.string.conq_pos_topo_esquerda,
+                        "TOPO_CENTRO" to R.string.conq_pos_topo_centro,
+                        "TOPO_DIREITA" to R.string.conq_pos_topo_direita,
+                        "BAIXO_ESQUERDA" to R.string.conq_pos_baixo_esquerda,
+                        "BAIXO_CENTRO" to R.string.conq_pos_baixo_centro,
+                        "BAIXO_DIREITA" to R.string.conq_pos_baixo_direita
+                    ).forEach { (nome, rot) ->
+                        LinhaDeOpcaoString(
+                            rotulo = stringResource(rot),
+                            selecionado = conqPosicao == nome,
+                            onSelecionar = { audio.playClick(); prefs.definirConqPosicao(nome) }
+                        )
+                    }
+                    RotuloComDica(R.string.conq_duracao, R.string.conq_duracao_dica)
+                    listOf(2, 4, 6, 8).forEach { s ->
+                        LinhaDeOpcaoString(
+                            rotulo = stringResource(R.string.conq_segundos, s),
+                            selecionado = conqDuracao == s,
+                            onSelecionar = { audio.playClick(); prefs.definirConqDuracao(s) }
+                        )
+                    }
+                    RotuloComDica(R.string.conq_volume, R.string.conq_volume_dica)
+                    listOf(
+                        0.4f to R.string.conq_vol_baixo,
+                        0.7f to R.string.conq_vol_medio,
+                        1.0f to R.string.conq_vol_alto
+                    ).forEach { (v, rot) ->
+                        LinhaDeOpcaoString(
+                            rotulo = stringResource(rot),
+                            selecionado = kotlin.math.abs(conqVolume - v) < 0.05f,
+                            onSelecionar = { audio.playClick(); prefs.definirConqVolume(v) }
+                        )
+                    }
+                    HorizontalDivider()
                     RotuloComDica(R.string.ajustes_titulo_velocidade_ff, R.string.ajustes_dica_velocidade_ff)
                     val ffOpcoes = listOf(
                         2 to stringResource(R.string.ajustes_op_ff_2x),

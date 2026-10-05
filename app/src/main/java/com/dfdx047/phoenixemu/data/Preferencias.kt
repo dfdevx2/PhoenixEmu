@@ -544,6 +544,20 @@ class Preferencias private constructor(context: Context) {
     val globalMenuVoltar: StateFlow<Boolean> = derivar(true) { it[booleanPreferencesKey("aj_global_menu_voltar")] ?: true }
     val globalMenuGesto: StateFlow<Boolean> = derivar(true) { it[booleanPreferencesKey("aj_global_menu_gesto")] ?: true }
 
+    // ---- Avisos de conquista (globais) ----
+    val conqAvisos: StateFlow<Boolean> = derivar(true) { it[booleanPreferencesKey("conq_avisos")] ?: true }
+    val conqSom: StateFlow<Boolean> = derivar(true) { it[booleanPreferencesKey("conq_som")] ?: true }
+    val conqVibrar: StateFlow<Boolean> = derivar(true) { it[booleanPreferencesKey("conq_vibrar")] ?: true }
+    val conqPosicao: StateFlow<String> = derivar("TOPO_CENTRO") { it[stringPreferencesKey("conq_posicao")] ?: "TOPO_CENTRO" }
+    val conqDuracao: StateFlow<Int> = derivar(4) { it[intPreferencesKey("conq_duracao")] ?: 4 }
+    val conqVolume: StateFlow<Float> = derivar(1.0f) { it[floatPreferencesKey("conq_volume")] ?: 1.0f }
+    fun definirConqAvisos(v: Boolean) = editar { it[booleanPreferencesKey("conq_avisos")] = v }
+    fun definirConqSom(v: Boolean) = editar { it[booleanPreferencesKey("conq_som")] = v }
+    fun definirConqVibrar(v: Boolean) = editar { it[booleanPreferencesKey("conq_vibrar")] = v }
+    fun definirConqPosicao(v: String) = editar { it[stringPreferencesKey("conq_posicao")] = v }
+    fun definirConqDuracao(v: Int) = editar { it[intPreferencesKey("conq_duracao")] = v }
+    fun definirConqVolume(v: Float) = editar { it[floatPreferencesKey("conq_volume")] = v }
+
     companion object {
         const val BGM_PADRAO = 0.25f
         const val SFX_PADRAO = 0.50f

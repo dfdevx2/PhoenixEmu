@@ -549,6 +549,15 @@ class EmulatorActivity : ComponentActivity() {
         val menuEstilo = intent.getStringExtra("phoenix.menu_estilo") ?: "VIDRO"
         val menuDesfoque = intent.getFloatExtra("phoenix.menu_desfoque", 20f)
         val menuOpacidade = intent.getFloatExtra("phoenix.menu_opacidade", 1.0f)
+        val conqConfig = ConfigAvisoConquista(
+            ativo = intent.getBooleanExtra("phoenix.conq_avisos", true),
+            som = intent.getBooleanExtra("phoenix.conq_som", true),
+            vibrar = intent.getBooleanExtra("phoenix.conq_vibrar", true),
+            posicao = runCatching { PosicaoAviso.valueOf(intent.getStringExtra("phoenix.conq_posicao") ?: "") }
+                .getOrDefault(PosicaoAviso.TOPO_CENTRO),
+            duracaoMs = intent.getIntExtra("phoenix.conq_duracao", 4) * 1000L,
+            volume = intent.getFloatExtra("phoenix.conq_volume", 1.0f)
+        )
         val menuLado = intent.getStringExtra("phoenix.menu_lado") ?: "ESQUERDA"
         val menuTema = intent.getBooleanExtra("phoenix.menu_tema", true)
         val menuAlca = intent.getBooleanExtra("phoenix.menu_alca", true)
@@ -726,7 +735,7 @@ class EmulatorActivity : ComponentActivity() {
                     )
 
                     val filaConquistas = remember { androidx.compose.runtime.mutableStateListOf<ConquistaAviso>() }
-                    PopupDeConquista(fila = filaConquistas, corPrimaria = Color(temaCorPrimaria))
+                    PopupDeConquista(fila = filaConquistas, corPrimaria = Color(temaCorPrimaria), config = conqConfig)
                     if ((applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
                         LaunchedEffect(Unit) {
                             kotlinx.coroutines.delay(4000)
